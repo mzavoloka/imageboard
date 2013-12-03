@@ -8,8 +8,6 @@ sub wendy_handler
 }
 
 package ForumLogout;
-use strict;
-
 use Moose;
 extends 'ForumApp';
 

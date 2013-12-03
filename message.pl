@@ -8,7 +8,6 @@ sub wendy_handler
 }
 
 package ForumMessage;
-use strict;
 use Moose;
 extends 'ForumApp';
 
@@ -47,11 +46,11 @@ sub app_mode_post
                 my $content = $self -> arg( 'content' );
                 if( $subject and $content )
                 {
-                        $self -> post_message( $subject, &escapeHTML( $content ) );
+                        $self -> post_message( $subject, $content );
                         $output = $self -> ncrd( '/' );
                 } else
                 {
-                        &ar( SUBJECT => $subject, CONTENT => $content );
+                        &ar( SUBJECT => &escapeHTML( $subject ), CONTENT => &escapeHTML( $content ) );
                 	my $error_msg = 'FIELDS_ARE_NOT_FILLED';
                         $output = $self -> construct_page( middle_tpl => 'message', error_msg => $error_msg );
                 }

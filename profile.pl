@@ -8,7 +8,6 @@ sub wendy_handler
 }
 
 package ForumProfile;
-use strict;
 use Moose;
 extends 'ForumApp';
 

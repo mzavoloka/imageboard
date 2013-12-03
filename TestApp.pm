@@ -1,10 +1,13 @@
+package TestApp;
 use strict;
 
-package TestApp;
-use Moose;
-extends 'Wendy::App';
+use Data::Dumper;
+use Wendy::Db qw( dbconnect );
 
-sub _run_modes { [ 'default', 'tell_ip' , 'dump_self' ] }
+use Moose;
+extends 'ForumApp';
+
+sub _run_modes { [ 'default', 'tell_ip' , 'dump_self', 'littleorm' ] }
 
 sub app_mode_default
 {
@@ -27,8 +30,39 @@ sub app_mode_dump_self
 {
         my $self = shift;
 
-        use Data::Dumper;
-        return $self -> nctd( Dumper( $self -> arg( 'mode' ) ) );
+        return $self -> nctd( Dumper( $self ) );
 }
+
+sub app_mode_littleorm
+{
+        my $self = shift;
+        my $user = FModel::Users -> get( id => 80 );
+        
+        my $data = Dumper( $user );
+        $data .= $user -> name();
+        $user -> registered( '2014-01-01 00:00:00.000000' );
+        $user -> update();
+        $data .= "\n";
+
+        $data .= $user -> registered();
+        $data .= "\n";
+
+        # my $new_user = FModel::Users -> create( name => 'littleorm', password => 'orm', email => 'little@orm.org', registered => 'now()' );
+        # $data .= "\n";
+        # $data .= 'New user id: ' . $new_user -> id();
+
+        my $user_to_copy = FModel::Users -> get( name => 'bbb' );
+        my $copied_user = $user_to_copy -> copy( _debug => 1 );
+        $data .= 'SQL that will execute when calling method copy on user \'bbb\': ' . $copied_user;
+        $data .= "\n";
+
+        FModel::Users -> delete ( name => 'ccc' );
+
+        my @sessions = FModel::Sessions -> get();
+        $data .= "\n";
+
+        return $self -> nctd( $data );
+}
+
 
 1;

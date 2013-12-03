@@ -1,12 +1,15 @@
+package ForumApp;
 use strict;
 
-package ForumApp;
-
+use LittleORM::Db;
+use FModel::Users;
+use FModel::Sessions;
+use FModel::Messages;
 use Wendy::Templates::TT 'tt';
-use Wendy::Db ( 'wdbprepare', 'dbprepare', 'wdbconnect' );
+use Wendy::Db qw( wdbprepare dbprepare wdbconnect dbconnect );
 use Data::Dumper 'Dumper';
 use Wendy::Shorts qw( ar gr lm );
-use String::Random qw(random_regex random_string);
+use String::Random qw( random_regex random_string );
 
 use Moose;
 extends 'Wendy::App';
@@ -26,9 +29,18 @@ sub init
         {
                 $self -> init_user();
         }
+
         &lm();
 
+        LittleORM::Db -> init( &dbconnect() );
+
         return $rv;
+}
+
+sub cleanup
+{
+        my $self = shift;
+        # $self -> { 'DBH' } -> close();
 }
 
 sub construct_page
@@ -252,5 +264,6 @@ sub new_session_key
 
         return $string;
 }
+
 
 1;

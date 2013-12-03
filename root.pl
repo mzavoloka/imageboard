@@ -15,6 +15,7 @@ use Wendy::Templates::TT 'tt';
 use Wendy::Db qw( dbprepare );
 use Data::Dumper 'Dumper';
 use Wendy::Shorts 'ar';
+use CGI ( 'escapeHTML' );
 
 sub _run_modes { [ 'default' ] };
 
@@ -32,6 +33,7 @@ sub add_messages
 {
         my $self = shift;
 
+        # ORM join
   	my $sth = &dbprepare( "SELECT m.id, m.author, m.date, m.subject, m.content FROM messages AS m
                 LEFT JOIN users AS u ON u.name = m.author WHERE 1=1" );
   	$sth -> execute();
@@ -43,6 +45,8 @@ sub add_messages
 	{
     		my $msg_hash = $messages_unsorted -> { $id };
                 $msg_hash -> { 'date' } = $self -> readable_date( $msg_hash -> { 'date' } );
+                $msg_hash -> { 'subject' } = escapeHTML( $msg_hash -> { 'subject' } );
+                $msg_hash -> { 'content' } = escapeHTML( $msg_hash -> { 'content' } );
                 push( @$messages, $msg_hash );
         }
 

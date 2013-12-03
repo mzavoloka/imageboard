@@ -8,7 +8,6 @@ sub wendy_handler
 }
 
 package ForumRegister;
-use strict;
 use Moose;
 extends 'ForumApp';
 
@@ -77,6 +76,7 @@ sub do_register
       	my $password_confirmed = ( $password eq $confirmation );
         if( $username and $password and $password_confirmed and $self -> is_email_valid( $email ) and $self -> is_username_valid( $username ) )
 	{
+                # my $exists = MyModel::Users -> count( name => $username );
         	my $sth = &dbprepare( "SELECT id FROM users WHERE name = ?" );
         	$sth -> bind_param( 1, $username );
         	$sth -> execute();
@@ -87,6 +87,7 @@ sub do_register
         	} else
 		{
         		&wdbconnect();
+# my MyModel::Users -> create( name => $username, password => $password, email => $email, registered => now() );
         		$sth = &wdbprepare( "INSERT INTO users (name, password, email, registered) VALUES (?, ?, ?, now())" );
         		$sth -> bind_param( 1, $username );
 		        $sth -> bind_param( 2, $password );
