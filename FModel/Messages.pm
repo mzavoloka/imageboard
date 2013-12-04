@@ -2,6 +2,8 @@ package FModel::Messages;
 use strict;
 use Moose;
 extends 'LittleORM::GenericID'; 
+use LittleORM::Clause;
+use LittleORM::Filter;
 
 sub _db_table { 'messages' }
 

@@ -12,7 +12,6 @@ use Moose;
 extends 'ForumApp';
 
 use Wendy::Templates::TT 'tt';
-use Wendy::Db qw( wdbconnect wdbprepare );
 use Wendy::Shorts 'ar';
 use CGI ( 'escapeHTML' );
 
@@ -68,12 +67,7 @@ sub post_message
         my $subject = shift;
         my $content = shift;
 
-        &wdbconnect();
-        my $sth = &wdbprepare( "INSERT INTO messages (subject, content, author, date) VALUES (?, ?, ?, now())" );
-        $sth -> bind_param( 1, $subject );
-        $sth -> bind_param( 2, $content );
-        $sth -> bind_param( 3, $self -> user() );
-        $sth -> execute();
+        FModel::Messages -> create( subject => $subject, content => $content, author => $self -> user(), date => 'now()' );
 
         return;
 }

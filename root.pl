@@ -12,7 +12,6 @@ use Moose;
 extends 'ForumApp';
 
 use Wendy::Templates::TT 'tt';
-use Wendy::Db qw( dbprepare );
 use Data::Dumper 'Dumper';
 use Wendy::Shorts 'ar';
 use CGI ( 'escapeHTML' );
@@ -33,24 +32,20 @@ sub add_messages
 {
         my $self = shift;
 
-        # ORM join
-  	my $sth = &dbprepare( "SELECT m.id, m.author, m.date, m.subject, m.content FROM messages AS m
-                LEFT JOIN users AS u ON u.name = m.author WHERE 1=1" );
-  	$sth -> execute();
-  	my $messages_unsorted = $sth -> fetchall_hashref( 'id' );
-        $sth -> finish(); 
+        my @messages_sorted = sort { $b -> date() cmp $a -> date() } FModel::Messages -> get_many();
 
         my $messages = [];
-	for my $id ( sort { $b cmp $a } keys $messages_unsorted )
-	{
-    		my $msg_hash = $messages_unsorted -> { $id };
-                $msg_hash -> { 'date' } = $self -> readable_date( $msg_hash -> { 'date' } );
-                $msg_hash -> { 'subject' } = escapeHTML( $msg_hash -> { 'subject' } );
-                $msg_hash -> { 'content' } = escapeHTML( $msg_hash -> { 'content' } );
-                push( @$messages, $msg_hash );
+        for my $message ( @messages_sorted ) 
+        {
+                my $msg_hash = {};
+                $msg_hash -> { 'DATE' } = $self -> readable_date( $message -> date() );
+                $msg_hash -> { 'SUBJECT' } = escapeHTML( $message -> subject() );
+                $msg_hash -> { 'CONTENT' } = escapeHTML( $message -> content() );
+                $msg_hash -> { 'AUTHOR' } = $message -> author();
+                push( $messages, $msg_hash );
         }
 
-        if( $messages )
+        if( scalar( @$messages ) )
         {
                 &ar( MESSAGES => $messages );
         }

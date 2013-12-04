@@ -12,7 +12,6 @@ use Moose;
 extends 'ForumApp';
 
 use Wendy::Templates::TT 'tt';
-use Wendy::Db 'dbprepare';
 use Wendy::Shorts 'ar' ;
 use Data::Dumper 'Dumper';
 
@@ -52,15 +51,11 @@ sub app_mode_do_login
                 
       	        if( $username and $password )
 	        {
-                	my $sth = &dbprepare( "SELECT name, password FROM users WHERE name = ?" );
-                	$sth -> bind_param( 1, $username );
-                	$sth -> execute();
-                	my ( $username_db, $password_db ) = $sth -> fetchrow_array();
-                        $sth -> finish();
+                        my $user = FModel::Users -> get( name => $username );
 
-                	if( $username_db )
+                	if( $user -> name() )
                 	{
-                                my $password_correct = ( $password eq $password_db );
+                                my $password_correct = ( $password eq $user -> password() );
                                 if( $password_correct )
                                 {
                 		        $self -> log_user_in( $username );

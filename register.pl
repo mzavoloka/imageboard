@@ -12,7 +12,6 @@ use Moose;
 extends 'ForumApp';
 
 use Wendy::Templates::TT 'tt';
-use Wendy::Db qw( wdbconnect wdbprepare dbprepare );
 use Wendy::Shorts 'ar';
 use Data::Dumper 'Dumper';
 
@@ -74,28 +73,17 @@ sub do_register
 
         my $error_msg = '';
       	my $password_confirmed = ( $password eq $confirmation );
-        if( $username and $password and $password_confirmed and $self -> is_email_valid( $email ) and $self -> is_username_valid( $username ) )
+        if( $username and $password and $password_confirmed and $self -> is_email_valid( $email ) and $self -> is_username_valid( $username ) and ( not $self -> is_email_exists( $email ) ) )
 	{
-                # my $exists = MyModel::Users -> count( name => $username );
-        	my $sth = &dbprepare( "SELECT id FROM users WHERE name = ?" );
-        	$sth -> bind_param( 1, $username );
-        	$sth -> execute();
-        	my $exists = $sth -> rows();
+                my $exists = FModel::Users -> count( name => $username );
 	        if( $exists )
         	{
                         $error_msg = 'USER_ALREADY_EXISTS';
         	} else
 		{
-        		&wdbconnect();
-# my MyModel::Users -> create( name => $username, password => $password, email => $email, registered => now() );
-        		$sth = &wdbprepare( "INSERT INTO users (name, password, email, registered) VALUES (?, ?, ?, now())" );
-        		$sth -> bind_param( 1, $username );
-		        $sth -> bind_param( 2, $password );
-        		$sth -> bind_param( 3, $email );
-        		$sth -> execute();
+                        FModel::Users -> create( name => $username, password => $password, email => $email, registered => 'now()' );
         		$self -> log_user_in( $username );
         	}
-                $sth -> finish();
       	}
         elsif( not ( $username and $password and $email and $confirmation ) )
         {

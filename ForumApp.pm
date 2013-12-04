@@ -7,9 +7,11 @@ use FModel::Sessions;
 use FModel::Messages;
 use Wendy::Templates::TT 'tt';
 use Wendy::Db qw( wdbprepare dbprepare wdbconnect dbconnect );
+use Wendy::Db qw( dbconnect );
 use Data::Dumper 'Dumper';
 use Wendy::Shorts qw( ar gr lm );
 use String::Random qw( random_regex random_string );
+use Digest::MD5 'md5_base64';
 
 use Moose;
 extends 'Wendy::App';
@@ -22,6 +24,8 @@ sub init
         my $self = shift;
 
         my $rv = '';
+        LittleORM::Db -> init( &dbconnect() );
+
         if( my $error = $self -> SUPER::init() )
         {
                 $rv = $error;
@@ -31,8 +35,6 @@ sub init
         }
 
         &lm();
-
-        LittleORM::Db -> init( &dbconnect() );
 
         return $rv;
 }
@@ -91,32 +93,24 @@ sub init_user
         my $self = shift;
         my $session_key = $self -> get_cookie( 'session_key' );
 
-        my $sth = &dbprepare( "SELECT username, expires, now() FROM sessions WHERE session_key = ?" );
-        $sth -> bind_param( 1, $session_key );
-        $sth -> execute();
-        my ( $username, $expires, $now ) = $sth -> fetchrow_array();
+        my $session = FModel::Sessions -> get( session_key => $session_key );
 
         my $rv = 0;
-        if( $username )
-        {
-                my $expired = $self -> compare_dates( $expires, $now, 'desc' );
 
-                &wdbconnect();
+        if( $session )
+        {
+                my $expired = $self -> compare_dates( $session -> expires(), $self -> now(), 'desc' );
+
                 if( $expired == 1 )
                 {
-                        $sth = &wdbprepare( "DELETE FROM sessions WHERE session_key = ?" );
-                        $sth -> bind_param( 1, $session_key );
-                        $sth -> execute();
+                        $session -> delete( session_key => $session_key );
                 } else
                 {
-                        $sth = &dbprepare( "UPDATE sessions SET expires = now() + ( INTERVAL '10 minutes') WHERE session_key = ?" );
-                        $sth -> bind_param( 1, $session_key );
-                        $sth -> execute();
-                        $rv = $self -> user( $username );
+                        $session -> expires( $self -> extend_session_to() );
+                        $rv = $self -> user( $session -> username() );
                 }
+                $session -> update();
         }
-
-        $sth -> finish();
 
         return $rv;
 }
@@ -209,6 +203,28 @@ sub compare_dates
  	return $rv;
 }
 
+sub now
+{
+        my $self = shift;
+        my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) = localtime(time);
+        $year += 1900;
+        $mon++;
+        my $now = $year . '-' . $mon . '-' . $mday . ' ' . $hour . ':' . $min . ':' . $sec;
+        return $now;
+}
+
+sub extend_session_to
+{
+        my $self = shift;
+        my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) = localtime(time);
+        $year += 1900;
+        $mon++;
+        $min += 30;
+        my $extend_to = $year . '-' . $mon . '-' . $mday . ' ' . $hour . ':' . $min . ':' . $sec;
+
+        return;
+}
+
 sub readable_date
 {
         my $self = shift;
@@ -232,10 +248,10 @@ sub is_email_exists
 {
         my $self = shift;
         my $email = shift;
-        my $sth = &dbprepare( " SELECT email FROM users WHERE email = ? " );
-        $sth -> bind_param( 1, $email );
-        my ( $email_exists ) = $sth -> fetchrow_array();
-        return ( $email_exists );
+
+        my $exists = FModel::Users -> count( email => $email );
+
+        return ( $exists );
 }
 
 sub is_username_valid
@@ -248,21 +264,10 @@ sub is_username_valid
 sub new_session_key
 {
         my $self = shift;
-        my $string = '';
 
-        for my $i ( 1 .. 32 )
-        {
-                my $random_bool = int( rand( 2 ) % 2 );
-                if( $random_bool )
-                {
-                        $string .= random_regex('\d');
-                } else
-                {
-                        $string .= random_string('.');
-                }
-        }
+        my $key = Digest::MD5::md5_base64( rand() );
 
-        return $string;
+        return $key;
 }
 
 

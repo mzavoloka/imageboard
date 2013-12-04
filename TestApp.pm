@@ -36,6 +36,8 @@ sub app_mode_dump_self
 sub app_mode_littleorm
 {
         my $self = shift;
+
+        
         my $user = FModel::Users -> get( id => 80 );
         
         my $data = Dumper( $user );
@@ -60,6 +62,14 @@ sub app_mode_littleorm
 
         my @sessions = FModel::Sessions -> get();
         $data .= "\n";
+
+        # my $users = FModel::Users -> filter();
+        # $data .= Dumper $users;
+        # $data .= "\n";
+
+        my $messages = FModel::Users -> f( );
+        my @messages_with_users = FModel::Messages -> f( $messages ) -> get_many();
+        $data = Dumper( \@messages_with_users );
 
         return $self -> nctd( $data );
 }

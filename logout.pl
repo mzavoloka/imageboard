@@ -19,3 +19,6 @@ sub app_mode_default
         
         return $self -> ncrd( '/' );
 }
+
+
+1;

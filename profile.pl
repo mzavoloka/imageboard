@@ -12,7 +12,6 @@ use Moose;
 extends 'ForumApp';
 
 use Wendy::Templates::TT qw( tt );
-use Wendy::Db qw( wdbconnect dbprepare wdbprepare );
 use Data::Dumper 'Dumper';
 use Wendy::Shorts 'ar';
 
@@ -100,33 +99,26 @@ sub app_mode_change_password
 sub add_profile_data
 {
         my $self = shift;
-        my $user = shift || $self -> user() || '';
+        my $username = shift || $self -> user() || '';
 
         my $error_msg = '';
-        my $sth = &dbprepare( "SELECT id, name, registered, email FROM users WHERE name = ?" );
-        $sth -> bind_param( 1, $user );
-        $sth -> execute();
-        my ( $id, $name, $registered, $email ) = $sth -> fetchrow_array();
+        my $user = FModel::Users -> get( name => $username );
 
-        if( $user eq $self -> user() )
+        if( $username eq $self -> user() )
         {
                 &ar( USER_HOME_PROFILE => 1 );
         } 
 
-        if( $id )
+        if( $user -> id() )
         {
-                $sth = &dbprepare( "SELECT date FROM messages WHERE author = ?" ); 
-                $sth -> bind_param( 1, $user );
-                $sth -> execute();
-                my $num_of_messages = scalar( @{ $sth -> fetchall_arrayref() } );
-                &ar( NAME => $name, ID => $id, REGISTERED => $self -> readable_date( $registered ), EMAIL => $email, NUM_OF_MESSAGES => $num_of_messages );
+                my $num_of_messages = FModel::Messages -> count( author => $username );
+                &ar( NAME => $user -> name(), ID => $user -> id(), REGISTERED => $self -> readable_date( $user -> registered() ), 
+                     EMAIL => $user -> email(), NUM_OF_MESSAGES => $num_of_messages );
         }
         else
         {
                 $error_msg = 'USER_NOT_FOUND';
         }
-
-        $sth -> finish();
 
         return $error_msg;
 }
@@ -140,13 +132,9 @@ sub change_email
 
         if( $self -> is_email_valid( $email ) )
         {
-                &wdbconnect();
-                my $sth = &wdbprepare( "UPDATE users SET email = ? WHERE name = ?" );
-                $sth -> bind_param( 1, $email );
-                $sth -> bind_param( 2, $self -> user() );
-                $sth -> execute();
-
-                $sth -> finish();
+                my $user = FModel::Users -> get( name => $self -> user() );
+                $user -> email( $email );
+                $user -> update();
         }
         else
         {
@@ -170,21 +158,17 @@ sub change_password
                                         ( $new_password_confirmation ne '' ) );
         if( $all_fields_are_filled )
         {
-                my $sth = &dbprepare( "SELECT password FROM users WHERE name = ?" );
-                $sth -> bind_param( 1, $self -> user() );
-                $sth -> execute();
-                my ( $current_password_db ) = $sth -> fetchrow_array();
-                my $current_password_correct = ( $current_password eq $current_password_db );
+                my $user = FModel::Users -> get( name => $self -> user() );
+
+                my $current_password_correct = ( $current_password eq $user -> password() );
                 if( $current_password_correct )
                 {
                         my $new_password_confirmed = ( $new_password eq $new_password_confirmation );
                         if ( $new_password_confirmed )
                         {
-                                &wdbconnect();
-                                my $sth = &wdbprepare( "UPDATE users SET password = ? WHERE name = ?" );
-                                $sth -> bind_param( 1, $new_password );
-                                $sth -> bind_param( 2, $self -> user() );
-                                $sth -> execute();
+                                my $user = FModel::Users -> get( name => $self -> user() );
+                                $user -> password( $new_password );
+                                $user -> update();
                         }
                         else
                         {
@@ -195,7 +179,6 @@ sub change_password
                 {
                         $error_msg = 'CURRENT_PASSWORD_INCORRECT';
                 }
-                $sth -> finish();
         }
         else
         {
