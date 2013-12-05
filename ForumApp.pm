@@ -129,8 +129,6 @@ sub log_user_in
 
         $self -> set_cookie( '-name' => 'session_key', '-value' => $session_key );
 
-        my $tmp = CGI::Cookie -> new( '-name' => 'session_key', '-value' => $session_key );
-        $self -> wobj() -> { 'COOKIES' } -> { 'session_key' } = $tmp;
         $self -> init_user();
 
         return $session_key;
@@ -139,8 +137,9 @@ sub log_user_in
 sub log_user_out
 {
         my $self = shift;
+        my $session_key = $self -> get_cookie( 'session_key' );
 
-        FModel::Sessions -> delete( username => $self -> init_user() );
+        FModel::Sessions -> delete( session_key => $session_key );
 
         $self -> set_cookie( '-name' => 'session_key', '-value' => '' );
 

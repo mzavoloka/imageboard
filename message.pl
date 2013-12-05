@@ -8,12 +8,14 @@ sub wendy_handler
 }
 
 package ForumMessage;
-use Moose;
-extends 'ForumApp';
-
 use Wendy::Templates::TT 'tt';
 use Wendy::Shorts 'ar';
 use CGI ( 'escapeHTML' );
+
+use Moose;
+extends 'ForumApp';
+
+has 'subject_length' => ( is => 'rw', isa => 'Int', default => 100 );
 
 sub _run_modes { [ 'default', 'post' ] };
 
@@ -39,18 +41,29 @@ sub app_mode_post
 
         my $output = {};
 
+        my $error_msg = "";
         if( $self -> user() )
         {
                 my $subject = $self -> arg( 'subject' );
                 my $content = $self -> arg( 'content' );
                 if( $subject and $content )
                 {
-                        $self -> post_message( $subject, $content );
-                        $output = $self -> ncrd( '/' );
+                        if( $self -> is_subject_length_accepatable( $subject ) )
+                        {
+                                $self -> post_message( $subject, $content );
+                                $output = $self -> ncrd( '/' );
+                        } else
+                        {
+                                $error_msg = 'SUBJECT_TOO_LONG';
+                        }
                 } else
                 {
+                        $error_msg = 'FIELDS_ARE_NOT_FILLED';
+                }
+
+                if( $error_msg )
+                {
                         &ar( SUBJECT => &escapeHTML( $subject ), CONTENT => &escapeHTML( $content ) );
-                	my $error_msg = 'FIELDS_ARE_NOT_FILLED';
                         $output = $self -> construct_page( middle_tpl => 'message', error_msg => $error_msg );
                 }
         } else
@@ -70,6 +83,20 @@ sub post_message
         FModel::Messages -> create( subject => $subject, content => $content, author => $self -> user(), date => 'now()' );
 
         return;
+}
+
+sub is_subject_length_accepatable
+{
+        my $self = shift;
+        my $subject = shift;
+        
+        my $acceptable = 1;
+        if( length( $subject ) > $self -> subject_length() )
+        {
+                $acceptable = 0;
+        }
+
+        return $acceptable;
 }
 
 
