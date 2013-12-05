@@ -86,7 +86,7 @@ sub construct_page
 sub init_user
 {
         my $self = shift;
-        my $session_key = $self -> get_cookie( 'session_key' );
+        my $session_key = shift || $self -> get_cookie( 'session_key' );
 
         my $session = FModel::Sessions -> get( session_key => $session_key );
 
@@ -125,10 +125,7 @@ sub log_user_in
 
         $self -> set_cookie( '-name' => 'session_key', '-value' => $session_key );
 
-        my $tmp = CGI::Cookie -> new( '-name' => 'session_key', '-value' => $session_key );
-        $self -> wobj() -> { 'COOKIES' } -> { 'session_key' } = $tmp;
-
-        $self -> init_user();
+        $self -> init_user( $session_key );
 
         return $session_key;
 }
