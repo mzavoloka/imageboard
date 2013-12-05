@@ -1,7 +1,7 @@
 package ForumApp;
 use strict;
 
-use LittleORM::Db;
+use LittleORM::Db 'init';
 use FModel::Users;
 use FModel::Sessions;
 use FModel::Messages;
@@ -80,11 +80,7 @@ sub construct_page
 
         &ar( HEADER => $header, MIDDLE => $middle, FOOTER => $footer );
         
-        my $output = {};
-        $output -> { 'data' } = &tt( 'carcass' );
-        $output -> { 'nocache' } = 1;
-
-        return $output;
+        return $self -> ncd( &tt( 'carcass' ) );
 }
 
 sub init_user
@@ -128,6 +124,9 @@ sub log_user_in
         FModel::Sessions -> create( username => $username, expires => $self -> session_expires(), session_key => $session_key );
 
         $self -> set_cookie( '-name' => 'session_key', '-value' => $session_key );
+
+        my $tmp = CGI::Cookie -> new( '-name' => 'session_key', '-value' => $session_key );
+        $self -> wobj() -> { 'COOKIES' } -> { 'session_key' } = $tmp;
 
         $self -> init_user();
 
