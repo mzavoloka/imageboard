@@ -11,25 +11,30 @@ package ForumRegister;
 use Moose;
 extends 'ForumApp';
 
-use Wendy::Templates::TT 'tt';
 use Wendy::Shorts 'ar';
 use Data::Dumper 'Dumper';
 
 sub _run_modes { [ 'default', 'do_register' ] };
 
+sub always
+{
+        my $self = shift;
+
+        my $rv;
+
+        if( $self -> user () )
+        {
+                $rv = $self -> construct_page( restricted_msg => 'REGISTER_RESTRICTED' );
+        }
+
+        return $rv;
+}
+
 sub app_mode_default
 {
         my $self = shift;
 
-        my $output = {};
-
-        if( $self -> user() )
-        {
-                $output = $self -> construct_page( restricted_msg => 'REGISTER_RESTRICTED' );
-        } else
-        {
-                $output = $self -> construct_page( message_tpl => 'register' );
-        }
+        my $output = $self -> construct_page( message_tpl => 'register' );
 
   	return $output;
 }
@@ -38,52 +43,25 @@ sub app_mode_do_register
 {
         my $self = shift;
 
-        my $output = {};
-
-        if( $self -> user() )
-        {
-                $output = $self -> construct_page( restricted_msg => 'REGISTER_RESTRICTED' );
-        } else
-        {
-                my $username = $self -> arg( 'username') || '';
-      	        my $password = $self -> arg( 'password' ) || '';
-      	        my $email = $self -> arg( 'email' ) || '';
-      	        my $confirmation = $self -> arg( 'confirmation' ) || '';
-
-      	        my $error_msg = $self -> do_register( $username, $password, $email, $confirmation );
-                if( $error_msg )
-                {
-                        $output = $self -> construct_page( message_tpl => 'register', error_msg => $error_msg );
-                } else
-                {
-                        $output = $self -> ncrd( '/' );
-                }
-        }
-
-        return $output;
-}
-
-sub do_register
-{
-        my $self = shift;
-        my $username = shift;
-      	my $password = shift;
-      	my $email = shift;
-      	my $confirmation = shift;
+        my $username = $self -> arg( 'username') || '';
+      	my $password = $self -> arg( 'password' ) || '';
+      	my $email = $self -> arg( 'email' ) || '';
+      	my $confirmation = $self -> arg( 'confirmation' ) || '';
 
         my $error_msg = '';
       	my $password_confirmed = ( $password eq $confirmation );
-        if( $username and $password and $password_confirmed and $self -> is_email_valid( $email ) and $self -> is_username_valid( $username ) and ( not $self -> is_email_exists( $email ) ) )
+
+        # All error checks should be done in special function
+        if( $username and $password and $password_confirmed and $self -> is_email_valid( $email )
+            and $self -> is_username_valid( $username ) and ( not $self -> is_email_exists( $email ) ) )
 	{
-                my $exists = FModel::Users -> count( name => $username );
-	        if( $exists )
-        	{
+	        if( $self -> is_username_exists( $username ) )
+                {
                         $error_msg = 'USER_ALREADY_EXISTS';
-        	} else
-		{
-                        FModel::Users -> create( name => $username, password => $password, email => $email, registered => 'now()' );
-        		$self -> log_user_in( $username );
-        	}
+                } else
+	        {
+                        $self -> do_register( $username, $password, $email, $confirmation );
+                }
       	}
         elsif( not ( $username and $password and $email and $confirmation ) )
         {
@@ -111,8 +89,34 @@ sub do_register
 
         &ar( USERNAME => $username, 
                 EMAIL => $email );
+        
+        my $output;
 
-        return $error_msg;
+        if( $error_msg )
+        {
+                $output = $self -> construct_page( message_tpl => 'register', error_msg => $error_msg );
+        } else
+        {
+                $output = $self -> ncrd( '/' );
+        }
+
+        return $output;
+}
+
+sub do_register
+{
+        my $self = shift;
+        my $username = shift;
+      	my $password = shift;
+      	my $email = shift;
+
+        $username = lc( $username );
+        $email = lc( $email );
+
+        FModel::Users -> create( name => $username, password => $password, email => $email, registered => 'now()' );
+        $self -> log_user_in( $username );
+
+        return;
 }
 
 

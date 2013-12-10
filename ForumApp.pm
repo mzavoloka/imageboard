@@ -5,18 +5,17 @@ use LittleORM::Db 'init';
 use FModel::Users;
 use FModel::Sessions;
 use FModel::Messages;
+use FModel::Threads;
 use Wendy::Templates::TT 'tt';
 use Wendy::Db qw( dbconnect );
 use Data::Dumper 'Dumper';
 use Wendy::Shorts qw( ar gr lm );
-use String::Random qw( random_regex random_string );
 use Digest::MD5 'md5_base64';
 
 use Moose;
 extends 'Wendy::App';
 
 has 'user' => ( is => 'rw', isa => 'Str' );
-has 'session_key_in_cookie' => ( is => 'rw', isa => 'Str', default => 'HHUIGKJFHsdfuioewr1234' );
 has 'session_expires_after' => ( is => 'rw', isa => 'Int', default => 900 );
 
 sub init
@@ -79,23 +78,23 @@ sub construct_page
         }
 
         &ar( HEADER => $header, MIDDLE => $middle, FOOTER => $footer );
-        
+
         return $self -> ncd( &tt( 'carcass' ) );
 }
 
 sub init_user
 {
         my $self = shift;
-        my $session_key = shift || $self -> get_cookie( 'session_key' );
+        my $session_key = $self -> get_cookie( 'session_key' ) || '';
 
         my $session = FModel::Sessions -> get( session_key => $session_key );
 
         my $rv = 0;
-
+        
         if( $session )
         {
                 my $expired = 0;
-                if( ( $session -> expires() cmp $self -> now() ) == -1 )
+                if( $self -> now() gt $session -> expires() )
                 {
                         $expired = 1;
                 }
@@ -125,7 +124,7 @@ sub log_user_in
 
         $self -> set_cookie( '-name' => 'session_key', '-value' => $session_key );
 
-        $self -> init_user( $session_key );
+        $self -> user( $username );
 
         return $session_key;
 }
@@ -164,19 +163,8 @@ sub now_plus_secs
         $year += 1900;
         $mon++;
 
-        if( $mon < 10 )
-        {
-                $mon = '0'.$mon;
-        }
-
-        if( $mday < 10 )
-        {
-                $mday = '0'.$mday;
-        }
-
-        my $rv = $year . '-' . $mon . '-' . $mday . ' ' . $hour . ':' . $min . ':' . $sec;
-
-        return $rv;
+        return sprintf( '%#.4u' . '-' . '%#.2u' . '-' . '%#.2u' . ' ' . '%#.2u' . ':' . '%#.2u' . ':' . '%#.2u',
+                         $year,          $mon,           $mday,          $hour,          $min,           $sec );
 }
 
 sub readable_date
@@ -195,7 +183,9 @@ sub is_email_valid
 {
         my $self = shift;
         my $email = shift;
-        return ( $email =~ /.+@.+\..+/i );
+        $email = lc( $email );
+
+        return( $email =~ /.+@.+\..+/i );
 }
 
 sub is_email_exists
@@ -203,16 +193,31 @@ sub is_email_exists
         my $self = shift;
         my $email = shift;
 
+        $email = lc( $email );
+
         my $exists = FModel::Users -> count( email => $email );
 
-        return ( $exists );
+        return( $exists );
 }
 
 sub is_username_valid
 {
         my $self = shift;
         my $username = shift;
-        return ( $username =~ /^[a-z0-9_-]{3,16}$/ );
+        $username = lc( $username );
+
+        return( $username =~ /^[a-z0-9_-]{3,16}$/ );
+}
+
+sub is_username_exists
+{
+        my $self = shift;
+        my $username = shift;
+        $username = lc( $username );
+
+        my $exists = FModel::Users -> count( name => $username );
+
+        return( $exists );
 }
 
 sub new_session_key
@@ -222,6 +227,24 @@ sub new_session_key
         my $key = Digest::MD5::md5_base64( rand() );
 
         return $key;
+}
+
+sub set_cookie
+{
+	my $self = shift;
+
+	my %args = @_;
+
+	{
+		$args{ '-domain' } = '192.168.9.24';
+		#$args{ '-domain' } ||= $self -> wobj() -> { 'HOST' } -> { 'host' };
+		$args{ '-expires' } ||= '+1d';
+
+	}
+
+	my $cookie = CGI::Cookie -> new( %args );
+
+	push( @{ $self -> out_cookies() }, $cookie );
 }
 
 
