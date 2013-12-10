@@ -116,7 +116,7 @@ sub app_mode_sprintf
         sub ts2dt
         {
                 my $ts = shift;
-                my $strp = DateTime::Format::Strptime -> new( pattern => '%F%n%T', timezone => 'Europe/Moscow' );
+                my $strp = DateTime::Format::Strptime -> new( pattern => '%F%n%T' );
                 
                 return $strp -> parse_datetime( $ts );
         }
@@ -124,7 +124,7 @@ sub app_mode_sprintf
         sub dt2ts
         {
                 my $dt = shift;
-                my $strp = DateTime::Format::Strptime -> new( pattern => '%F%n%T', timezone => 'Europe/Moscow' );
+                my $strp = DateTime::Format::Strptime -> new( pattern => '%F%n%T' );
 
                 return $strp -> parse_datetime( $dt );
         }
@@ -202,8 +202,8 @@ sub app_mode_coerce
         # $row -> update();
         $output .= "\n";
 
-        my $row = FModel::Test -> get( id => 1 );
-        $output .= '$row -> date() : ' . $row -> date();
+        #my $row = FModel::Test -> get( id => 1 );
+        #$output .= '$row -> date() : ' . $row -> date();
 
         $output .= "\n";
         $output .= 'Check Db';
