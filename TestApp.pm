@@ -1,5 +1,5 @@
-package TestApp;
 use strict;
+package TestApp;
 
 use Data::Dumper;
 use Wendy::Db qw( dbconnect );
@@ -7,7 +7,7 @@ use Wendy::Db qw( dbconnect );
 use Moose;
 extends 'ForumApp';
 
-sub _run_modes { [ 'default', 'tell_ip' , 'dump_self', 'littleorm', 'sprintf', 'coerce' ] }
+sub _run_modes { [ 'default', 'tell_ip' , 'dump_self', 'littleorm', 'sprintf', 'coerce', 'validate_email' ] }
 
 sub app_mode_default
 {
@@ -111,7 +111,7 @@ sub app_mode_sprintf
                         metaclass => 'LittleORM::Meta::Attribute',
                         isa => 'DateTime',
                         description => { coerce_from => sub { &ts2dt( $_[0] ) },
-                                         coerce_to   => sub { &epoch2ts( $_[0] ) } } );
+                                         coerce_to   => sub { &dt2ts( $_[0] ) } } );
 
         sub ts2dt
         {
@@ -121,18 +121,27 @@ sub app_mode_sprintf
                 return $strp -> parse_datetime( $ts );
         }
         
+        use DateTime::TimeZone;
+        use DateTime;
         sub dt2ts
         {
                 my $dt = shift;
+
+                my $tz = DateTime::TimeZone -> new( name => 'local' );
+                my $dt = DateTime -> now();
+                my $offset = $tz -> offset_for_datetime( $dt );
+
                 my $strp = DateTime::Format::Strptime -> new( pattern => '%F%n%T' );
 
-                return $strp -> parse_datetime( $dt );
+                return $strp -> format_datetime( $dt );
         }
 
         sub epoch2ts
         {
+                use DateTime;
                 my $epoch = shift;
                 my $strp = DateTime::Format::Strptime -> new( pattern => '%s' );
+                
 
                 return $strp -> parse_datetime( $epoch );
         }
@@ -172,8 +181,8 @@ sub app_mode_sprintf
                 $year += 1900;
                 $mon++;
         
-                return sprintf( '%#.4u' . '-' . '%#.2u' . '-' . '%#.2u' . ' ' . '%#.2u' . ':' . '%#.2u' . ':' . '%#.2u',
-                                 $year,          $mon,           $mday,          $hour,          $min,           $sec );
+                return sprintf( '%04d' . '-' . '%02d' . '-' . '%02d' . ' ' . '%02d' . ':' . '%02d' . ':' . '%02d',
+                                 $year,         $mon,          $mday,         $hour,         $min,          $sec );
         }
 }
 
@@ -183,6 +192,8 @@ sub app_mode_coerce
 
         my $output;
 
+        use DateTime;
+        $output .= 'DateTime->now(): ' . DateTime -> now();
         $output .= 'Current time is: ' . time();
         $output .= "\n";
 
@@ -197,19 +208,20 @@ sub app_mode_coerce
         # $output .= $self -> ts2dt( time );
 
         $output .= "\n";
-        my $row = FModel::Test -> create( date => time() ); 
-        #$output .= '$row -> date( time() )' . $row -> date();
+
+        # $output .= $offset;
+        # my $row = FModel::Test -> create( date => $dt ); 
+        # $output .= '$row -> date( time() )' . $row -> date();
         # $row -> update();
         $output .= "\n";
 
-        #my $row = FModel::Test -> get( id => 1 );
-        #$output .= '$row -> date() : ' . $row -> date();
+        my $row = FModel::Test -> get( id => 45 );
+        $output .= '$row -> date() : ' . $row -> date();
 
         $output .= "\n";
         $output .= 'Check Db';
         $output .= "\n";
 
-        $output .= $self -> linux_time_to_psql_time( time () );
         # $output .= 'ts2dt( time() ) results in: ' . $self -> ts2dt( localtime( time ) );
 
         return( $self -> nctd( $output ) );
@@ -245,5 +257,14 @@ sub dt2ts
         return DateTime::Format::Strptime -> new( pattern => '%T' ) -> format_datetime( $dt );
 }
 
+sub app_mode_validate_email
+{
+        my $self = shift;
+        
+        FModel::Users -> create( name => 'hhh', password => 'hhh', email => '*(*&%#', registered => $self -> now() );
+        my $output = 'Check Db';
+                
+        return $self -> nctd( $output );
+}
 
 1;

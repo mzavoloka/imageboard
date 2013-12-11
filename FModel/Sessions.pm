@@ -1,15 +1,25 @@
 package FModel::Sessions;
 use strict;
+
+use FModel::Funcs;
 use Moose;
 extends 'LittleORM::GenericID'; 
-use LittleORM::Clause;
-use LittleORM::Filter;
 
 sub _db_table { 'sessions' }
 
-has 'username' => ( is => 'rw', isa => 'Str' );
-has 'expires' => ( is => 'rw', isa => 'Str' ); # Decided to stay with Str, because of incompatibility of Moose type DateTime with Postgres timestamp
+has 'owner' => ( is => 'rw',
+                 metaclass => 'LittleORM::Meta::Attribute',
+                 isa => 'FModel::Users',
+                 description => { foreign_key => 'FModel::Users',
+                                  foreign_key_attr_name => 'name' } );
+
 has 'session_key' => ( is => 'rw', isa => 'Str' );
+
+has 'expires' => ( is => 'rw',
+                metaclass => 'LittleORM::Meta::Attribute',
+                isa => 'DateTime',
+                description => { coerce_from => sub { &FModel::Funcs::ts2dt( $_[0] ) },
+                                 coerce_to   => sub { &FModel::Funcs::dt2ts( $_[0] ) } } );
 
 
 1;

@@ -43,49 +43,73 @@ sub app_mode_do_login
 {
         my $self = shift;
 
-        my $error_msg = '';
+      	my $username = $self -> arg( 'username' );
+      	my $password = $self -> arg( 'password' );
 
-      	my $username = $self -> arg( 'username' ) || '';
-      	my $password = $self -> arg( 'password' ) || '';
-        my $success = 0;
-        
-      	if( $username and $password )
-	{
-                my $user = FModel::Users -> get( name => $username );
-
-        	if( $user -> name() )
-        	{
-                        my $password_correct = ( $password eq $user -> password() );
-                        if( $password_correct )
-                        {
-        		        $self -> log_user_in( $username );
-                                $success = 1;
-                        } else
-                        {
-                                $error_msg = 'PASSWORD_INCORRECT';
-                        }
-        	} else
-		{
-        		$error_msg = 'NO_SUCH_USER';
-        	}
-
-      	} else
-	{
-                $error_msg = 'FIELDS_ARE_NOT_FILLED';
-      	}
-        
         my $output;
-        &ar( USERNAME => $username );
 
-        if( $success )
+        if( my $error_msg = $self -> can_log_user_in( $username, $password ) )
         {
-                $output = $self -> ncrd( '/' );
+                &ar( USERNAME => $username );
+                $output = $self -> construct_page( middle_tpl => 'login', error_msg => $error_msg );
         } else
         {
-                $output = $self -> construct_page( middle_tpl => 'login', error_msg => $error_msg );
+        	$self -> log_user_in( $username );
+                $output = $self -> ncrd( '/' );
         }
 
   	return $output;
+}
+
+sub can_log_user_in
+{
+        my $self = shift;
+        my $username = shift;
+        my $password = shift;
+
+        my $error_msg = '';
+
+        my $fields_are_filled = ( $username and $password );
+
+        my $user = FModel::Users -> get( name => $username );
+        
+        my $user_exists = $self -> is_user_exists( $username );
+
+        my $password_correct = $self -> is_password_correct( $password, $username );
+
+      	if( not $fields_are_filled )
+	{
+                $error_msg = 'FIELDS_ARE_NOT_FILLED';
+      	}
+        elsif( $fields_are_filled and ( not $user_exists ) )
+	{
+        	$error_msg = 'NO_SUCH_USER';
+      	}
+        elsif( $fields_are_filled and $user_exists and ( not $password_correct ) )
+        {
+                $error_msg = 'PASSWORD_INCORRECT';
+        }
+
+        return $error_msg;
+}
+
+sub is_password_correct
+{
+        my $self = shift;
+        my $password = shift;
+        my $username = shift;
+
+        my $correct = 0;
+
+        if( $self -> is_user_exists( $username ) )
+        {
+                my $user = FModel::Users -> get( name => $username );
+                my $password_in_db = $user -> password();
+
+                $correct = ( $password eq $password_in_db );
+        }
+
+        return $correct;
 }
 
 

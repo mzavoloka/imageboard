@@ -30,15 +30,15 @@ sub add_messages
 {
         my $self = shift;
 
-        my @messages_sorted = sort { $b -> date() cmp $a -> date() } FModel::Messages -> get_many();
+        my @messages_sorted = sort { $b -> posted() cmp $a -> posted() } FModel::Messages -> get_many();
         my $messages = [];
-
+         
         for my $message ( @messages_sorted ) 
         {
-                my $msg_hash = { DATE    => $self -> readable_date( $message -> date() ),
+                my $msg_hash = { POSTED  => $self -> readable_date( $message -> posted() ),
                                  SUBJECT => $message -> subject(),
                                  CONTENT => $message -> content(),
-                                 AUTHOR  => $message -> author() };
+                                 AUTHOR  => $message -> author() -> name() };
                 push( $messages, $msg_hash );
         }
 

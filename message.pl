@@ -44,33 +44,44 @@ sub app_mode_post
 {
         my $self = shift;
 
-        my $subject = $self -> arg( 'subject' );
-        my $content = $self -> arg( 'content' );
-        my $error_msg = '';
-        my $output;
-        
-        if( $subject and $content )
-        {
-                if( $self -> is_subject_length_accepatable( $subject ) )
-                {
-                        $self -> post_message( $subject, $content );
-                        $output = $self -> ncrd( '/' );
-                } else
-                {
-                        $error_msg = 'SUBJECT_TOO_LONG';
-                }
-        } else
-        {
-                $error_msg = 'FIELDS_ARE_NOT_FILLED';
-        }
+        my $subject = $self -> arg( 'subject' ) || '';
+        my $content = $self -> arg( 'content' ) || '';
 
-        if( $error_msg )
+        my $output;
+
+        if( my $error_msg = $self -> can_message_be_posted( $subject, $content ) )
         {
                 &ar( SUBJECT => $subject, CONTENT => $content );
                 $output = $self -> construct_page( middle_tpl => 'message', error_msg => $error_msg );
+        } else
+        {
+                $self -> post_message( $subject, $content );
+                $output = $self -> ncrd( '/' );
         }
 
         return $output;
+}
+
+sub can_message_be_posted
+{
+        my $self = shift;
+        my $subject = shift;
+        my $content = shift;
+
+        my $error_msg = '';
+
+        my $fields_are_filled = ( $self -> trim( $subject ) and $self -> trim( $content ) );
+
+        if( not $fields_are_filled )
+        {
+                $error_msg = 'FIELDS_ARE_NOT_FILLED';
+        }
+        if( $fields_are_filled and ( not $self -> is_subject_length_accepatable( $subject ) ) )
+        {
+                $error_msg = 'SUBJECT_TOO_LONG';
+        }
+
+        return $error_msg;
 }
 
 sub post_message
@@ -78,8 +89,12 @@ sub post_message
         my $self = shift;
         my $subject = shift;
         my $content = shift;
-
-        FModel::Messages -> create( subject => $subject, content => $content, author => $self -> user(), date => 'now()' );
+        
+        FModel::Messages -> create( subject   => $subject,
+                                    content   => $content,
+                                    author    => $self -> user(),
+                                    thread_id => 1,
+                                    posted    => $self -> now() );
 
         return;
 }

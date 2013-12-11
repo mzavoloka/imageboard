@@ -35,9 +35,9 @@ sub app_mode_create
 
         my $title = $self -> arg( 'title' );
         my $content = $self -> arg( 'content' );
+        my $create_thread_pre = $self -> arg( 'create_thread' );
         my $error_msg = '';
         my $output;
-
         if( $title and $content )
         {
                 if( $self -> is_title_length_accepatable( $title ) )

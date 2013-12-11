@@ -35,7 +35,16 @@ sub app_mode_default
 	my $self = shift;
 
         my $username = $self -> arg( 'username' ) || $self -> user() || '';
-        my $error_msg = $self -> add_profile_data( $username );
+
+        my $error_msg = '';
+        if( $self -> is_user_exists( $username ) )
+        {
+                $self -> add_profile_data( $username );
+        } else
+        {
+                $error_msg = 'USER_NOT_FOUND';
+        }
+
         my $output = $self -> construct_page( middle_tpl => 'profile', error_msg => $error_msg );
 
   	return $output;
@@ -90,7 +99,7 @@ sub app_mode_change_password
                                 my $new_password_confirmed = ( $new_password eq $new_password_confirmation );
                                 if ( $new_password_confirmed )
                                 {
-                                        $self -> change_password( $username, $new_password );
+                                        $self -> change_password( $user -> name(), $new_password );
                                 }
                                 else
                                 {
@@ -127,28 +136,21 @@ sub app_mode_change_password
 sub add_profile_data
 {
         my $self = shift;
-        my $username = shift || $self -> user() || '';
+        my $username = shift;
 
-        if( $username eq $self -> user() )
+        my $user = FModel::Users -> get( name => $username );
+
+        if( $user -> name() eq $self -> user() )
         {
                 &ar( USER_HOME_PROFILE => 1 );
         } 
 
-        my $error_msg = '';
-        my $user = FModel::Users -> get( name => $username );
+        my $num_of_messages = FModel::Messages -> count( author => $user );
 
-        if( $user -> id() )
-        {
-                my $num_of_messages = FModel::Messages -> count( author => $username );
-                &ar( NAME => $user -> name(), ID => $user -> id(), REGISTERED => $self -> readable_date( $user -> registered() ), 
-                     EMAIL => $user -> email(), NUM_OF_MESSAGES => $num_of_messages );
-        }
-        else
-        {
-                $error_msg = 'USER_NOT_FOUND';
-        }
+        &ar( NAME => $user -> name(), ID => $user -> id(), REGISTERED => $self -> readable_date( $user -> registered() ), 
+             EMAIL => $user -> email(), NUM_OF_MESSAGES => $num_of_messages );
 
-        return $error_msg;
+        return;
 }
 
 sub change_email
@@ -183,7 +185,7 @@ sub change_password
         $user -> password( $new_password );
         $user -> update();
 
-        return $error_msg;
+        return;
 }
 
 

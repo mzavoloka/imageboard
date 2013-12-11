@@ -1,5 +1,5 @@
-package ForumApp;
 use strict;
+package ForumApp;
 
 use LittleORM::Db 'init';
 use FModel::Users;
@@ -11,6 +11,7 @@ use Wendy::Db qw( dbconnect );
 use Data::Dumper 'Dumper';
 use Wendy::Shorts qw( ar gr lm );
 use Digest::MD5 'md5_base64';
+use DateTime;
 
 use Moose;
 extends 'Wendy::App';
@@ -105,7 +106,7 @@ sub init_user
                 } else
                 {
                         $session -> expires( $self -> session_expires() );
-                        $rv = $self -> user( $session -> username() );
+                        $rv = $self -> user( $session -> owner() -> name() );
                         $session -> update();
                 }
         }
@@ -120,7 +121,7 @@ sub log_user_in
 
         my $session_key = $self -> new_session_key();
 
-        FModel::Sessions -> create( username => $username, expires => $self -> session_expires(), session_key => $session_key );
+        FModel::Sessions -> create( owner => $username, expires => $self -> session_expires(), session_key => $session_key );
 
         $self -> set_cookie( '-name' => 'session_key', '-value' => $session_key );
 
@@ -144,13 +145,14 @@ sub log_user_out
 sub now
 {
         my $self = shift;
-        return $self -> now_plus_secs( 0 );
+        return DateTime -> now( time_zone => 'local' );
 }
 
 sub session_expires
 {
         my $self = shift;
-        return $self -> now_plus_secs( $self -> session_expires_after() );
+
+        return DateTime -> from_epoch( epoch => time() + $self -> session_expires_after(), time_zone => 'local' );
 }
 
 sub now_plus_secs
@@ -172,7 +174,7 @@ sub readable_date
         my $self = shift;
 	my $date = shift;
 
-	my ( $part1, $part2 ) = split ( ' ', $date );
+	my ( $part1, $part2 ) = split ( 'T', $date );
 	my ( $year, $month, $day ) = split ( '-', $part1 );
 	my ( $time, $milliseconds ) = split ( /\./, $part2 );
 
@@ -209,7 +211,7 @@ sub is_username_valid
         return( $username =~ /^[a-z0-9_-]{3,16}$/ );
 }
 
-sub is_username_exists
+sub is_user_exists
 {
         my $self = shift;
         my $username = shift;
@@ -245,6 +247,19 @@ sub set_cookie
 	my $cookie = CGI::Cookie -> new( %args );
 
 	push( @{ $self -> out_cookies() }, $cookie );
+}
+
+sub trim
+{
+        my $self = shift;
+        my $str = shift;
+
+        if( $str )
+        {
+                $str =~ s/^\s+|\s+$//g;
+        }
+
+        return $str;
 }
 
 
