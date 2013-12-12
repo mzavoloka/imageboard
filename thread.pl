@@ -25,7 +25,10 @@ sub always
 
         unless( $self -> user() )
         {
-                $rv = $self -> construct_page( restricted_msg => 'PROFILE_RESTRICTED' );
+                if( defined $self -> arg( 'mode' ) )
+                {
+                        $rv = $self -> construct_page( restricted_msg => 'THREAD_RESTRICTED' );
+                }
         }
 
         return $rv;
@@ -130,13 +133,11 @@ sub can_reply
 
         my $fields_are_filled = ( $self -> trim( $subject ) and $self -> trim( $content ) );
 
-        my $message_subject_length_acceptable = $self -> is_message_subject_length_acceptable( $subject );
-        
         if( not $fields_are_filled )
         {
                 $error_msg = 'FIELDS_ARE_NOT_FILLED';
         }
-        elsif( $fields_are_filled and ( not $message_subject_length_acceptable ) ) 
+        elsif( $fields_are_filled and ( not $self -> is_message_subject_length_acceptable( $subject ) ) ) 
         {
                 $error_msg = 'MESSAGE_SUBJECT_TOO_LONG';
         }
@@ -225,13 +226,11 @@ sub can_create_thread
 
         my $fields_are_filled = ( $self -> trim( $title ) and $self -> trim( $content ) );
 
-        my $title_length_acceptable = $self -> is_thread_title_length_acceptable( $title );
-        
         if( not $fields_are_filled )
         {
                 $error_msg = 'FIELDS_ARE_NOT_FILLED';
         }
-        elsif( $fields_are_filled and ( not $title_length_acceptable ) ) 
+        elsif( $fields_are_filled and ( not $self -> is_thread_title_length_acceptable( $title ) ) ) 
         {
                 $error_msg = 'THREAD_TITLE_TOO_LONG';
         }

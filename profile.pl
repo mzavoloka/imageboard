@@ -122,9 +122,16 @@ sub can_change_password
                                       ( $new_password ne '' ) and
                                       ( $new_password_confirmation ne '' ) );
 
-        my $user = FModel::Users -> get( name => $self -> user() );
-        my $password_in_db = $user -> password();
-        my $current_password_correct = ( $current_password eq $password_in_db );
+        my $user;
+        my $current_password_correct;
+        my $password_in_db;
+
+        if( $fields_are_filled )
+        {
+                $user = FModel::Users -> get( name => $self -> user() );
+                $password_in_db = $user -> password();
+                $current_password_correct = ( $current_password eq $password_in_db );
+        }
 
         my $new_password_confirmed = ( $new_password eq $new_password_confirmation );
 

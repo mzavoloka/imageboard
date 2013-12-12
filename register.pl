@@ -76,15 +76,24 @@ sub can_register_new_user
 
         my $fields_are_filled = ( $username and $email and $password and $confirmation );
 
-        my $valid_username = $self -> is_username_valid( $username );
+        my $valid_username;
+        my $user_exists;
+        my $valid_email;
+        my $email_exists;
+        my $password_confirmed;
 
-        my $user_exists = $self -> is_user_exists( $username );
+        if( $fields_are_filled )
+        {
+                $valid_username = $self -> is_username_valid( $username );
 
-        my $valid_email = $self -> is_email_valid( $email );
+                $user_exists = $self -> is_user_exists( $username );
 
-        my $email_exists = $self -> is_email_exists( $email );
+                $valid_email = $self -> is_email_valid( $email );
 
-      	my $password_confirmed = ( $password eq $confirmation );
+                $email_exists = $self -> is_email_exists( $email );
+
+      	        $password_confirmed = ( $password eq $confirmation );
+        }
         
         if( not $fields_are_filled )
         {

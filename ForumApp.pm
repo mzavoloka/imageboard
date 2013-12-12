@@ -196,9 +196,13 @@ sub is_email_exists
         my $self = shift;
         my $email = shift;
 
-        $email = lc( $email );
+        my $exists = 0;
 
-        my $exists = FModel::Users -> count( email => $email );
+        if( $self -> is_email_valid( $email ) )
+        {
+                $email = lc( $email );
+                $exists = FModel::Users -> count( email => $email );
+        }
 
         return( $exists );
 }
@@ -216,9 +220,13 @@ sub is_user_exists
 {
         my $self = shift;
         my $username = shift;
-        $username = lc( $username );
 
-        my $exists = FModel::Users -> count( name => $username );
+        my $exists = 0;
+        if( $self -> is_username_valid( $username ) )
+        {
+                $username = lc( $username );
+                $exists = FModel::Users -> count( name => $username );
+        }
 
         return( $exists );
 }
