@@ -7,7 +7,7 @@ use Carp::Assert;
 use Moose;
 extends 'ForumApp';
 
-sub _run_modes { [ 'default', 'tell_ip' , 'dump_self', 'littleorm', 'sprintf', 'coerce', 'validate_email', 'assert' ] }
+sub _run_modes { [ 'default', 'tell_ip' , 'dump_self', 'littleorm', 'sprintf', 'coerce', 'validate_email', 'assert', 'max_length' ] }
 
 sub app_mode_default
 {
@@ -289,6 +289,57 @@ sub app_mode_assert
         $output = 'Check Db';
 
         return $self -> nctd( $output );
+}
+
+# Must add macros at first for page testapp
+use Wendy::Shorts 'gr';
+sub app_mode_max_length
+{
+        my $self = shift;
+
+        my $output;
+
+        my $max_length = &gr( 'MESSAGE_SUBJECT_MAX_LENGTH' );
+        $output .= 'MESSAGE_SUBJECT_MAX_LENGTH: ' . $max_length;
+        $output .= "\n";
+
+        my $subject = 'fegfdvhpto';
+
+        $output .= 'Subject ' . $subject . ' with length ' . length( $subject ) . ' is acceptable: ' . $self -> is_subject_length_accepatable( $subject );
+        $output .= "\n";
+
+        $output .= 'Subject x 10: ';
+        $output .= "\n";
+        $output .= $subject x 10;
+        $output .= "\n";
+
+        $output .= 'Subject x 20: ';
+        $output .= "\n";
+        $output .= $subject x 20;
+        $output .= "\n";
+        
+
+        $output .= 'But!';
+        $output .= "\n";
+        $output .= 'Subject ' . $subject . ' x 20 with length ' . length( $subject x 20 ) . ' is not acceptable: ' . $self -> is_subject_length_accepatable( $subject x 20 );
+        $output .= "\n";
+
+        return $self -> nctd( $output );
+}
+
+sub is_subject_length_accepatable
+{
+        my $self = shift;
+        my $subject = shift;
+        
+        my $acceptable = 1;
+
+        if( length( $subject ) > &gr( 'MESSAGE_SUBJECT_MAX_LENGTH' ) )
+        {
+                $acceptable = 0;
+        }
+
+        return $acceptable;
 }
 
 1;

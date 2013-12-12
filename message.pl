@@ -9,7 +9,7 @@ sub wendy_handler
 }
 
 package ForumMessage;
-use Wendy::Shorts 'ar';
+use Wendy::Shorts qw( ar gr );
 
 use Moose;
 extends 'ForumApp';
@@ -107,7 +107,7 @@ sub is_subject_length_accepatable
         
         my $acceptable = 1;
 
-        if( length( $subject ) > $self -> subject_length() )
+        if( length( $subject ) > &gr( 'MESSAGE_SUBJECT_MAX_LENGTH' ) )
         {
                 $acceptable = 0;
         }

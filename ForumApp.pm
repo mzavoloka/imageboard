@@ -263,5 +263,15 @@ sub trim
         return $str;
 }
 
+sub is_thread_exists
+{
+        my $self = shift;
+        my $thread_id = shift;
+
+        my $exists = FModel::Threads -> count( id => $thread_id );
+
+        return $exists;
+}
+
 
 1;
