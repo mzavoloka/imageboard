@@ -2,12 +2,12 @@ use strict;
 package TestApp;
 
 use Data::Dumper;
-use Wendy::Db qw( dbconnect );
+use Carp::Assert;
 
 use Moose;
 extends 'ForumApp';
 
-sub _run_modes { [ 'default', 'tell_ip' , 'dump_self', 'littleorm', 'sprintf', 'coerce', 'validate_email' ] }
+sub _run_modes { [ 'default', 'tell_ip' , 'dump_self', 'littleorm', 'sprintf', 'coerce', 'validate_email', 'assert' ] }
 
 sub app_mode_default
 {
@@ -128,7 +128,7 @@ sub app_mode_sprintf
                 my $dt = shift;
 
                 my $tz = DateTime::TimeZone -> new( name => 'local' );
-                my $dt = DateTime -> now();
+                $dt = DateTime -> now();
                 my $offset = $tz -> offset_for_datetime( $dt );
 
                 my $strp = DateTime::Format::Strptime -> new( pattern => '%F%n%T' );
@@ -264,6 +264,30 @@ sub app_mode_validate_email
         FModel::Users -> create( name => 'hhh', password => 'hhh', email => '*(*&%#', registered => $self -> now() );
         my $output = 'Check Db';
                 
+        return $self -> nctd( $output );
+}
+
+sub app_mode_assert
+{
+        my $self = shift;
+
+        my $output;
+
+        my $subject = 'testing';
+        my $content = 'some text data';
+        my $author = 'Not exists!';
+        my $thread_id = 'Not a number!';
+
+        assert( $thread_id > 0 );
+
+        FModel::Messages -> create( subject   => $subject,
+                                    content   => $content,
+                                    author    => $author,
+                                    thread_id => $thread_id,
+                                    posted    => $self -> now() );
+
+        $output = 'Check Db';
+
         return $self -> nctd( $output );
 }
 

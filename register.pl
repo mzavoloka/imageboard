@@ -1,5 +1,6 @@
-package localhost::register;
 use strict;
+
+package localhost::register;
 
 sub wendy_handler
 {
@@ -43,10 +44,10 @@ sub app_mode_do_register
 {
         my $self = shift;
 
-        my $username     = $self -> arg( 'username');
-      	my $email        = $self -> arg( 'email' );
-      	my $password     = $self -> arg( 'password' );
-      	my $confirmation = $self -> arg( 'confirmation' );
+        my $username     = $self -> arg( 'username') || '';
+      	my $email        = $self -> arg( 'email' ) || '';
+      	my $password     = $self -> arg( 'password' ) || '';
+      	my $confirmation = $self -> arg( 'confirmation' ) || '';
 
         my $output;
 

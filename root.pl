@@ -1,5 +1,6 @@
-package localhost::root;
 use strict;
+
+package localhost::root;
 
 sub wendy_handler()
 {

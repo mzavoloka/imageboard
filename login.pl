@@ -1,5 +1,6 @@
-package localhost::login;
 use strict;
+
+package localhost::login;
 
 sub wendy_handler
 {

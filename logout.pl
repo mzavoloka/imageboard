@@ -1,5 +1,6 @@
-package localhost::logout;
 use strict;
+
+package localhost::logout;
 
 sub wendy_handler
 {

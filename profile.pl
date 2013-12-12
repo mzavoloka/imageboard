@@ -1,5 +1,6 @@
-package localhost::profile;
 use strict;
+
+package localhost::profile;
 
 sub wendy_handler
 {
@@ -55,16 +56,22 @@ sub app_mode_change_email
         my $self = shift;
 
         my $email = $self -> arg( 'email' ) || '';
+        $email = lc( $email );
 
-        my $error_msg = $self -> change_email( $email );
+        my $error_msg = '';
         my $success_msg = '';
 
-        unless( $error_msg )
+        if( $self -> is_email_valid( $email ) )
         {
+                $self -> change_email( $email );
                 $success_msg = 'EMAIL_CHANGED';
         }
+        else
+        {
+                $error_msg = 'INVALID_EMAIL';
+        }
 
-        $self -> add_profile_data();
+        $self -> add_profile_data( $self -> user() );
         my $output = $self -> construct_page( middle_tpl => 'profile', error_msg => $error_msg, success_msg => $success_msg );
 
   	return $output;
@@ -75,6 +82,7 @@ sub app_mode_change_password
         my $self = shift;
 
         my $output;
+
         my $change_button_pressed = $self -> arg( 'change' ) || '';
 
         if( $change_button_pressed )
@@ -83,47 +91,14 @@ sub app_mode_change_password
                 my $new_password = $self -> arg( 'new_password' ) || '';
                 my $new_password_confirmation = $self -> arg( 'new_password_confirmation' ) || '';
 
-                my $all_fields_are_filled = ( ($current_password ne '') and
-                                                ( $new_password ne '' ) and
-                                                ( $new_password_confirmation ne '' ) );
-                # All error checks should be done in special function
-                my $error_msg = '';
-
-                if( $all_fields_are_filled )
-                {
-                        my $user = FModel::Users -> get( name => $self -> user() );
-
-                        my $current_password_correct = ( $current_password eq $user -> password() );
-                        if( $current_password_correct )
-                        {
-                                my $new_password_confirmed = ( $new_password eq $new_password_confirmation );
-                                if ( $new_password_confirmed )
-                                {
-                                        $self -> change_password( $user -> name(), $new_password );
-                                }
-                                else
-                                {
-                                        $error_msg = 'NEW_PASSWORD_CONFIRMATION_FAILED';
-                                }
-                        }
-                        else
-                        {
-                                $error_msg = 'CURRENT_PASSWORD_INCORRECT';
-                        }
-                }
-                else
-                {
-                        $error_msg = 'FIELDS_ARE_NOT_FILLED';
-                }
-
-                if( $error_msg )
+                if( my $error_msg = $self -> can_change_password( $current_password, $new_password, $new_password_confirmation, $self -> user() ) )
                 {
                         $output = $self -> construct_page( middle_tpl => 'change_password', error_msg => $error_msg );
                 } else
                 {
-                        my $success_msg = 'PASSWORD_CHANGED';
-                        $self -> add_profile_data();
-                        $output = $self -> construct_page( middle_tpl => 'profile', success_msg => $success_msg );
+                        $self -> change_password( $self -> user(), $new_password );
+                        $self -> add_profile_data( $self -> user() );
+                        $output = $self -> construct_page( middle_tpl => 'profile', success_msg => 'PASSWORD_CHANGED' );
                 }
         } else
         {
@@ -131,6 +106,42 @@ sub app_mode_change_password
         }
 
   	return $output;
+}
+
+sub can_change_password
+{
+        my $self = shift;
+        my $current_password = shift;
+        my $new_password = shift;
+        my $new_password_confirmation = shift;
+        my $username = shift;
+
+        my $error_msg = '';
+
+        my $fields_are_filled = ( ($current_password ne '') and
+                                      ( $new_password ne '' ) and
+                                      ( $new_password_confirmation ne '' ) );
+
+        my $user = FModel::Users -> get( name => $self -> user() );
+        my $password_in_db = $user -> password();
+        my $current_password_correct = ( $current_password eq $password_in_db );
+
+        my $new_password_confirmed = ( $new_password eq $new_password_confirmation );
+
+        if( not $fields_are_filled )
+        {
+                $error_msg = 'FIELDS_ARE_NOT_FILLED';
+        }
+        elsif( $fields_are_filled and ( not $current_password_correct ) )
+        {
+                $error_msg = 'CURRENT_PASSWORD_INCORRECT';
+        }
+        elsif( $fields_are_filled and $current_password_correct and ( not $new_password_confirmed ) )
+        {
+                $error_msg = 'NEW_PASSWORD_CONFIRMATION_FAILED';
+        }
+
+        return $error_msg;
 }
 
 sub add_profile_data
@@ -157,22 +168,13 @@ sub change_email
 {
         my $self = shift;
         my $email = shift;
+        $email = lc( $email );
 
-        my $error_msg = '';
+        my $user = FModel::Users -> get( name => $self -> user() );
+        $user -> email( $email );
+        $user -> update();
 
-        if( $self -> is_email_valid( $email ) )
-        {
-
-                my $user = FModel::Users -> get( name => $self -> user() );
-                $user -> email( $email );
-                $user -> update();
-        }
-        else
-        {
-                $error_msg = 'INVALID_EMAIL';
-        }
-
-        return $error_msg;
+        return;
 }
 
 sub change_password

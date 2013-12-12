@@ -1,4 +1,5 @@
 use strict;
+
 package ForumApp;
 
 use LittleORM::Db 'init';

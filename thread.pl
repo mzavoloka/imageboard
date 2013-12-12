@@ -1,5 +1,6 @@
-package localhost::thread;
 use strict;
+
+package localhost::thread;
 
 sub wendy_handler
 {

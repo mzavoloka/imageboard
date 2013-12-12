@@ -1,5 +1,6 @@
-package localhost::message;
 use strict;
+
+package localhost::message;
 
 sub wendy_handler
 {
