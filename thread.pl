@@ -15,7 +15,7 @@ use Carp::Assert 'assert';
 use Moose;
 extends 'ForumApp';
 
-sub _run_modes { [ 'default', 'create', 'reply', 'edit' ] };
+sub _run_modes { [ 'default', 'create', 'reply', 'edit', 'edit_message' ] };
 
 sub init
 {
@@ -49,7 +49,7 @@ sub app_mode_default
                 $output = $self -> construct_page( middle_tpl => 'thread', error_msg => $error_msg );
         } else
         {
-                $self -> add_thread_data( $thread_id, 'full' );
+                $self -> add_thread_data( $thread_id, 'full', 'with_messages' );
                 $output = $self -> construct_page( middle_tpl => 'thread' );
         }
 
@@ -106,15 +106,14 @@ sub app_mode_edit
 
         my $output;
 
-        if( my $error_msg = $self -> can_edit( $thread_id, $title, $content, $edit_button_pressed ) )
-        {
-                $self -> add_thread_data( $thread_id, 'full' );
-                $output = $self -> construct_page( middle_tpl => 'thread_edit', error_msg => $error_msg );
-        }
-        else
+        if( $edit_button_pressed and ( not my $error_msg = $self -> can_edit( $thread_id, $title, $content, $edit_button_pressed ) ) )
         {
                 $self -> edit( $thread_id, $title, $content );
                 $output = $self -> ncrd( '/thread/?thread_id=' . $thread_id );
+        } else
+        {
+                $self -> add_thread_data( $thread_id, 'full' );
+                $output = $self -> construct_page( middle_tpl => 'thread_edit', error_msg => $error_msg );
         }
 
         return $output;
@@ -129,10 +128,10 @@ sub can_edit
         my $edit_button_pressed = shift;
 
         my $error_msg = '';
-        
-        my $thread_id_error = $self -> check_if_proper_thread_id_provided( $thread_id );
 
         my $fields_are_filled = ( $self -> trim( $title ) and $self -> trim( $content ) );
+        
+        my $thread_id_error = $self -> check_if_proper_thread_id_provided( $thread_id );
 
         if( $thread_id_error )
         {
@@ -161,8 +160,6 @@ sub edit
         my $thread_id = shift;
         my $title = shift;
         my $content = shift;
-
-        my $user = FModel::Users -> get( name => $self -> user() );
 
         my $thread = FModel::Threads -> get( id => $thread_id );
 
@@ -278,33 +275,153 @@ sub reply
         return;
 }
 
+sub app_mode_edit_message
+{
+        my $self = shift;
+
+        my $message_id = $self -> arg( 'message_id' );
+        my $subject    = $self -> arg( 'subject' ) || '';
+        my $content    = $self -> arg( 'content' ) || '';
+        my $edit_button_pressed = $self -> arg( 'edit_button' ) || '';
+
+        my $output;
+
+        if( my $error_msg = $self -> can_edit_message( $message_id, $subject, $content, $edit_button_pressed ) )
+        {
+                $self -> add_message_data( $message_id );
+                $output = $self -> construct_page( middle_tpl => 'message_edit', error_msg => $error_msg );
+        }
+        elsif( not $edit_button_pressed )
+        {
+                $self -> edit_message( $message_id, $subject, $content );
+                my $message = FModel::Messages -> get( id => $message_id );
+                $output = $self -> ncrd( '/thread/?thread_id=' . $message -> thread_id() -> id() );
+        }
+
+        return $output;
+}
+
+sub can_edit_message
+{
+        my $self = shift;
+        my $message_id = shift;
+        my $subject = shift;
+        my $content = shift;
+        my $edit_button_pressed = shift;
+
+        my $error_msg = '';
+        
+        my $message_id_error = $self -> check_if_proper_message_id_provided( $message_id );
+
+        my $fields_are_filled = ( $self -> trim( $subject ) and $self -> trim( $content ) );
+
+        if( $message_id_error )
+        {
+                $error_msg = $message_id_error;
+        }
+        elsif( not $self -> is_message_belongs_to_current_user( $message_id ) )
+        {
+                $error_msg = 'CAN_ONLY_EDIT_MESSAGES_OF_YOUR_OWN';
+                &ar( DONT_SHOW_MESSAGE_DATA => 1 );
+        }
+        elsif( $edit_button_pressed and ( not $message_id_error ) and ( not $fields_are_filled ) )
+        {
+                $error_msg = 'FIELDS_ARE_NOT_FILLED';
+        }
+        elsif( $edit_button_pressed and ( not $message_id_error ) and $fields_are_filled and ( not $self -> is_message_subject_length_acceptable( $subject ) ) ) 
+        {
+                $error_msg = 'MESSAGE_SUBJECT_TOO_LONG';
+        }
+
+        return $error_msg;
+}
+
+sub add_message_data
+{
+        my $self = shift;
+        my $message_id = shift;
+        my $full = shift;
+        
+        &ar( MESSAGE_ID => $message_id );
+        if( not my $error = $self -> check_if_proper_message_id_provided( $message_id ) )
+        {
+                my $message = FModel::Messages -> get( id => $message_id );
+
+                &ar( TITLE => $message -> subject() );
+
+                if( $full )
+                {
+                        &ar( CONTENT => $message -> content(),
+                             CREATED => $self -> readable_date( $message -> created() ),
+                             AUTHOR  => $message -> user_id() -> name(),
+                             SHOW_MANAGE_LINKS => $self -> is_message_belongs_to_current_user( $message_id ) );
+                        
+
+                        if( $message -> modified() )
+                        {
+                                &ar( MODIFIED => 1, MODIFIED_DATE => $self -> readable_date( $message -> modified_date() ) );
+                        }
+                }
+        } else
+        {
+                &ar( DONT_SHOW_MESSAGE_DATA => 1 );
+        }
+
+        return;
+}
+
+sub edit_message
+{
+        my $self = shift;
+        my $message_id = shift;
+        my $subject = shift;
+        my $content = shift;
+
+        my $message = FModel::Messages -> get( id => $message_id );
+
+        $message -> subject( $subject );
+        $message -> content( $content );
+        $message -> modified( 1 );
+        $message -> modified_date( $self -> now() );
+
+        $message -> update();
+
+        return;
+}
+
 sub add_thread_data
 {
         my $self = shift;
         my $thread_id = shift;
         my $full = shift;
+        my $with_messages = shift;
+
+        &ar( THREAD_ID => $thread_id);
 
         if( not my $error = $self -> check_if_proper_thread_id_provided( $thread_id ) )
         {
                 my $thread = FModel::Threads -> get( id => $thread_id );
 
-                &ar( THREAD_ID => $thread_id, TITLE => $thread -> title() );
+                &ar( TITLE => $thread -> title() );
 
                 if( $full )
                 {
                         &ar( CONTENT => $thread -> content(),
                              CREATED => $self -> readable_date( $thread -> created() ),
                              AUTHOR  => $thread -> user_id() -> name(),
-                             SHOW_MANAGE_LINKS => $self -> is_thread_belongs_to_current_user( $thread -> id() ) );
+                             SHOW_MANAGE_LINKS => $self -> is_thread_belongs_to_current_user( $thread_id ) );
                         
 
                         if( $thread -> modified() )
                         {
                                 &ar( MODIFIED => 1, MODIFIED_DATE => $self -> readable_date( $thread -> modified_date() ) );
                         }
-                }
 
-                $self -> add_messages( $thread_id );
+                        if( $with_messages )
+                        {
+                                $self -> add_messages( $thread_id );
+                        }
+                }
         } else
         {
                 &ar( DONT_SHOW_THREAD_DATA => 1 );
@@ -412,6 +529,25 @@ sub check_if_proper_thread_id_provided
         elsif( not $self -> is_thread_exists( $thread_id ) )
         {
                 $error = 'NO_SUCH_THREAD';
+        }
+
+        return $error;
+}
+
+sub check_if_proper_message_id_provided
+{
+        my $self = shift;
+        my $message_id = shift || '';
+
+        my $error = '';
+
+        if( not $message_id )
+        {
+                $error = 'NO_MESSAGE_ID';
+        }
+        elsif( not $self -> is_message_exists( $message_id ) )
+        {
+                $error = 'NO_SUCH_MESSAGE';
         }
 
         return $error;

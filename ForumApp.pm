@@ -306,6 +306,21 @@ sub is_thread_exists
         return $exists;
 }
 
+sub is_message_exists
+{
+        my $self = shift;
+        my $message_id = shift || '';
+
+        my $exists = 0;
+
+        if( $message_id )
+        {
+                $exists = FModel::Messages -> count( id => $message_id );
+        }
+
+        return $exists;
+}
+
 sub is_message_belongs_to_current_user
 {
         my $self = shift;
