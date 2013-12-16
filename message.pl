@@ -22,12 +22,7 @@ sub always
 {
         my $self = shift;
 
-        my $rv;
-
-        unless( $self -> user() )
-        {
-                $rv = $self -> construct_page( restricted_msg => 'MESSAGE_RESTRICTED' );
-        }
+        my $rv = $self -> construct_page( restricted_msg => 'OBSOLETE' );
         
         return $rv; 
 }

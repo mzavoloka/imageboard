@@ -37,7 +37,7 @@ sub get_threads
 {
         my $self = shift;
 
-        my @threads_sorted = FModel::Threads -> get_many( _sortby => { created => 'DESC' } );
+        my @threads_sorted = FModel::Threads -> get_many( _sortby => { updated => 'DESC' } );
         my $threads = [];
 
         for my $thread ( @threads_sorted )
@@ -45,9 +45,11 @@ sub get_threads
                 my $hash = { THREAD_ID => $thread -> id(),
                              TITLE     => $thread -> title(),
                              CONTENT   => $thread -> content(),
-                             AUTHOR    => $thread -> author() -> name(),
+                             AUTHOR    => $thread -> user_id() -> name(),
                              CREATED   => $self -> readable_date( $thread -> created() ),
-                             MESSAGES  => $self -> get_thread_messages( $thread -> id() ) };
+                             MESSAGES  => $self -> get_thread_messages( $thread -> id() ),
+                             MODIFIED  => $self -> readable_date( $thread -> modified() ),
+                             SHOW_MANAGE_LINKS => $self -> is_thread_belongs_to_current_user( $thread -> id() ) };
                 push( $threads, $hash );
         }
 
@@ -59,16 +61,29 @@ sub get_thread_messages
         my $self = shift;
         my $thread_id = shift;
 
-        my @messages_sorted = sort { $b -> posted() cmp $a -> posted() } FModel::Messages -> get_many( thread_id => $thread_id );
+        my @messages_sorted = FModel::Messages -> get_many( thread_id => $thread_id, _sortby => 'posted' );
         my $messages = [];
-         
-        for my $message ( @messages_sorted ) 
+
+        if( @messages_sorted )
         {
-                my $msg_hash = { POSTED  => $self -> readable_date( $message -> posted() ),
-                                 SUBJECT => $message -> subject(),
-                                 CONTENT => $message -> content(),
-                                 AUTHOR  => $message -> author() -> name() };
-                push( $messages, $msg_hash );
+                my $index = $#messages_sorted - 2;
+
+                if( $index < 0 )
+                {
+                        $index = 0;
+                }
+
+                for( $index; $index <= $#messages_sorted; $index++ )
+                {
+                        my $message = $messages_sorted[ $index ];
+                        my $msg_hash = { MESSAGE_ID => $message -> id(),
+                                         POSTED     => $self -> readable_date( $message -> posted() ),
+                                         SUBJECT    => $message -> subject(),
+                                         CONTENT    => $message -> content(),
+                                         AUTHOR     => $message -> user_id() -> name(),
+                                         SHOW_MANAGE_LINKS => $self -> is_message_belongs_to_current_user( $message -> id() ) };
+                        push( $messages, $msg_hash );
+                }
         }
 
         return $messages;

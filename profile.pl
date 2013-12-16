@@ -17,13 +17,17 @@ use Wendy::Shorts 'ar';
 
 sub _run_modes { [ 'default', 'change_email', 'change_password', 'search' ] };
 
-sub always
+sub init
 {
         my $self = shift;
 
         my $rv;
 
-        unless( $self -> user() )
+        if( my $error = $self -> SUPER::init() )
+        {
+                $rv = $error;
+        }
+        elsif( not $self -> user() )
         {
                 $rv = $self -> construct_page( restricted_msg => 'PROFILE_RESTRICTED' );
         }
@@ -44,6 +48,7 @@ sub app_mode_default
         } else
         {
                 $error_msg = 'USER_NOT_FOUND';
+		&ar( DONT_SHOW_PROFILE_INFO => 1 );
         }
 
         my $output = $self -> construct_page( middle_tpl => 'profile', error_msg => $error_msg );
@@ -56,25 +61,43 @@ sub app_mode_change_email
         my $self = shift;
 
         my $email = $self -> arg( 'email' ) || '';
-        $email = lc( $email );
 
-        my $error_msg = '';
-        my $success_msg = '';
+        my $output;
 
-        if( $self -> is_email_valid( $email ) )
+        if( my $error_msg = $self -> can_change_email( $email, $self -> user() ) )
+        {
+                $self -> add_profile_data( $self -> user() );
+                $output = $self -> construct_page( middle_tpl => 'profile', error_msg => $error_msg );
+        } else
         {
                 $self -> change_email( $email );
-                $success_msg = 'EMAIL_CHANGED';
+                $self -> add_profile_data( $self -> user() );
+                $output = $self -> construct_page( middle_tpl => 'profile', success_msg => 'EMAIL_CHANGED' );
         }
-        else
+
+  	return $output;
+}
+
+sub can_change_email()
+{
+        my $self = shift;
+        my $email = shift;
+        my $username = shift;
+
+        my $error_msg = '';
+
+        my $email_valid = $self -> is_email_valid( $email );
+
+        if( not $email_valid )
         {
                 $error_msg = 'INVALID_EMAIL';
         }
+        elsif( $email_valid and $self -> is_email_exists_except_user( $email, $username ) )
+        {
+                $error_msg = 'EMAIL_ALREADY_EXISTS';
+        }
 
-        $self -> add_profile_data( $self -> user() );
-        my $output = $self -> construct_page( middle_tpl => 'profile', error_msg => $error_msg, success_msg => $success_msg );
-
-  	return $output;
+        return $error_msg;
 }
 
 sub app_mode_change_password
@@ -119,8 +142,8 @@ sub can_change_password
         my $error_msg = '';
 
         my $fields_are_filled = ( ($current_password ne '') and
-                                      ( $new_password ne '' ) and
-                                      ( $new_password_confirmation ne '' ) );
+                                  ( $new_password ne '' ) and
+                                  ( $new_password_confirmation ne '' ) );
 
         my $user;
         my $current_password_correct;
@@ -163,7 +186,7 @@ sub add_profile_data
                 &ar( USER_HOME_PROFILE => 1 );
         } 
 
-        my $num_of_messages = FModel::Messages -> count( author => $user );
+        my $num_of_messages = FModel::Messages -> count( user_id => $user );
 
         &ar( NAME => $user -> name(), ID => $user -> id(), REGISTERED => $self -> readable_date( $user -> registered() ), 
              EMAIL => $user -> email(), NUM_OF_MESSAGES => $num_of_messages );

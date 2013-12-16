@@ -11,11 +11,11 @@ has 'subject' => ( is => 'rw', isa => 'Str' );
 
 has 'content' => ( is => 'rw', isa => 'Str' );
 
-has 'author' => ( is => 'rw',
+has 'user_id' => ( is => 'rw',
                   metaclass => 'LittleORM::Meta::Attribute',
                   isa => 'FModel::Users',
                   description => { foreign_key => 'FModel::Users',
-                                   foreign_key_attr_name => 'name' } );
+                                   foreign_key_attr_name => 'id' } );
 
 has 'posted' => ( is => 'rw',
                   metaclass => 'LittleORM::Meta::Attribute',
@@ -23,7 +23,11 @@ has 'posted' => ( is => 'rw',
                   description => { coerce_from => sub { &FModel::Funcs::ts2dt( $_[0] ) },
                                    coerce_to   => sub { &FModel::Funcs::dt2ts( $_[0] ) } } );
 
-has thread_id => ( is => 'rw', isa => 'Int' );
+has thread_id => ( is => 'rw',
+                   metaclass => 'LittleORM::Meta::Attribute',
+                   isa => 'FModel::Threads',
+                   description => { foreign_key => 'FModel::Threads',
+                                    foreign_key_attr_name => 'id' } );
 
 
 1;

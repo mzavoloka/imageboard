@@ -7,11 +7,11 @@ extends 'LittleORM::GenericID';
 
 sub _db_table { 'sessions' }
 
-has 'owner' => ( is => 'rw',
+has 'user_id' => ( is => 'rw',
                  metaclass => 'LittleORM::Meta::Attribute',
                  isa => 'FModel::Users',
                  description => { foreign_key => 'FModel::Users',
-                                  foreign_key_attr_name => 'name' } );
+                                  foreign_key_attr_name => 'id' } );
 
 has 'session_key' => ( is => 'rw', isa => 'Str' );
 

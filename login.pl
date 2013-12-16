@@ -17,13 +17,17 @@ use Data::Dumper 'Dumper';
 
 sub _run_modes { [ 'default', 'do_login' ] }
 
-sub always
+sub init
 {
         my $self = shift;
 
         my $rv;
 
-        if( $self -> user () )
+        if( my $error = $self -> SUPER::init() )
+        {
+                $rv = $error;
+        }
+        elsif( $self -> user () )
         {
                 $rv = $self -> construct_page( restricted_msg => 'LOGIN_RESTRICTED' );
         }

@@ -18,6 +18,7 @@ use Moose;
 extends 'Wendy::App';
 
 has 'user' => ( is => 'rw', isa => 'Str' );
+has 'user_id' => ( is => 'rw', isa => 'Int' );
 has 'session_expires_after' => ( is => 'rw', isa => 'Int', default => 900 );
 
 sub init
@@ -107,7 +108,8 @@ sub init_user
                 } else
                 {
                         $session -> expires( $self -> session_expires() );
-                        $rv = $self -> user( $session -> owner() -> name() );
+                        $rv = $self -> user( $session -> user_id() -> name() );
+                        $self -> user_id( $session -> user_id() -> id() );
                         $session -> update();
                 }
         }
@@ -122,11 +124,13 @@ sub log_user_in
 
         my $session_key = $self -> new_session_key();
 
-        FModel::Sessions -> create( owner => $username, expires => $self -> session_expires(), session_key => $session_key );
+        my $user = FModel::Users -> get( name => $username );
+        FModel::Sessions -> create( user_id => $user -> id(), expires => $self -> session_expires(), session_key => $session_key );
 
         $self -> set_cookie( '-name' => 'session_key', '-value' => $session_key );
 
         $self -> user( $username );
+        $self -> user_id( $user -> id() );
 
         return $session_key;
 }
@@ -207,6 +211,23 @@ sub is_email_exists
         return( $exists );
 }
 
+sub is_email_exists_except_user
+{
+        my $self = shift;
+        my $email = shift;
+        my $username = shift;
+
+        my $exists = 0;
+
+        if( $self -> is_email_valid( $email ) )
+        {
+                $email = lc( $email );
+                $exists = FModel::Users -> count( email => $email, name => { '!=', $username } );
+        }
+
+        return( $exists );
+}
+
 sub is_username_valid
 {
         my $self = shift;
@@ -248,7 +269,6 @@ sub set_cookie
 
 	{
 		$args{ '-domain' } = '192.168.9.24';
-		#$args{ '-domain' } ||= $self -> wobj() -> { 'HOST' } -> { 'host' };
 		$args{ '-expires' } ||= '+1d';
 
 	}
@@ -274,11 +294,48 @@ sub trim
 sub is_thread_exists
 {
         my $self = shift;
-        my $thread_id = shift;
+        my $thread_id = shift || '';
 
-        my $exists = FModel::Threads -> count( id => $thread_id );
+        my $exists = 0;
+
+        if( $thread_id )
+        {
+                $exists = FModel::Threads -> count( id => $thread_id );
+        }
 
         return $exists;
+}
+
+sub is_message_belongs_to_current_user
+{
+        my $self = shift;
+        my $message_id = shift;
+
+        my $belongs = 0;
+
+        if( $self -> user_id() )
+        {
+                my $message = FModel::Messages -> get( id => $message_id );
+                $belongs = ( $self -> user_id() eq $message -> user_id() -> id() );
+        }
+
+        return $belongs;
+}
+
+sub is_thread_belongs_to_current_user
+{
+        my $self = shift;
+        my $thread_id = shift;
+
+        my $belongs = 0;
+
+        if( $self -> user_id() )
+        {
+                my $thread = FModel::Threads -> get( id => $thread_id );
+                $belongs = ( $self -> user_id() eq $thread -> user_id() -> id() );
+        }
+
+        return $belongs;
 }
 
 
