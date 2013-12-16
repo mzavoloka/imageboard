@@ -29,11 +29,13 @@ has 'updated' => ( is => 'rw',
                    description => { coerce_from => sub { &FModel::Funcs::ts2dt( $_[0] ) },
                                     coerce_to   => sub { &FModel::Funcs::dt2ts( $_[0] ) } } );
 
-has 'modified' => ( is => 'rw',
-                    metaclass => 'LittleORM::Meta::Attribute',
-                    isa => 'DateTime',
-                    description => { coerce_from => sub { &FModel::Funcs::ts2dt( $_[0] ) },
-                                     coerce_to   => sub { &FModel::Funcs::dt2ts( $_[0] ) } } );
+has 'modified_date' => ( is => 'rw',
+                         metaclass => 'LittleORM::Meta::Attribute',
+                         isa => 'DateTime',
+                         description => { coerce_from => sub { &FModel::Funcs::ts2dt( $_[0] ) },
+                                          coerce_to   => sub { &FModel::Funcs::dt2ts( $_[0] ) } } );
+
+has 'modified' => ( is => 'rw', isa => 'Bool' );
 
 
 1;

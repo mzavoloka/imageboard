@@ -106,17 +106,12 @@ sub app_mode_edit
 
         my $output;
 
-        if( not $edit_button_pressed ) 
-        {
-                $self -> add_thread_data( $thread_id, 'full' );
-                $output = $self -> construct_page( middle_tpl => 'thread_edit', error_msg => $self -> check_if_proper_thread_id_provided( $thread_id ) );
-        }
-        elsif( $edit_button_pressed and ( my $error_msg = $self -> can_edit( $thread_id, $title, $content ) ) )
+        if( my $error_msg = $self -> can_edit( $thread_id, $title, $content, $edit_button_pressed ) )
         {
                 $self -> add_thread_data( $thread_id, 'full' );
                 $output = $self -> construct_page( middle_tpl => 'thread_edit', error_msg => $error_msg );
         }
-        elsif( $edit_button_pressed and ( not $error_msg ) )
+        else
         {
                 $self -> edit( $thread_id, $title, $content );
                 $output = $self -> ncrd( '/thread/?thread_id=' . $thread_id );
@@ -131,6 +126,7 @@ sub can_edit
         my $thread_id = shift;
         my $title = shift;
         my $content = shift;
+        my $edit_button_pressed = shift;
 
         my $error_msg = '';
         
@@ -142,11 +138,16 @@ sub can_edit
         {
                 $error_msg = $thread_id_error;
         }
-        if( ( not $thread_id_error ) and ( not $fields_are_filled ) )
+        elsif( not $self -> is_thread_belongs_to_current_user( $thread_id ) )
+        {
+                $error_msg = 'CAN_ONLY_EDIT_THREADS_OF_YOUR_OWN';
+                &ar( DONT_SHOW_THREAD_DATA => 1 );
+        }
+        elsif( $edit_button_pressed and ( not $thread_id_error ) and ( not $fields_are_filled ) )
         {
                 $error_msg = 'FIELDS_ARE_NOT_FILLED';
         }
-        elsif( ( not $thread_id_error ) and $fields_are_filled and ( not $self -> is_thread_title_length_acceptable( $title ) ) ) 
+        elsif( $edit_button_pressed and ( not $thread_id_error ) and $fields_are_filled and ( not $self -> is_thread_title_length_acceptable( $title ) ) ) 
         {
                 $error_msg = 'THREAD_TITLE_TOO_LONG';
         }
@@ -170,7 +171,8 @@ sub edit
 
         my $now = $self -> now();
 
-        $thread -> modified( $now );
+        $thread -> modified( 1 );
+        $thread -> modified_date( $now );
         $thread -> updated( $now );
 
         $thread -> update();
@@ -196,7 +198,6 @@ sub app_mode_reply
         }
         elsif( ( not $thread_id_error ) and $reply_button_pressed )
         {
-
                 if( my $error_msg = $self -> can_reply( $subject, $content ) )
                 {
                         $self -> add_thread_data( $thread_id );
@@ -293,7 +294,14 @@ sub add_thread_data
                 {
                         &ar( CONTENT => $thread -> content(),
                              CREATED => $self -> readable_date( $thread -> created() ),
-                             AUTHOR  => $thread -> user_id() -> name() );
+                             AUTHOR  => $thread -> user_id() -> name(),
+                             SHOW_MANAGE_LINKS => $self -> is_thread_belongs_to_current_user( $thread -> id() ) );
+                        
+
+                        if( $thread -> modified() )
+                        {
+                                &ar( MODIFIED => 1, MODIFIED_DATE => $self -> readable_date( $thread -> modified_date() ) );
+                        }
                 }
 
                 $self -> add_messages( $thread_id );
@@ -319,7 +327,16 @@ sub add_messages
                                  POSTED     => $self -> readable_date( $message -> posted() ),
                                  SUBJECT    => $message -> subject(),
                                  CONTENT    => $message -> content(),
-                                 AUTHOR     => $message -> user_id() -> name() };
+                                 AUTHOR     => $message -> user_id() -> name(),
+                                 SHOW_MANAGE_LINKS => $self -> is_message_belongs_to_current_user( $message -> id() )
+                                 };
+
+                if( $message -> modified() )
+                {
+                        $msg_hash -> { 'MODIFIED' } = 1;
+                        $msg_hash -> { 'MODIFIED_DATE' } = $self -> readable_date( $message -> modified_date() );
+                }
+
                 push( $messages, $msg_hash );
         }
 

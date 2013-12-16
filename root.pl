@@ -48,8 +48,14 @@ sub get_threads
                              AUTHOR    => $thread -> user_id() -> name(),
                              CREATED   => $self -> readable_date( $thread -> created() ),
                              MESSAGES  => $self -> get_thread_messages( $thread -> id() ),
-                             MODIFIED  => $self -> readable_date( $thread -> modified() ),
                              SHOW_MANAGE_LINKS => $self -> is_thread_belongs_to_current_user( $thread -> id() ) };
+
+                if( $thread -> modified() )
+                {
+                        $hash -> { 'MODIFIED' } = 1;
+                        $hash -> { 'MODIFIED_DATE' } = $self -> readable_date( $thread -> modified_date() );
+                }
+
                 push( $threads, $hash );
         }
 
@@ -82,6 +88,13 @@ sub get_thread_messages
                                          CONTENT    => $message -> content(),
                                          AUTHOR     => $message -> user_id() -> name(),
                                          SHOW_MANAGE_LINKS => $self -> is_message_belongs_to_current_user( $message -> id() ) };
+
+                        if( $message -> modified() )
+                        {
+                                $msg_hash -> { 'MODIFIED' } = 1;
+                                $msg_hash -> { 'MODIFIED_DATE' } = $self -> readable_date( $message -> modified_date() );
+                        }
+
                         push( $messages, $msg_hash );
                 }
         }
