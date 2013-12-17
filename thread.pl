@@ -493,8 +493,8 @@ sub add_thread_data
                         &ar( CONTENT => $thread -> content(),
                              CREATED => $self -> readable_date( $thread -> created() ),
                              AUTHOR  => $thread -> user_id() -> name(),
-                             SHOW_MANAGE_LINKS => $self -> is_thread_belongs_to_current_user( $thread_id ) );
-                        
+                             SHOW_MANAGE_LINKS => $self -> is_thread_belongs_to_current_user( $thread_id ),
+                             AUTHOR_AVATAR => $self -> get_user_avatar_src( $thread -> user_id() -> id() ) );
 
                         if( $thread -> modified() )
                         {
@@ -529,7 +529,8 @@ sub add_messages
                                  SUBJECT    => $message -> subject(),
                                  CONTENT    => $message -> content(),
                                  AUTHOR     => $message -> user_id() -> name(),
-                                 SHOW_MANAGE_LINKS => $self -> is_message_belongs_to_current_user( $message -> id() )
+                                 SHOW_MANAGE_LINKS => $self -> is_message_belongs_to_current_user( $message -> id() ),
+                                 AUTHOR_AVATAR => $self -> get_user_avatar_src( $message -> user_id() -> id() )
                                  };
 
                 if( $message -> modified() )

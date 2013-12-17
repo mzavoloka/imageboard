@@ -13,9 +13,10 @@ use Moose;
 extends 'ForumApp';
 
 use Data::Dumper 'Dumper';
-use Wendy::Shorts 'ar';
+use Wendy::Shorts qw( ar gr );
+use File::Copy 'cp';
 
-sub _run_modes { [ 'default', 'change_email', 'change_password', 'search' ] };
+sub _run_modes { [ 'default', 'change_email', 'change_password', 'search', 'upload_avatar' ] };
 
 sub init
 {
@@ -174,6 +175,66 @@ sub can_change_password
         return $error_msg;
 }
 
+sub app_mode_upload_avatar
+{
+        my $self = shift;
+
+        my $avatar = $self -> upload( 'avatar' );
+
+        my $output;
+
+        if( my $error_msg = $self -> can_upload_avatar( $avatar ) )
+        {
+                $self -> add_profile_data( $self -> user() );
+                $output = $self -> construct_page( middle_tpl => 'profile', error_msg => $error_msg );
+        } else
+        {
+                my $filename = $self -> user_id();
+
+                my $filepath = $self -> avatars_dir_abs() . $filename;
+
+                if( cp( $avatar, $filepath ) )
+                {
+                        my $user = FModel::Users -> get( id => $self -> user_id() );
+                        $user -> avatar( $filename );
+                        $user -> update();
+
+                        $self -> add_profile_data( $self -> user() );
+                        $output = $self -> construct_page( middle_tpl => 'profile', success_msg => 'AVATAR_UPLOADED' );
+                } else
+                {
+                        my $error_msg = 'AVATAR_NOT_UPLOADED' . "\n$!";
+                        $self -> add_profile_data( $self -> user() );
+                        $output = $self -> construct_page( middle_tpl => 'profile', error_msg => $error_msg );
+                }
+        }
+
+        return $output;
+}
+
+sub can_upload_avatar
+{
+        my $self = shift;
+        my $avatar = shift;
+
+        my $error_msg = '';
+
+        my $filesize = -s $avatar;
+
+        my $filetype = CGI::uploadInfo( $avatar ) -> { 'Content-Type' };
+
+        if( $filetype ne 'image/jpeg' ) # Add macros for this thing with list of correct filetypes
+        {
+                $error_msg = 'AVATAR_INCORRECT_FILETYPE';
+        }
+        if( $filesize > &gr( 'AVATAR_MAX_SIZE' ) )
+        {
+                $error_msg = 'AVATAR_FILESIZE_TOO_BIG';
+        }
+
+        return $error_msg;
+}
+
 sub add_profile_data
 {
         my $self = shift;
@@ -188,8 +249,8 @@ sub add_profile_data
 
         my $num_of_messages = FModel::Messages -> count( user_id => $user );
 
-        &ar( NAME => $user -> name(), ID => $user -> id(), REGISTERED => $self -> readable_date( $user -> registered() ), 
-             EMAIL => $user -> email(), NUM_OF_MESSAGES => $num_of_messages );
+        &ar( NAME => $user -> name(), ID => $user -> id(), REGISTERED => $self -> readable_date( $user -> registered() ),
+             EMAIL => $user -> email(), NUM_OF_MESSAGES => $num_of_messages, AVATAR => $self -> get_user_avatar_src( $user -> id() ) );
 
         return;
 }

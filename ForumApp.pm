@@ -13,6 +13,7 @@ use Data::Dumper 'Dumper';
 use Wendy::Shorts qw( ar gr lm );
 use Digest::MD5 'md5_base64';
 use DateTime;
+use Wendy::Config 'CONF_MYPATH';
 
 use Moose;
 extends 'Wendy::App';
@@ -20,6 +21,8 @@ extends 'Wendy::App';
 has 'user' => ( is => 'rw', isa => 'Str' );
 has 'user_id' => ( is => 'rw', isa => 'Int' );
 has 'session_expires_after' => ( is => 'rw', isa => 'Int', default => 900 );
+has 'avatars_dir_abs' => ( is => 'rw', isa => 'Str', default => CONF_MYPATH . '/var/hosts/localhost/htdocs/static/img/avatars/' );
+has 'avatars_dir_url' => ( is => 'rw', isa => 'Str', default => '/static/img/avatars/' );
 
 sub init
 {
@@ -351,6 +354,26 @@ sub is_thread_belongs_to_current_user
         }
 
         return $belongs;
+}
+
+sub get_user_avatar_src
+{
+        my $self = shift;
+        my $user_id = shift;
+
+        my $user = FModel::Users -> get( id => $user_id );
+
+        my $avatar_src = $self -> avatars_dir_url();
+
+        if( $user -> avatar() )
+        {
+                $avatar_src .= $user -> avatar();
+        } else
+        {
+                $avatar_src .= 'default'; 
+        }
+
+        return $avatar_src;
 }
 
 

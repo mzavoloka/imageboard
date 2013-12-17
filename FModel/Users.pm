@@ -22,4 +22,6 @@ has 'registered' => ( is => 'rw',
                       description => { coerce_from => sub { &FModel::Funcs::ts2dt( $_[0] ) },
                                        coerce_to   => sub { &FModel::Funcs::dt2ts( $_[0] ) } } );
 
+has 'avatar' => ( is => 'rw', isa => 'Str' );
+
 1;
