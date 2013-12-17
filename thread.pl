@@ -15,7 +15,7 @@ use Carp::Assert 'assert';
 use Moose;
 extends 'ForumApp';
 
-sub _run_modes { [ 'default', 'create', 'reply', 'edit', 'edit_message' ] };
+sub _run_modes { [ 'default', 'create', 'reply', 'edit', 'edit_message', 'delete_message' ] };
 
 sub init
 {
@@ -106,16 +106,23 @@ sub app_mode_edit
 
         my $output;
 
-        if( $edit_button_pressed and ( not my $error_msg = $self -> can_edit( $thread_id, $title, $content, $edit_button_pressed ) ) )
+        if( not $self -> is_thread_belongs_to_current_user( $thread_id ) )
+        {
+                &ar( DONT_SHOW_THREAD_DATA => 1 );
+                $self -> add_thread_data( $thread_id );
+                $output = $self -> construct_page( middle_tpl => 'thread_edit', error_msg => 'CAN_ONLY_EDIT_THREADS_OF_YOUR_OWN' );
+        }
+        elsif( $edit_button_pressed and ( not my $error_msg = $self -> can_edit( $thread_id, $title, $content, $edit_button_pressed ) ) )
         {
                 $self -> edit( $thread_id, $title, $content );
                 $output = $self -> ncrd( '/thread/?thread_id=' . $thread_id );
-        } else
+        }
+        else
         {
                 $self -> add_thread_data( $thread_id, 'full' );
                 $output = $self -> construct_page( middle_tpl => 'thread_edit', error_msg => $error_msg );
         }
-
+        
         return $output;
 }
 
@@ -137,16 +144,18 @@ sub can_edit
         {
                 $error_msg = $thread_id_error;
         }
-        elsif( not $self -> is_thread_belongs_to_current_user( $thread_id ) )
+        elsif( ( not $thread_id_error ) and ( not $self -> is_thread_belongs_to_current_user( $thread_id ) ) )
         {
                 $error_msg = 'CAN_ONLY_EDIT_THREADS_OF_YOUR_OWN';
                 &ar( DONT_SHOW_THREAD_DATA => 1 );
         }
-        elsif( $edit_button_pressed and ( not $thread_id_error ) and ( not $fields_are_filled ) )
+        elsif( ( not $thread_id_error ) and $self -> is_thread_belongs_to_current_user( $thread_id ) and
+                 $edit_button_pressed and ( not $fields_are_filled ) )
         {
                 $error_msg = 'FIELDS_ARE_NOT_FILLED';
         }
-        elsif( $edit_button_pressed and ( not $thread_id_error ) and $fields_are_filled and ( not $self -> is_thread_title_length_acceptable( $title ) ) ) 
+        elsif( ( not $thread_id_error ) and $self -> is_thread_belongs_to_current_user( $thread_id ) and
+                 $edit_button_pressed and $fields_are_filled and ( not $self -> is_thread_title_length_acceptable( $title ) ) ) 
         {
                 $error_msg = 'THREAD_TITLE_TOO_LONG';
         }
@@ -286,16 +295,22 @@ sub app_mode_edit_message
 
         my $output;
 
-        if( my $error_msg = $self -> can_edit_message( $message_id, $subject, $content, $edit_button_pressed ) )
+        if( not $self -> is_message_belongs_to_current_user( $message_id ) )
         {
+                &ar( DONT_SHOW_MESSAGE_DATA => 1 );
                 $self -> add_message_data( $message_id );
-                $output = $self -> construct_page( middle_tpl => 'message_edit', error_msg => $error_msg );
+                $output = $self -> construct_page( middle_tpl => 'message_edit', error_msg => 'CAN_ONLY_EDIT_MESSAGES_OF_YOUR_OWN' );
         }
-        elsif( not $edit_button_pressed )
+        if( $edit_button_pressed and ( not my $error_msg = $self -> can_edit_message( $message_id, $subject, $content, $edit_button_pressed ) ) )
         {
                 $self -> edit_message( $message_id, $subject, $content );
                 my $message = FModel::Messages -> get( id => $message_id );
                 $output = $self -> ncrd( '/thread/?thread_id=' . $message -> thread_id() -> id() );
+        }
+        else
+        {
+                $self -> add_message_data( $message_id, 'full' );
+                $output = $self -> construct_page( middle_tpl => 'message_edit', error_msg => $error_msg );
         }
 
         return $output;
@@ -319,16 +334,18 @@ sub can_edit_message
         {
                 $error_msg = $message_id_error;
         }
-        elsif( not $self -> is_message_belongs_to_current_user( $message_id ) )
+        elsif( ( not $message_id_error ) and ( not $self -> is_message_belongs_to_current_user( $message_id ) ) )
         {
                 $error_msg = 'CAN_ONLY_EDIT_MESSAGES_OF_YOUR_OWN';
                 &ar( DONT_SHOW_MESSAGE_DATA => 1 );
         }
-        elsif( $edit_button_pressed and ( not $message_id_error ) and ( not $fields_are_filled ) )
+        elsif( ( not $message_id_error ) and $self -> is_message_belongs_to_current_user( $message_id ) and
+                 $edit_button_pressed and ( not $fields_are_filled ) )
         {
                 $error_msg = 'FIELDS_ARE_NOT_FILLED';
         }
-        elsif( $edit_button_pressed and ( not $message_id_error ) and $fields_are_filled and ( not $self -> is_message_subject_length_acceptable( $subject ) ) ) 
+        elsif( ( not $message_id_error ) and $self -> is_message_belongs_to_current_user( $message_id ) and
+                 $edit_button_pressed and $fields_are_filled and ( not $self -> is_message_subject_length_acceptable( $subject ) ) ) 
         {
                 $error_msg = 'MESSAGE_SUBJECT_TOO_LONG';
         }
@@ -347,15 +364,14 @@ sub add_message_data
         {
                 my $message = FModel::Messages -> get( id => $message_id );
 
-                &ar( TITLE => $message -> subject() );
+                &ar( SUBJECT => $message -> subject() );
 
                 if( $full )
                 {
                         &ar( CONTENT => $message -> content(),
-                             CREATED => $self -> readable_date( $message -> created() ),
+                             POSTED => $self -> readable_date( $message -> posted() ),
                              AUTHOR  => $message -> user_id() -> name(),
                              SHOW_MANAGE_LINKS => $self -> is_message_belongs_to_current_user( $message_id ) );
-                        
 
                         if( $message -> modified() )
                         {
@@ -387,6 +403,74 @@ sub edit_message
         $message -> update();
 
         return;
+}
+
+sub app_mode_delete_message
+{
+        my $self = shift;
+
+        my $message_id = $self -> arg( 'message_id' ) || 0;
+        my $from = $self -> arg( 'from' ) || 'thread';
+         
+        my $output;
+
+
+        if( my $error_msg = $self -> can_delete_message( $message_id ) )
+        {
+                if( $from eq 'thread' and ( not $self -> check_if_proper_message_id_provided( $message_id ) ) )
+                {
+                        my $message = FModel::Messages -> get( id => $message_id );
+                        my $thread_id = $message -> thread_id() -> id();
+
+                        $self -> add_thread_data( $thread_id, 'full', 'with_messages' );
+                        $output = $self -> construct_page( middle_tpl => 'thread', error_msg => $error_msg );
+                }
+                else
+                {
+                        $output = $self -> ncrd( '/?error_msg=' . $error_msg );
+                }
+        } else
+        {
+                my $message = FModel::Messages -> get( id => $message_id );
+
+                my $thread_id = $message -> thread_id() -> id();
+
+                $message -> delete();
+
+                my $success_msg = 'MESSAGE_DELETED';
+
+                if( $from eq 'thread' )
+                {
+                        $self -> add_thread_data( $thread_id, 'full', 'with_messages' );
+                        $output = $self -> construct_page( middle_tpl => 'thread', success_msg => $success_msg );
+                }
+                elsif( $from eq 'mainpage' )
+                {
+                        $output = $self -> ncrd( '/?success_msg=' . $success_msg );
+                }
+        }
+
+
+        return $output;
+}
+
+sub can_delete_message
+{
+        my $self = shift;
+        my $message_id = shift;
+
+        my $error_msg = 0;
+
+        if( my $non_proper = $self -> check_if_proper_message_id_provided( $message_id ) )
+        {
+                $error_msg = $non_proper;
+        }
+        elsif( not $self -> is_message_belongs_to_current_user( $message_id ) )
+        {
+                $error_msg = 'CAN_ONLY_DELETE_MESSAGES_OF_YOUR_OWN';
+        }
+
+        return $error_msg;
 }
 
 sub add_thread_data

@@ -20,6 +20,9 @@ sub _run_modes { [ 'default' ] };
 sub app_mode_default
 {
 	my $self = shift;
+
+        my $error_msg = $self -> arg( 'error_msg' ) || '';
+        my $success_msg = $self -> arg( 'success_msg' ) || '';
         
         my $threads = $self -> get_threads();
 
@@ -28,7 +31,7 @@ sub app_mode_default
                 &ar( THREADS => $threads );
         }
 
-        my $output = $self -> construct_page( middle_tpl => 'mainpage' );
+        my $output = $self -> construct_page( middle_tpl => 'mainpage', error_msg => $error_msg, success_msg => $success_msg );
 
   	return $output;
 }
