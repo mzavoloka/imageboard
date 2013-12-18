@@ -79,7 +79,7 @@ sub app_mode_change_email
   	return $output;
 }
 
-sub can_change_email()
+sub can_change_email
 {
         my $self = shift;
         my $email = shift;

@@ -24,4 +24,6 @@ has 'registered' => ( is => 'rw',
 
 has 'avatar' => ( is => 'rw', isa => 'Str' );
 
+has 'permissions_id' => ( is => 'rw', isa => 'Int' );
+
 1;

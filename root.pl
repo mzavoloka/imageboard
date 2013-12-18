@@ -51,7 +51,8 @@ sub get_threads
                              AUTHOR    => $thread -> user_id() -> name(),
                              CREATED   => $self -> readable_date( $thread -> created() ),
                              MESSAGES  => $self -> get_thread_messages( $thread -> id() ),
-                             SHOW_MANAGE_LINKS => $self -> is_thread_belongs_to_current_user( $thread -> id() ),
+                             CAN_DELETE => $self -> can_do_action_with_thread( 'delete', $thread -> id() ),
+                             CAN_EDIT   => $self -> can_do_action_with_thread( 'edit', $thread -> id() ),
                              AUTHOR_AVATAR => $self -> get_user_avatar_src( $thread -> user_id() -> id() ) };
 
                 if( $thread -> modified() )
@@ -91,7 +92,8 @@ sub get_thread_messages
                                          SUBJECT    => $message -> subject(),
                                          CONTENT    => $message -> content(),
                                          AUTHOR     => $message -> user_id() -> name(),
-                                         SHOW_MANAGE_LINKS => $self -> is_message_belongs_to_current_user( $message -> id() ),
+                                         CAN_DELETE => $self -> can_do_action_with_message( 'delete', $message -> id() ),
+                                         CAN_EDIT   => $self -> can_do_action_with_message( 'edit', $message -> id() ),
                                          AUTHOR_AVATAR => $self -> get_user_avatar_src( $message -> user_id() -> id() ) };
 
                         if( $message -> modified() )
@@ -106,6 +108,5 @@ sub get_thread_messages
 
         return $messages;
 }
-
 
 1;

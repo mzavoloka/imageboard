@@ -7,6 +7,7 @@ use FModel::Users;
 use FModel::Sessions;
 use FModel::Messages;
 use FModel::Threads;
+use FModel::Permissions;
 use Wendy::Templates::TT 'tt';
 use Wendy::Db qw( dbconnect );
 use Data::Dumper 'Dumper';
@@ -14,6 +15,7 @@ use Wendy::Shorts qw( ar gr lm );
 use Digest::MD5 'md5_base64';
 use DateTime;
 use Wendy::Config 'CONF_MYPATH';
+use Scalar::Util 'looks_like_number';
 
 use Moose;
 extends 'Wendy::App';
@@ -374,6 +376,160 @@ sub get_user_avatar_src
         }
 
         return $avatar_src;
+}
+
+sub can_do_action_with_message
+{
+        my $self = shift;
+        my $action = shift || '';
+        my $message_id = shift || 0;
+
+        my $can = 0;
+
+        my $error = ( ( not $self -> user_id() ) or $self -> check_if_proper_message_id_provided( $message_id ) );
+
+        if( not $error and $self -> is_message_belongs_to_current_user( $message_id ) )
+        {
+                my $cur_user = FModel::Users -> get( id => $self -> user_id() );
+                my $cur_user_permissions = FModel::Permissions -> get( id => $cur_user -> permissions_id() );
+
+                if( ( $action eq 'delete' and $cur_user_permissions -> delete_messages() ) or
+                    ( $action eq 'edit' and $cur_user_permissions -> edit_messages() ) )
+                {
+                        $can = 1;
+                }
+        }
+        elsif( not $error and ( not $self -> is_message_belongs_to_current_user( $message_id ) ) )
+        {
+                my $message = FModel::Messages -> get( id => $message_id );
+                my $author_permissions = FModel::Permissions -> get( id => $message -> user_id() -> permissions_id() );
+                my $author_permissions_title = $author_permissions -> title();
+
+                my $cur_user = FModel::Users -> get( id => $self -> user_id() );
+                my $cur_user_permissions = FModel::Permissions -> get( id => $cur_user -> permissions_id() );
+
+                my $cur_user_can_do_action_with_messages_of;
+
+                if( $action eq 'delete' )
+                {
+                        $cur_user_can_do_action_with_messages_of = $cur_user_permissions -> delete_messages_of();
+                }
+                elsif( $action eq 'edit' )
+                {
+                        $cur_user_can_do_action_with_messages_of = $cur_user_permissions -> edit_messages_of();
+                }
+
+                for my $title ( split( ', ', $cur_user_can_do_action_with_messages_of ) )
+                {
+                        if( $author_permissions_title eq $title ) 
+                        {
+                                $can = 1;
+                                last;
+                        }
+                }
+        }
+
+        return $can;
+}
+
+sub can_do_action_with_thread
+{
+        my $self = shift;
+        my $action = shift || '';
+        my $thread_id = shift || 0;
+
+        my $can = 0;
+        
+        my $error = ( ( not $self -> user_id() ) or $self -> check_if_proper_thread_id_provided( $thread_id ) );
+
+        if( not $error and $self -> is_thread_belongs_to_current_user( $thread_id ) )
+        {
+                my $cur_user = FModel::Users -> get( id => $self -> user_id() );
+                my $cur_user_permissions = FModel::Permissions -> get( id => $cur_user -> permissions_id() );
+
+                if( ( $action eq 'delete' and $cur_user_permissions -> delete_threads() ) or
+                    ( $action eq 'edit' and $cur_user_permissions -> edit_threads() ) )
+                {
+                        $can = 1;
+                }
+        }
+        elsif( not $error and ( not $self -> is_thread_belongs_to_current_user( $thread_id ) ) )
+        {
+                my $thread = FModel::Threads -> get( id => $thread_id );
+                my $author_permissions = FModel::Permissions -> get( id => $thread -> user_id() -> permissions_id() );
+                my $author_permissions_title = $author_permissions -> title();
+
+                my $cur_user = FModel::Users -> get( id => $self -> user_id() );
+                my $cur_user_permissions = FModel::Permissions -> get( id => $cur_user -> permissions_id() );
+
+                my $cur_user_can_do_action_with_threads_of;
+
+                if( $action eq 'delete' )
+                {
+                        $cur_user_can_do_action_with_threads_of = $cur_user_permissions -> delete_threads_of();
+                }
+                elsif( $action eq 'edit' )
+                {
+                        $cur_user_can_do_action_with_threads_of = $cur_user_permissions -> edit_threads_of();
+                }
+
+                for my $title ( split( ', ', $cur_user_can_do_action_with_threads_of ) )
+                {
+                        if( $author_permissions_title eq $title ) 
+                        {
+                                $can = 1;
+                                last;
+                        }
+                }
+        }
+
+        return $can;
+}
+
+sub check_if_proper_thread_id_provided
+{
+        my $self = shift;
+        my $thread_id = shift || '';
+
+        my $error = '';
+
+        if( not $thread_id )
+        {
+                $error = 'NO_THREAD_ID';
+        }
+        elsif( not looks_like_number( $thread_id ) )
+        {
+                $error = 'INVALID_THREAD_ID';
+        }
+        elsif( not $self -> is_thread_exists( $thread_id ) )
+        {
+                $error = 'NO_SUCH_THREAD';
+        }
+
+        return $error;
+}
+
+sub check_if_proper_message_id_provided
+{
+        my $self = shift;
+        my $message_id = shift || '';
+
+        my $error = '';
+
+        if( not $message_id )
+        {
+                $error = 'NO_MESSAGE_ID';
+        }
+        elsif( not looks_like_number( $message_id ) )
+        {
+                $error = 'INVALID_MESSAGE_ID';
+        }
+        elsif( not $self -> is_message_exists( $message_id ) )
+        {
+                $error = 'NO_SUCH_MESSAGE';
+        }
+
+        return $error;
 }
 
 
