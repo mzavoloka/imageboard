@@ -215,19 +215,21 @@ sub app_mode_upload_avatar
 sub can_upload_avatar
 {
         my $self = shift;
-        my $avatar = shift;
+        my $avatar = shift || '';
 
         my $error_msg = '';
 
         my $filesize = -s $avatar;
 
-        my $filetype = CGI::uploadInfo( $avatar ) -> { 'Content-Type' };
-
-        if( $filetype ne 'image/jpeg' ) # Add macros for this thing with list of correct filetypes
+        if( not $avatar )
+        {
+                $error_msg = 'AVATAR_FILE_NOT_CHOSEN';
+        }
+        elsif( $avatar and ( CGI::uploadInfo( $avatar ) -> { 'Content-Type' } ne 'image/jpeg' ) ) # Add macros for this thing with list of correct filetypes
         {
                 $error_msg = 'AVATAR_INCORRECT_FILETYPE';
         }
-        if( $filesize > &gr( 'AVATAR_MAX_SIZE' ) )
+        elsif( $avatar and $filesize > &gr( 'AVATAR_MAX_SIZE' ) )
         {
                 $error_msg = 'AVATAR_FILESIZE_TOO_BIG';
         }
@@ -247,10 +249,13 @@ sub add_profile_data
                 &ar( USER_HOME_PROFILE => 1 );
         } 
 
-        my $num_of_messages = FModel::Messages -> count( user_id => $user );
+        my $num_of_messages = FModel::Messages -> count( user_id => $user -> id() );
+
+        my $num_of_threads = FModel::Threads -> count( user_id => $user -> id() );
 
         &ar( NAME => $user -> name(), ID => $user -> id(), REGISTERED => $self -> readable_date( $user -> registered() ),
-             EMAIL => $user -> email(), NUM_OF_MESSAGES => $num_of_messages, AVATAR => $self -> get_user_avatar_src( $user -> id() ) );
+             EMAIL => $user -> email(), NUM_OF_MESSAGES => $num_of_messages, NUM_OF_THREADS => $num_of_threads,
+             AVATAR => $self -> get_user_avatar_src( $user -> id() ) );
 
         return;
 }
