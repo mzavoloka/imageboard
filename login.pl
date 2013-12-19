@@ -83,7 +83,7 @@ sub can_log_user_in
         if( $fields_are_filled )
         {
                 $user = FModel::Users -> get( name => $username );
-                $user_exists = $self -> is_user_exists( $username );
+                $user_exists = $self -> is_username_exists( $username );
                 $password_correct = $self -> is_password_correct( $password, $username );
         }
 
@@ -111,7 +111,7 @@ sub is_password_correct
 
         my $correct = 0;
 
-        if( $self -> is_user_exists( $username ) )
+        if( $self -> is_username_exists( $username ) )
         {
                 my $user = FModel::Users -> get( name => $username );
                 my $password_in_db = $user -> password();

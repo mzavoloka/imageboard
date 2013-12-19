@@ -16,7 +16,7 @@ use Data::Dumper 'Dumper';
 use Wendy::Shorts qw( ar gr );
 use File::Copy 'cp';
 
-sub _run_modes { [ 'default', 'change_email', 'change_password', 'search', 'upload_avatar' ] };
+sub _run_modes { [ 'default', 'change_email', 'change_password', 'search', 'upload_avatar', 'ban', 'unban' ] };
 
 sub init
 {
@@ -43,7 +43,7 @@ sub app_mode_default
         my $username = $self -> arg( 'username' ) || $self -> user() || '';
 
         my $error_msg = '';
-        if( $self -> is_user_exists( $username ) )
+        if( $self -> is_username_exists( $username ) )
         {
                 $self -> add_profile_data( $username );
         } else
@@ -247,7 +247,7 @@ sub add_profile_data
         if( $user -> name() eq $self -> user() )
         {
                 &ar( USER_HOME_PROFILE => 1 );
-        } 
+        }
 
         my $num_of_messages = FModel::Messages -> count( user_id => $user -> id() );
 
@@ -255,7 +255,9 @@ sub add_profile_data
 
         &ar( NAME => $user -> name(), ID => $user -> id(), REGISTERED => $self -> readable_date( $user -> registered() ),
              EMAIL => $user -> email(), NUM_OF_MESSAGES => $num_of_messages, NUM_OF_THREADS => $num_of_threads,
-             AVATAR => $self -> get_user_avatar_src( $user -> id() ) );
+             AVATAR => $self -> get_user_avatar_src( $user -> id() ), USER_ID => $user -> id(),
+             CAN_BAN => $self -> can_do_action_with_user( 'ban', $user -> id() ), BANNED => $user -> banned(),
+             PERMISSIONS => $self -> get_user_special_permissions( $user -> id() ) );
 
         return;
 }
@@ -284,6 +286,94 @@ sub change_password
         $user -> update();
 
         return;
+}
+
+sub app_mode_ban
+{
+        my $self = shift;
+
+        my $user_id = $self -> arg( 'user_id' );
+
+        my $output;
+
+        if( $self -> can_do_action_with_user( 'ban', $user_id ) )
+        {
+                $self -> ban( $user_id );
+
+                my $user = FModel::Users -> get( id => $user_id );
+
+                $self -> add_profile_data( $user -> name() );
+                $output = $self -> construct_page( middle_tpl => 'profile' ); 
+        }
+        else
+        {
+                &ar( 'DONT_SHOW_PROFILE_INFO' => 1 );
+                $output = $self -> construct_page( middle_tpl => 'profile', error_msg => 'CANNOT_BAN_USER' );
+        }
+
+        return $output;
+}
+
+sub ban
+{
+        my $self = shift;
+        my $user_id = shift;
+
+        my $success = 0;
+
+        if( not my $error = $self -> check_if_proper_user_id_provided( $user_id ) )
+        {
+                my $user = FModel::Users -> get( id => $user_id );
+                $user -> banned( 1 );
+                $user -> update();
+                $success = 1;
+        }
+
+        return $success;
+}
+
+sub app_mode_unban
+{
+        my $self = shift;
+
+        my $user_id = $self -> arg( 'user_id' );
+
+        my $output;
+
+        if( $self -> can_do_action_with_user( 'unban', $user_id ) )
+        {
+                $self -> unban( $user_id );
+
+                my $user = FModel::Users -> get( id => $user_id );
+
+                $self -> add_profile_data( $user -> name() );
+                $output = $self -> construct_page( middle_tpl => 'profile' ); 
+        }
+        else
+        {
+                &ar( 'DONT_SHOW_PROFILE_INFO' => 1 );
+                $output = $self -> construct_page( middle_tpl => 'profile', error_msg => 'CANNOT_UNBAN_USER' );
+        }
+
+        return $output;
+}
+
+sub unban
+{
+        my $self = shift;
+        my $user_id = shift;
+
+        my $success = 0;
+
+        if( not my $error = $self -> check_if_proper_user_id_provided( $user_id ) )
+        {
+                my $user = FModel::Users -> get( id => $user_id );
+                $user -> banned( 0 );
+                $user -> update();
+                $success = 1;
+        }
+
+        return $success;
 }
 
 

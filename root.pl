@@ -45,15 +45,16 @@ sub get_threads
 
         for my $thread ( @threads_sorted )
         {
-                my $hash = { THREAD_ID => $thread -> id(),
-                             TITLE     => $thread -> title(),
-                             CONTENT   => $thread -> content(),
-                             AUTHOR    => $thread -> user_id() -> name(),
-                             CREATED   => $self -> readable_date( $thread -> created() ),
-                             MESSAGES  => $self -> get_thread_messages( $thread -> id() ),
-                             CAN_DELETE => $self -> can_do_action_with_thread( 'delete', $thread -> id() ),
-                             CAN_EDIT   => $self -> can_do_action_with_thread( 'edit', $thread -> id() ),
-                             AUTHOR_AVATAR => $self -> get_user_avatar_src( $thread -> user_id() -> id() ) };
+                my $hash = { THREAD_ID     => $thread -> id(),
+                             TITLE         => $thread -> title(),
+                             CONTENT       => $thread -> content(),
+                             AUTHOR        => $thread -> user_id() -> name(),
+                             CREATED       => $self -> readable_date( $thread -> created() ),
+                             MESSAGES      => $self -> get_thread_messages( $thread -> id() ),
+                             CAN_DELETE    => $self -> can_do_action_with_thread( 'delete', $thread -> id() ),
+                             CAN_EDIT      => $self -> can_do_action_with_thread( 'edit', $thread -> id() ),
+                             AUTHOR_AVATAR => $self -> get_user_avatar_src( $thread -> user_id() -> id() ),
+                             AUTHOR_PERMISSIONS => $self -> get_user_special_permissions ( $thread -> user_id() -> id() ) };
 
                 if( $thread -> modified() )
                 {
@@ -94,7 +95,8 @@ sub get_thread_messages
                                          AUTHOR     => $message -> user_id() -> name(),
                                          CAN_DELETE => $self -> can_do_action_with_message( 'delete', $message -> id() ),
                                          CAN_EDIT   => $self -> can_do_action_with_message( 'edit', $message -> id() ),
-                                         AUTHOR_AVATAR => $self -> get_user_avatar_src( $message -> user_id() -> id() ) };
+                                         AUTHOR_AVATAR => $self -> get_user_avatar_src( $message -> user_id() -> id() ),
+                                         AUTHOR_PERMISSIONS => $self -> get_user_special_permissions ( $message -> user_id() -> id() ) };
 
                         if( $message -> modified() )
                         {

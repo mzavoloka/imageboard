@@ -31,6 +31,10 @@ sub init
         {
                 $rv = $self -> construct_page( restricted_msg => 'THREAD_RESTRICTED' );
         }
+        elsif( defined $self -> arg( 'mode' ) and $self -> is_user_banned( $self -> user_id() ) )
+        {
+                $rv = $self -> construct_page( restricted_msg => 'YOU_ARE_BANNED' );
+        }
 
         return $rv;
 }
@@ -511,7 +515,8 @@ sub add_thread_data
                              AUTHOR  => $thread -> user_id() -> name(),
                              CAN_DELETE => $self -> can_do_action_with_thread( 'delete', $thread_id ),
                              CAN_EDIT   => $self -> can_do_action_with_thread( 'edit', $thread_id ),
-                             AUTHOR_AVATAR => $self -> get_user_avatar_src( $thread -> user_id() -> id() ) );
+                             AUTHOR_AVATAR => $self -> get_user_avatar_src( $thread -> user_id() -> id() ),
+                             AUTHOR_PERMISSIONS => $self -> get_user_special_permissions ( $thread -> user_id() -> id() ) );
 
                         if( $thread -> modified() )
                         {
@@ -548,7 +553,8 @@ sub add_messages
                                  AUTHOR     => $message -> user_id() -> name(),
                                  CAN_DELETE => $self -> can_do_action_with_message( 'delete', $message -> id() ),
                                  CAN_EDIT   => $self -> can_do_action_with_message( 'edit', $message -> id() ),
-                                 AUTHOR_AVATAR => $self -> get_user_avatar_src( $message -> user_id() -> id() )
+                                 AUTHOR_AVATAR => $self -> get_user_avatar_src( $message -> user_id() -> id() ),
+                                 AUTHOR_PERMISSIONS => $self -> get_user_special_permissions ( $message -> user_id() -> id() )
                                  };
 
                 if( $message -> modified() )

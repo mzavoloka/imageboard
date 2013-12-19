@@ -165,20 +165,6 @@ sub session_expires
         return DateTime -> from_epoch( epoch => time() + $self -> session_expires_after(), time_zone => 'local' );
 }
 
-sub now_plus_secs
-{
-        my $self = shift;
-        my $plus = shift || 0;
-
-        my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) = localtime( time + $plus );
-
-        $year += 1900;
-        $mon++;
-
-        return sprintf( '%#.4u' . '-' . '%#.2u' . '-' . '%#.2u' . ' ' . '%#.2u' . ':' . '%#.2u' . ':' . '%#.2u',
-                         $year,          $mon,           $mday,          $hour,          $min,           $sec );
-}
-
 sub readable_date
 {
         my $self = shift;
@@ -189,6 +175,22 @@ sub readable_date
 	my ( $time, $milliseconds ) = split ( /\./, $part2 );
 
 	return ( $day . '.' . $month . '.' . $year . ' ' . $time );
+}
+
+sub is_user_banned
+{
+        my $self = shift;
+        my $user_id = shift;
+
+        my $banned = 0;
+
+        if( not my $error_msg = $self -> check_if_proper_user_id_provided( $user_id ) )
+        {
+                my $user = FModel::Users -> get( id => $user_id );
+                $banned = $user -> banned();
+        }
+
+        return $banned;
 }
 
 sub is_email_valid
@@ -245,9 +247,25 @@ sub is_username_valid
 sub is_user_exists
 {
         my $self = shift;
-        my $username = shift;
+        my $user_id = shift || 0;
 
         my $exists = 0;
+
+        if( looks_like_number( $user_id ) )
+        {
+                $exists = FModel::Users -> count( id => $user_id );
+        }
+
+        return( $exists );
+}
+
+sub is_username_exists
+{
+        my $self = shift;
+        my $username = shift || '';
+
+        my $exists = 0;
+
         if( $self -> is_username_valid( $username ) )
         {
                 $username = lc( $username );
@@ -408,18 +426,18 @@ sub can_do_action_with_message
                 my $cur_user = FModel::Users -> get( id => $self -> user_id() );
                 my $cur_user_permissions = FModel::Permissions -> get( id => $cur_user -> permissions_id() );
 
-                my $cur_user_can_do_action_with_messages_of;
+                my $can_do_action_with_messages_of;
 
                 if( $action eq 'delete' )
                 {
-                        $cur_user_can_do_action_with_messages_of = $cur_user_permissions -> delete_messages_of();
+                        $can_do_action_with_messages_of = $cur_user_permissions -> delete_messages_of();
                 }
                 elsif( $action eq 'edit' )
                 {
-                        $cur_user_can_do_action_with_messages_of = $cur_user_permissions -> edit_messages_of();
+                        $can_do_action_with_messages_of = $cur_user_permissions -> edit_messages_of();
                 }
 
-                for my $title ( split( ', ', $cur_user_can_do_action_with_messages_of ) )
+                for my $title ( split( ', ', $can_do_action_with_messages_of ) )
                 {
                         if( $author_permissions_title eq $title ) 
                         {
@@ -462,18 +480,18 @@ sub can_do_action_with_thread
                 my $cur_user = FModel::Users -> get( id => $self -> user_id() );
                 my $cur_user_permissions = FModel::Permissions -> get( id => $cur_user -> permissions_id() );
 
-                my $cur_user_can_do_action_with_threads_of;
+                my $can_do_action_with_threads_of;
 
                 if( $action eq 'delete' )
                 {
-                        $cur_user_can_do_action_with_threads_of = $cur_user_permissions -> delete_threads_of();
+                        $can_do_action_with_threads_of = $cur_user_permissions -> delete_threads_of();
                 }
                 elsif( $action eq 'edit' )
                 {
-                        $cur_user_can_do_action_with_threads_of = $cur_user_permissions -> edit_threads_of();
+                        $can_do_action_with_threads_of = $cur_user_permissions -> edit_threads_of();
                 }
 
-                for my $title ( split( ', ', $cur_user_can_do_action_with_threads_of ) )
+                for my $title ( split( ', ', $can_do_action_with_threads_of ) )
                 {
                         if( $author_permissions_title eq $title ) 
                         {
@@ -499,6 +517,66 @@ sub can_do_action_with_thread
         }
 
         return $can;
+}
+
+sub can_do_action_with_user
+{
+        my $self = shift;
+        my $action = shift || '';
+        my $user_id = shift || 0;
+
+        my $can = 0;
+        
+        my $error = ( ( not $self -> user_id() ) or $self -> check_if_proper_user_id_provided( $user_id ) );
+
+        if( not $error )
+        {
+                my $cur_user = FModel::Users -> get( id => $self -> user_id() );
+                my $permissions = FModel::Permissions -> get( id => $cur_user -> permissions_id() );
+
+                my $user_to_act = FModel::Users -> get( id => $user_id );
+                my $user_to_act_permissions = FModel::Permissions -> get( id => $user_to_act -> permissions_id() );
+                my $user_to_act_permissions_title = $user_to_act_permissions -> title();
+
+                if( $action eq 'ban' or $action eq 'unban' )
+                {
+                        my $can_do_action_with_users = $permissions -> ban_users();
+
+                        for my $title ( split( ', ', $can_do_action_with_users ) )
+                        {
+                                if( $user_to_act_permissions_title eq $title ) 
+                                {
+                                        $can = 1;
+                                        last;
+                                }
+                        }
+                }
+        }
+
+        return $can;
+}
+
+sub check_if_proper_user_id_provided
+{
+        my $self = shift;
+        my $user_id = shift || '';
+
+        my $error = '';
+
+        if( not $user_id )
+        {
+                $error = 'NO_USER_ID';
+        }
+        elsif( not looks_like_number( $user_id ) )
+        {
+                $error = 'INVALID_USER_ID';
+        }
+        elsif( not $self -> is_user_exists( $user_id ) )
+        {
+                $error = 'NO_SUCH_USER';
+        }
+
+        return $error;
 }
 
 sub check_if_proper_thread_id_provided
@@ -545,6 +623,40 @@ sub check_if_proper_message_id_provided
         }
 
         return $error;
+}
+
+sub get_user_permissions
+{
+        my $self = shift;
+        my $user_id = shift;
+
+        my $rv = '';
+
+        if( not my $error = $self -> check_if_proper_user_id_provided( $user_id ) )
+        {
+                my $user = FModel::Users -> get( id => $user_id );
+                my $permissions = FModel::Permissions -> get( id => $user -> permissions_id() );
+                $rv = $permissions -> title();
+        }
+
+        return $rv;
+}
+
+sub get_user_special_permissions
+{
+        my $self = shift;
+        my $user_id = shift;
+
+        my $special_permissions = '';
+
+        my $user_perm = $self -> get_user_permissions( $user_id );
+
+        if( $user_perm ne 'regular' )
+        {
+                $special_permissions = $user_perm;
+        }
+
+        return $special_permissions;
 }
 
 

@@ -90,7 +90,7 @@ sub can_register_new_user
         {
                 $valid_username = $self -> is_username_valid( $username );
 
-                $user_exists = $self -> is_user_exists( $username );
+                $user_exists = $self -> is_username_exists( $username );
 
                 $valid_email = $self -> is_email_valid( $email );
 

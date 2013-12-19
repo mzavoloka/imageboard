@@ -26,4 +26,6 @@ has 'avatar' => ( is => 'rw', isa => 'Str' );
 
 has 'permissions_id' => ( is => 'rw', isa => 'Int' );
 
+has 'banned' => ( is => 'rw', isa => 'Bool' );
+
 1;
