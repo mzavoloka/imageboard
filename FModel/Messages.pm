@@ -37,5 +37,7 @@ has 'modified_date' => ( is => 'rw',
 
 has 'modified' => ( is => 'rw', isa => 'Bool' );
 
+has 'pinned_img' => ( is => 'rw', isa => 'Str' );
+
 
 1;

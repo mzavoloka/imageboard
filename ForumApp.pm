@@ -12,7 +12,7 @@ use Wendy::Templates::TT 'tt';
 use Wendy::Db qw( dbconnect );
 use Data::Dumper 'Dumper';
 use Wendy::Shorts qw( ar gr lm );
-use Digest::MD5 'md5_base64';
+#use Digest::MD5 'md5_base64';
 use DateTime;
 use Wendy::Config 'CONF_MYPATH';
 use Scalar::Util 'looks_like_number';
@@ -22,9 +22,14 @@ extends 'Wendy::App';
 
 has 'user' => ( is => 'rw', isa => 'Str' );
 has 'user_id' => ( is => 'rw', isa => 'Int' );
+
 has 'session_expires_after' => ( is => 'rw', isa => 'Int', default => 900 );
+
 has 'avatars_dir_abs' => ( is => 'rw', isa => 'Str', default => CONF_MYPATH . '/var/hosts/localhost/htdocs/static/img/avatars/' );
 has 'avatars_dir_url' => ( is => 'rw', isa => 'Str', default => '/static/img/avatars/' );
+
+has 'pinned_images_dir_abs' => ( is => 'rw', isa => 'Str', default => CONF_MYPATH . '/var/hosts/localhost/htdocs/static/img/pinned/' );
+has 'pinned_images_dir_url' => ( is => 'rw', isa => 'Str', default => '/static/img/pinned/' );
 
 sub init
 {

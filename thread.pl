@@ -11,6 +11,7 @@ sub wendy_handler
 package ForumThread;
 use Wendy::Shorts qw( ar gr lm );
 use Carp::Assert 'assert';
+use File::Copy 'cp';
 
 use Moose;
 extends 'ForumApp';
@@ -186,6 +187,7 @@ sub app_mode_reply
         my $thread_id = $self -> arg( 'thread_id' ) || 0;
         my $subject = $self -> arg( 'subject' ) || '';
         my $content = $self -> arg( 'content' ) || '';
+        my $pinned_image = $self -> upload( 'pinned_image' ) || '';
         my $reply_button_pressed = $self -> arg( 'reply_button' ) || '';
 
         my $output;
@@ -198,14 +200,14 @@ sub app_mode_reply
         }
         elsif( ( not $thread_id_error ) and $reply_button_pressed )
         {
-                if( my $error_msg = $self -> can_reply( $subject, $content ) )
+                if( my $error_msg = $self -> can_reply( $subject, $content, $pinned_image ) )
                 {
                         $self -> add_thread_data( $thread_id );
-                        &ar( SUBJECT => $subject, CONTENT => $content );
+                        &ar( SUBJECT => $subject, CONTENT => $content, PINNED_IMAGE => $pinned_image );
                         $output = $self -> construct_page( middle_tpl => 'thread_reply', error_msg => $error_msg );
                 } else
                 {
-                        $self -> reply( $thread_id, $subject, $content );
+                        $self -> reply( $thread_id, $subject, $content, $pinned_image );
                         $output = $self -> ncrd( '/thread/?thread_id=' . $thread_id );
                 }
         }
@@ -224,6 +226,7 @@ sub can_reply
         my $self = shift;
         my $subject = shift;
         my $content = shift;
+        my $pinned_image = shift;
 
         my $error_msg = '';
 
@@ -236,6 +239,31 @@ sub can_reply
         elsif( $fields_are_filled and ( not $self -> is_message_subject_length_acceptable( $subject ) ) ) 
         {
                 $error_msg = 'MESSAGE_SUBJECT_TOO_LONG';
+        }
+        elsif( my $pinned_image_error = $self -> check_pinned_image( $pinned_image ) )
+        {
+                $error_msg = $pinned_image_error;
+        }
+
+        return $error_msg;
+}
+
+sub check_pinned_image
+{
+        my $self = shift;
+        my $image = shift || '';
+
+        my $error_msg = '';
+
+        my $filesize = -s $image;
+
+        if( $image and CGI::uploadInfo( $image ) -> { 'Content-Type' } ne 'image/jpeg' ) # Add macros for this thing with list of correct filetypes
+        {
+                $error_msg = 'PINNED_IMAGE_INCORRECT_FILETYPE';
+        }
+        elsif( $image and $filesize > &gr( 'PINNED_IMAGE_MAX_SIZE' ) )
+        {
+                $error_msg = 'PINNED_IMAGE_FILESIZE_TOO_BIG';
         }
 
         return $error_msg;
@@ -262,14 +290,25 @@ sub reply
         my $thread_id = shift;
         my $subject = shift;
         my $content = shift;
+        my $pinned_image = shift;
         
         my $user = FModel::Users -> get( name => $self -> user() );
 
-        FModel::Messages -> create( subject   => $subject,
-                                    content   => $content,
-                                    user_id   => $user -> id(),
-                                    thread_id => $thread_id,
-                                    posted    => $self -> now() );
+        my $new_message = FModel::Messages -> create( subject   => $subject,
+                                                      content   => $content,
+                                                      user_id   => $user -> id(),
+                                                      thread_id => $thread_id,
+                                                      posted    => $self -> now() );
+        if( $pinned_image )
+        {
+                my $filename = $self -> new_pinned_image_filename();
+
+                my $filepath = $self -> pinned_images_dir_abs() . $filename;
+
+                cp( $pinned_image, $filepath );
+                $new_message -> pinned_img( $filename );
+                $new_message -> update();
+        }
 
         my $thread = FModel::Threads -> get( id => $thread_id );
 
@@ -284,6 +323,16 @@ sub reply
 
         return;
 }
+
+sub new_pinned_image_filename
+{
+        my $self = shift;
+
+        my $new_filename = int( rand( 10 ) ) x 20;
+
+        return $new_filename;
+}
+
 
 sub app_mode_edit_message
 {
