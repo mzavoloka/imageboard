@@ -15,7 +15,7 @@ use Carp::Assert 'assert';
 use Moose;
 extends 'ForumApp';
 
-sub _run_modes { [ 'default', 'create', 'reply', 'edit', 'edit_message', 'delete_message' ] };
+sub _run_modes { [ 'default', 'create', 'reply', 'edit', 'delete', 'edit_message', 'delete_message' ] };
 
 sub init
 {
@@ -106,21 +106,17 @@ sub app_mode_edit
 
         my $output;
 
-        if( not $self -> is_thread_belongs_to_current_user( $thread_id ) )
-        {
-                &ar( DONT_SHOW_THREAD_DATA => 1 );
-                $self -> add_thread_data( $thread_id );
-                $output = $self -> construct_page( middle_tpl => 'thread_edit', error_msg => 'CAN_ONLY_EDIT_THREADS_OF_YOUR_OWN' );
-        }
-        elsif( $edit_button_pressed and ( not my $error_msg = $self -> can_edit( $thread_id, $title, $content, $edit_button_pressed ) ) )
-        {
-                $self -> edit( $thread_id, $title, $content );
-                $output = $self -> ncrd( '/thread/?thread_id=' . $thread_id );
-        }
-        else
+        my $error_msg = $self -> can_edit( $thread_id, $title, $content, $edit_button_pressed );
+        
+        if( $error_msg or ( ( not $error_msg ) and ( not $edit_button_pressed ) ) )
         {
                 $self -> add_thread_data( $thread_id, 'full' );
                 $output = $self -> construct_page( middle_tpl => 'thread_edit', error_msg => $error_msg );
+        }
+        elsif( ( not $error_msg ) and $edit_button_pressed )
+        {
+                $self -> edit( $thread_id, $title, $content );
+                $output = $self -> ncrd( '/thread/?thread_id=' . $thread_id );
         }
         
         return $output;
@@ -138,24 +134,18 @@ sub can_edit
 
         my $fields_are_filled = ( $self -> trim( $title ) and $self -> trim( $content ) );
         
-        my $thread_id_error = $self -> check_if_proper_thread_id_provided( $thread_id );
+        my $can_edit = $self -> can_do_action_with_thread( 'edit', $thread_id );
 
-        if( $thread_id_error )
+        if( not $can_edit )
         {
-                $error_msg = $thread_id_error;
-        }
-        elsif( ( not $thread_id_error ) and ( not $self -> is_thread_belongs_to_current_user( $thread_id ) ) )
-        {
-                $error_msg = 'CAN_ONLY_EDIT_THREADS_OF_YOUR_OWN';
+                $error_msg = 'CANNOT_EDIT_THREAD';
                 &ar( DONT_SHOW_THREAD_DATA => 1 );
         }
-        elsif( ( not $thread_id_error ) and $self -> is_thread_belongs_to_current_user( $thread_id ) and
-                 $edit_button_pressed and ( not $fields_are_filled ) )
+        elsif( $can_edit and $edit_button_pressed and ( not $fields_are_filled ) )
         {
                 $error_msg = 'FIELDS_ARE_NOT_FILLED';
         }
-        elsif( ( not $thread_id_error ) and $self -> is_thread_belongs_to_current_user( $thread_id ) and
-                 $edit_button_pressed and $fields_are_filled and ( not $self -> is_thread_title_length_acceptable( $title ) ) ) 
+        elsif( $can_edit and $edit_button_pressed and $fields_are_filled and ( not $self -> is_thread_title_length_acceptable( $title ) ) )
         {
                 $error_msg = 'THREAD_TITLE_TOO_LONG';
         }
@@ -278,7 +268,14 @@ sub reply
                                     posted    => $self -> now() );
 
         my $thread = FModel::Threads -> get( id => $thread_id );
-        $thread -> updated( $self -> now() );
+
+        my $now = $self -> now();
+
+        $thread -> updated( $now );
+
+        $thread -> modified( 1 );
+        $thread -> modified_date( $now );
+
         $thread -> update();
 
         return;
@@ -295,12 +292,9 @@ sub app_mode_edit_message
 
         my $output;
 
-        if( my $error_msg = $self -> can_edit_message( $message_id, $subject, $content, $edit_button_pressed ) )
-        {
-                $self -> add_message_data( $message_id, 'full' );
-                $output = $self -> construct_page( middle_tpl => 'message_edit', error_msg => $error_msg );
-        }
-        elsif( ( not $error_msg ) and ( not $edit_button_pressed ) )
+        my $error_msg = $self -> can_edit_message( $message_id, $subject, $content, $edit_button_pressed );
+
+        if( $error_msg or ( ( not $error_msg ) and ( not $edit_button_pressed ) ) )
         {
                 $self -> add_message_data( $message_id, 'full' );
                 $output = $self -> construct_page( middle_tpl => 'message_edit', error_msg => $error_msg );
@@ -325,14 +319,7 @@ sub can_edit_message
 
         my $error_msg = '';
         
-        #my $message_id_error = $self -> check_if_proper_message_id_provided( $message_id );
-
         my $fields_are_filled = ( $self -> trim( $subject ) and $self -> trim( $content ) );
-
-        #if( $message_id_error )
-        #{
-        #        $error_msg = $message_id_error;
-        #}
 
         my $can_edit = $self -> can_do_action_with_message( 'edit', $message_id );
 
@@ -455,6 +442,51 @@ sub app_mode_delete_message
         }
 
         return $output;
+}
+
+sub app_mode_delete
+{
+        my $self = shift;
+
+        my $thread_id = $self -> arg( 'thread_id' ) || 0;
+
+        my $output;
+
+        if( my $can_delete = $self -> can_do_action_with_thread( 'delete', $thread_id ) )
+        {
+                $self -> delete_thread( $thread_id );
+
+                my $success_msg = 'MESSAGE_DELETED';
+                $output = $self -> ncrd( '/?success_msg=' . $success_msg );
+        }
+        else
+        {
+                $output = $self -> ncrd( '/?error_msg=' . 'CANNOT_DELETE_THREAD' );
+        }
+
+        return $output;
+}
+
+sub delete_thread
+{
+        my $self = shift;
+        my $thread_id = shift || 0;;
+
+        if( not my $error = $self -> check_if_proper_thread_id_provided( $thread_id ) )
+        {
+                my $thread = FModel::Threads -> get( id => $thread_id );
+
+                my @thread_messages = FModel::Messages -> get_many( thread_id => $thread_id );
+
+                foreach my $message ( @thread_messages )
+                {
+                        $message -> delete();
+                }
+
+                $thread -> delete();
+        }
+
+        return;
 }
 
 sub add_thread_data

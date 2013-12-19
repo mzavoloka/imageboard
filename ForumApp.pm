@@ -481,6 +481,21 @@ sub can_do_action_with_thread
                                 last;
                         }
                 }
+                
+        }
+
+        if( not $error and $can and $action eq 'delete' )
+        {
+                my @messages = FModel::Messages -> get_many( thread_id => $thread_id );
+
+                foreach my $message ( @messages )
+                {
+                        if( not $self -> can_do_action_with_message( 'delete', $message -> id() ) )
+                        {
+                                $can = 0;
+                                last;
+                        }
+                }
         }
 
         return $can;
