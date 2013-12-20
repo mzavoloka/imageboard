@@ -401,6 +401,40 @@ sub get_user_avatar_src
         return $avatar_src;
 }
 
+sub get_thread_pinned_image_src
+{
+        my $self = shift;
+        my $thread_id = shift;
+
+        my $thread = FModel::Threads -> get( id => $thread_id );
+
+        my $image_src;
+
+        if( $thread -> pinned_img() )
+        {
+                $image_src = $self -> pinned_images_dir_url() . $thread -> pinned_img();
+        }
+
+        return $image_src;
+}
+
+sub get_message_pinned_image_src
+{
+        my $self = shift;
+        my $message_id = shift;
+
+        my $message = FModel::Messages -> get( id => $message_id );
+
+        my $image_src;
+
+        if( $message -> pinned_img() )
+        {
+                $image_src = $self -> pinned_images_dir_url() . $message -> pinned_img();
+        }
+
+        return $image_src;
+}
+
 sub can_do_action_with_message
 {
         my $self = shift;
