@@ -12,7 +12,6 @@ use Wendy::Templates::TT 'tt';
 use Wendy::Db qw( dbconnect );
 use Data::Dumper 'Dumper';
 use Wendy::Shorts qw( ar gr lm );
-#use Digest::MD5 'md5_base64';
 use DateTime;
 use Wendy::Config 'CONF_MYPATH';
 use Scalar::Util 'looks_like_number';
@@ -697,6 +696,43 @@ sub get_user_special_permissions
 
         return $special_permissions;
 }
+
+sub max_of
+{
+        my $self = shift;
+        my @numbers = @_;
+
+        my $max = $numbers[0];
+
+        for my $num ( @numbers )
+        {
+                if( $num > $max )
+                {
+                        $max = $num;
+                }
+        }
+
+        return $max;
+}
+
+sub min_of
+{
+        my $self = shift;
+        my @numbers = @_;
+
+        my $min = $numbers[0];
+
+        for my $num ( @numbers )
+        {
+                if( $num < $min )
+                {
+                        $min = $num;
+                }
+        }
+
+        return $min;
+}
+
 
 
 1;

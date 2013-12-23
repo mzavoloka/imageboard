@@ -10,6 +10,7 @@ sub wendy_handler
 
 package ForumThread;
 use Wendy::Shorts qw( ar gr lm );
+use Wendy::Templates::TT 'tt';
 use Carp::Assert 'assert';
 use File::Copy 'cp';
 use Data::Dumper 'Dumper';
@@ -45,6 +46,7 @@ sub app_mode_default
 {
         my $self = shift;
         my $thread_id = $self -> arg( 'thread_id' ) || 0;
+        my $page = $self -> arg( 'page' ) || 1;
         
         my $output;
 
@@ -55,7 +57,7 @@ sub app_mode_default
                 $output = $self -> construct_page( middle_tpl => 'thread', error_msg => $error_msg );
         } else
         {
-                $self -> add_thread_data( $thread_id, 'full', 'with_messages' );
+                $self -> add_thread_data( $thread_id, 'full', 'with_messages', $page );
                 $output = $self -> construct_page( middle_tpl => 'thread' );
         }
 
@@ -692,6 +694,7 @@ sub add_thread_data
         my $thread_id = shift;
         my $full = shift;
         my $with_messages = shift;
+        my $page = shift;
 
         &ar( THREAD_ID => $thread_id);
 
@@ -719,7 +722,7 @@ sub add_thread_data
 
                         if( $with_messages )
                         {
-                                $self -> add_messages( $thread_id );
+                                $self -> add_messages( $thread_id, $page );
                         }
                 }
         } else
@@ -734,12 +737,20 @@ sub add_messages
 {
         my $self = shift;
         my $thread_id = shift;
+        my $page = shift || 1;
 
-        my @messages_sorted = sort { $a -> posted() cmp $b -> posted() } FModel::Messages -> get_many( thread_id => $thread_id);
+        my @messages_sorted = sort { $a -> posted() cmp $b -> posted() } FModel::Messages -> get_many( thread_id => $thread_id );
         my $messages = [];
-         
-        for my $message ( @messages_sorted ) 
+
+        my $count_of_messages = scalar( @messages_sorted );
+        my $messages_on_page = &gr( 'MESSAGES_ON_PAGE' );
+        my $show_from = ( $page - 1 ) * $messages_on_page;
+        my $show_to = $self -> min_of( $show_from + $messages_on_page, $count_of_messages );
+
+        for( my $index = $show_from; $index < $show_to; $index++ )
         {
+                my $message = $messages_sorted[ $index ];
+
                 my $msg_hash = { MESSAGE_ID => $message -> id(),
                                  POSTED     => $self -> readable_date( $message -> posted() ),
                                  SUBJECT    => $message -> subject(),
@@ -760,13 +771,47 @@ sub add_messages
 
                 push( $messages, $msg_hash );
         }
-
-        if( scalar( @$messages ) )
+         
+        if( $count_of_messages > 0 )
         {
                 &ar( MESSAGES => $messages );
+                &ar( PAGES => $self -> add_pages( $thread_id, $page ) );
         }
 
         return $messages;
+}
+
+sub add_pages
+{
+        my $self = shift;
+        my $thread_id = shift;
+        my $current_page = shift;
+
+        my $count_of_messages = FModel::Messages -> count( thread_id => $thread_id );
+        my $messages_on_page = &gr( 'MESSAGES_ON_PAGE' );
+
+        my $num_of_pages = int( $count_of_messages / $messages_on_page ) + 1;
+
+        my $pages = [];
+
+        if( $num_of_pages > 1 )
+        {
+                for my $page ( 1 .. $num_of_pages )
+                {
+                        my $hash = { PAGE => $page };
+
+                        if( $page == $current_page )
+                        {
+                                $hash -> { 'CURRENT' } = 1;
+                        }
+
+                        push( @$pages, $hash );
+                }
+        }
+
+        &ar( PAGES => $pages );
+
+        return &tt( 'pages' );
 }
 
 sub can_create
