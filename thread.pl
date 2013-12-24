@@ -4,7 +4,6 @@ package localhost::thread;
 
 sub wendy_handler
 {
-        my $self = shift;
         return ForumThread -> run();
 }
 
@@ -18,7 +17,7 @@ use Data::Dumper 'Dumper';
 use Moose;
 extends 'ForumApp';
 
-sub _run_modes { [ 'default', 'create', 'reply', 'edit', 'delete', 'edit_message', 'delete_message' ] };
+sub _run_modes { [ 'default', 'create', 'reply', 'edit', 'delete', 'edit_message', 'delete_message', 'vote' ] };
 
 sub init
 {
@@ -82,22 +81,25 @@ sub app_mode_create
         my $content = $self -> arg( 'content' ) || '';
         my $create_button_pressed = $self -> arg( 'create_button' ) || '';
         my $pinned_image = $self -> upload( 'pinned_image' );
+        my $vote = $self -> arg( 'vote' ) || 0;
 
         my $output;
 
         if( not $create_button_pressed )
         {
+                $self -> add_vote_options_data();
                 $output = $self -> construct_page( middle_tpl => 'thread_create' );
         }
-        elsif( $create_button_pressed and ( my $error_msg = $self -> can_create( $title, $content, $pinned_image ) ) )
+        elsif( $create_button_pressed and ( my $error_msg = $self -> can_create( $title, $content, $pinned_image, $vote ) ) )
         {
                 &ar( TITLE => $title, CONTENT => $content );
+                $self -> add_vote_options_data();
                 $output = $self -> construct_page( middle_tpl => 'thread_create', error_msg => $error_msg );
         }
         elsif( $create_button_pressed and ( not $error_msg ) )
         {
                 my $user = FModel::Users -> get( name => $self -> user() );
-                my $new_thread_id = $self -> create( $title, $content, $pinned_image );
+                my $new_thread_id = $self -> create( $title, $content, $pinned_image, $vote );
                 $output = $self -> ncrd( '/thread/?thread_id=' . $new_thread_id );
         }
 
@@ -627,7 +629,7 @@ sub get_message_thread_id
 
         my $thread_id;
 
-        if( not my $error = $self -> check_if_proper_message_id_provieded( $message_id ) )
+        if( not my $error = $self -> check_if_proper_message_id_provided( $message_id ) )
         {
                 my $message = FModel::Messages -> get( id => $message_id );
 
@@ -650,7 +652,7 @@ sub app_mode_delete
         {
                 $self -> delete_thread( $thread_id );
 
-                my $success_msg = 'MESSAGE_DELETED';
+                my $success_msg = 'THREAD_DELETED';
                 $output = $self -> ncrd( '/?success_msg=' . $success_msg );
         }
         else
@@ -710,6 +712,7 @@ sub add_thread_data
                              PINNED_IMAGE => $self -> get_thread_pinned_image_src( $thread_id ),
                              CREATED => $self -> readable_date( $thread -> created() ),
                              AUTHOR  => $thread -> user_id() -> name(),
+                             VOTING_OPTIONS => $self -> get_voting_options( $thread_id ),
                              CAN_DELETE => $self -> can_do_action_with_thread( 'delete', $thread_id ),
                              CAN_EDIT   => $self -> can_do_action_with_thread( 'edit', $thread_id ),
                              AUTHOR_AVATAR => $self -> get_user_avatar_src( $thread -> user_id() -> id() ),
@@ -731,6 +734,33 @@ sub add_thread_data
         }
 
         return;
+}
+
+sub add_vote_options_data
+{
+        my $self = shift;
+        my $vote = $self -> arg( 'vote' );
+
+        my $options = [];
+
+        if( $vote )
+        {
+                &ar( VOTE => $vote );
+                
+                my $vote_options = $self -> get_voting_options_from_args();
+
+                for my $number ( sort keys $vote_options )
+                {
+                        my $option_hash = { NUMBER => $number, VALUE => $vote_options -> { $number } };
+                        push( @$options, $option_hash );
+                }
+        }
+        else
+        {
+                $options = [ { NUMBER => 1, VALUE => '' }, { NUMBER => 2, VALUE => '' } ];
+        }
+        
+        &ar( OPTIONS => $options );
 }
 
 sub add_messages
@@ -820,10 +850,13 @@ sub can_create
         my $title = shift;
         my $content = shift;
         my $pinned_image = shift;
+        my $vote = shift;
 
         my $error_msg = '';
 
-        my $fields_are_filled = ( $self -> trim( $title ) and $self -> trim( $content ) );
+        my $vote_options_correctly_filled = ( not $vote or ( $vote and $self -> vote_options_filled() ) );
+
+        my $fields_are_filled = ( $self -> trim( $title ) and $self -> trim( $content ) and $vote_options_correctly_filled );
 
         if( not $fields_are_filled )
         {
@@ -839,6 +872,67 @@ sub can_create
         }
 
         return $error_msg;
+}
+
+sub vote_options_filled
+{
+        my $self = shift;
+
+        my $vote_options = $self -> get_voting_options_from_args();
+
+        my $filled;
+
+        if( scalar $vote_options )
+        {
+                $filled = 1;
+
+                for my $option ( keys $vote_options )
+                {
+                        if( $self -> trim( $vote_options -> { $option } ) eq '' )
+                        {
+                                $filled = 0;
+                        }
+                }
+        }
+
+        return $filled;
+}
+
+sub get_voting_options
+{
+        my $self = shift;
+        my $thread_id = shift;
+
+        my $rv = [];
+
+        my @voting_options = FModel::VotingOptions -> get_many( thread_id => $thread_id, _sortby => 'id' );
+
+        for my $option ( @voting_options )
+        {
+                my $hash = { ID => $option -> id(), TITLE => $option -> title() };
+                push( @$rv, $hash );
+                
+        }
+
+        return $rv;
+}
+
+sub get_voting_options_from_args
+{
+        my $self = shift;
+
+        my $vote_options = {};
+
+        for my $arg ( keys $self -> args() )
+        {
+                if( $arg =~ m/^option\d+$/ )
+                {
+                        my ( $number ) = $arg =~ /(\d+)/;
+                        $vote_options -> { $number } = $self -> trim( $self -> arg( $arg ) );
+                }
+        }
+
+        return $vote_options;
 }
 
 sub is_thread_title_length_acceptable
@@ -862,14 +956,49 @@ sub create
         my $title = shift;
         my $content = shift;
         my $pinned_image = shift;
+        my $vote = shift;
 
         my $user = FModel::Users -> get( name => $self -> user() );
 
-        my $new_thread = FModel::Threads -> create( title => $title, content => $content, user_id => $user -> id(), created => $self -> now(), updated => $self -> now() );
+        my $new_thread = FModel::Threads -> create( title => $title, content => $content, user_id => $user -> id(), created => $self -> now(), updated => $self -> now(), vote => $vote );
+
+        if( $vote )
+        {
+                my $vote_options = $self -> get_voting_options_from_args();
+                for my $number ( sort keys $vote_options )
+                {
+                        FModel::VotingOptions -> create( thread_id => $new_thread -> id(), title => $vote_options -> { $number } );
+                }
+        }
 
         $self -> pin_image_to_thread( $new_thread -> id(), $pinned_image );
 
         return $new_thread -> id();
+}
+
+sub app_mode_vote
+{
+        my $self = shift;
+        my $thread_id = $self -> arg( 'thread_id' );
+
+        my $output;
+
+        my $error_msg = $self -> check_if_proper_thread_id_provided( $thread_id );
+
+        if( $error_msg )
+        {
+                $self -> add_thread_data( $thread_id, 'full', 'with_messages' );
+                $output = $self -> construct_page( middle_tpl => 'thread', error_msg => $error_msg );
+        }
+        else
+        {
+                FModel::Votes -> create( thread_id => $thread_id, user_id => $self -> user_id() );
+                $self -> add_thread_data( $thread_id, 'full', 'with_messages' );
+                my $success_msg = 'VOTE_SUCCESS';
+                $output = $self -> construct_page( middle_tpl => 'thread', success_msg => $success_msg );
+        }
+
+        return $output;
 }
 
 

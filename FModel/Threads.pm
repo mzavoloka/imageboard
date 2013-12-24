@@ -2,8 +2,6 @@ package FModel::Threads;
 use strict;
 use Moose;
 extends 'LittleORM::GenericID'; 
-use LittleORM::Clause;
-use LittleORM::Filter;
 
 sub _db_table { 'threads' }
 
@@ -38,6 +36,8 @@ has 'modified_date' => ( is => 'rw',
 has 'modified' => ( is => 'rw', isa => 'Bool' );
 
 has 'pinned_img' => ( is => 'rw', isa => 'Str' );
+
+has 'vote' => ( is => 'rw', isa => 'Bool' );
 
 
 1;

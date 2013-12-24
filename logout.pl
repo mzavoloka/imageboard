@@ -4,7 +4,6 @@ package localhost::logout;
 
 sub wendy_handler
 {
-        my $self = shift;
         return ForumLogout -> run();
 }
 

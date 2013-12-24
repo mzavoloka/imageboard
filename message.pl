@@ -1,10 +1,14 @@
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #  
+# Deprecated
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #  
+
 use strict;
 
 package localhost::message;
 
 sub wendy_handler
 {
-        my $self = shift;
         return ForumMessage -> run();
 }
 

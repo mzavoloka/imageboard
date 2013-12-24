@@ -8,6 +8,7 @@ use FModel::Sessions;
 use FModel::Messages;
 use FModel::Threads;
 use FModel::Permissions;
+use FModel::VotingOptions;
 use Wendy::Templates::TT 'tt';
 use Wendy::Db qw( dbconnect );
 use Data::Dumper 'Dumper';

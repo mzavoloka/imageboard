@@ -4,7 +4,6 @@ package localhost::root;
 
 sub wendy_handler()
 {
-        my $self = shift;
         return ForumMainpage -> run();
 }
 

@@ -4,7 +4,6 @@ package localhost::register;
 
 sub wendy_handler
 {
-        my $self = shift;
         return ForumRegister -> run();
 }
 

@@ -4,7 +4,6 @@ package localhost::login;
 
 sub wendy_handler
 {
-        my $self = shift;
         return ForumLogin -> run();
 }
 

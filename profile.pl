@@ -4,7 +4,6 @@ package localhost::profile;
 
 sub wendy_handler
 {
-        my $self = shift;
         return ForumProfile -> run();
 }
 
