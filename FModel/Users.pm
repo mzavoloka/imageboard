@@ -28,4 +28,18 @@ has 'permissions_id' => ( is => 'rw', isa => 'Int' );
 
 has 'banned' => ( is => 'rw', isa => 'Bool' );
 
+sub get_id()
+{
+        my $self = shift;
+
+die $self;
+        my $id = 0;
+        if( defined $self ) 
+        {
+                $id = $self -> id();
+        }
+
+        return $id;
+}
+
 1;

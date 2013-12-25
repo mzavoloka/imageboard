@@ -26,7 +26,7 @@ sub init
         {
                 $rv = $error;
         }
-        elsif( $self -> user () )
+        elsif( $self -> user() )
         {
                 $rv = $self -> construct_page( restricted_msg => 'LOGIN_RESTRICTED' );
         }

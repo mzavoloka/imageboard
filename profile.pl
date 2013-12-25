@@ -39,7 +39,7 @@ sub app_mode_default
 {
 	my $self = shift;
 
-        my $username = $self -> arg( 'username' ) || $self -> user() || '';
+        my $username = $self -> arg( 'username' ) || $self -> user() -> name() || '';
 
         my $error_msg = '';
         if( $self -> is_username_exists( $username ) )
@@ -64,14 +64,14 @@ sub app_mode_change_email
 
         my $output;
 
-        if( my $error_msg = $self -> can_change_email( $email, $self -> user() ) )
+        if( my $error_msg = $self -> can_change_email( $email, $self -> user() -> name() ) )
         {
-                $self -> add_profile_data( $self -> user() );
+                $self -> add_profile_data( $self -> user() -> id() );
                 $output = $self -> construct_page( middle_tpl => 'profile', error_msg => $error_msg );
         } else
         {
                 $self -> change_email( $email );
-                $self -> add_profile_data( $self -> user() );
+                $self -> add_profile_data( $self -> user() -> id() );
                 $output = $self -> construct_page( middle_tpl => 'profile', success_msg => 'EMAIL_CHANGED' );
         }
 
@@ -114,13 +114,13 @@ sub app_mode_change_password
                 my $new_password = $self -> arg( 'new_password' ) || '';
                 my $new_password_confirmation = $self -> arg( 'new_password_confirmation' ) || '';
 
-                if( my $error_msg = $self -> can_change_password( $current_password, $new_password, $new_password_confirmation, $self -> user() ) )
+                if( my $error_msg = $self -> can_change_password( $current_password, $new_password, $new_password_confirmation ) )
                 {
                         $output = $self -> construct_page( middle_tpl => 'change_password', error_msg => $error_msg );
                 } else
                 {
-                        $self -> change_password( $self -> user(), $new_password );
-                        $self -> add_profile_data( $self -> user() );
+                        $self -> change_password( $self -> user() -> id(), $new_password );
+                        $self -> add_profile_data( $self -> user() -> id() );
                         $output = $self -> construct_page( middle_tpl => 'profile', success_msg => 'PASSWORD_CHANGED' );
                 }
         } else
@@ -137,7 +137,6 @@ sub can_change_password
         my $current_password = shift;
         my $new_password = shift;
         my $new_password_confirmation = shift;
-        my $username = shift;
 
         my $error_msg = '';
 
@@ -151,7 +150,7 @@ sub can_change_password
 
         if( $fields_are_filled )
         {
-                $user = FModel::Users -> get( name => $self -> user() );
+                $user = FModel::Users -> get( id => $self -> user() -> id() );
                 $password_in_db = $user -> password();
                 $current_password_correct = ( $current_password eq $password_in_db );
         }
@@ -184,26 +183,26 @@ sub app_mode_upload_avatar
 
         if( my $error_msg = $self -> can_upload_avatar( $avatar ) )
         {
-                $self -> add_profile_data( $self -> user() );
+                $self -> add_profile_data( $self -> user() -> id() );
                 $output = $self -> construct_page( middle_tpl => 'profile', error_msg => $error_msg );
         } else
         {
-                my $filename = $self -> user_id();
+                my $filename = $self -> user() -> id();
 
                 my $filepath = $self -> avatars_dir_abs() . $filename;
 
                 if( cp( $avatar, $filepath ) )
                 {
-                        my $user = FModel::Users -> get( id => $self -> user_id() );
+                        my $user = FModel::Users -> get( id => $self -> user() -> id() );
                         $user -> avatar( $filename );
                         $user -> update();
 
-                        $self -> add_profile_data( $self -> user() );
+                        $self -> add_profile_data( $self -> user() -> id() );
                         $output = $self -> construct_page( middle_tpl => 'profile', success_msg => 'AVATAR_UPLOADED' );
                 } else
                 {
                         my $error_msg = 'AVATAR_NOT_UPLOADED' . "\n$!";
-                        $self -> add_profile_data( $self -> user() );
+                        $self -> add_profile_data( $self -> user() -> id() );
                         $output = $self -> construct_page( middle_tpl => 'profile', error_msg => $error_msg );
                 }
         }
@@ -239,11 +238,11 @@ sub can_upload_avatar
 sub add_profile_data
 {
         my $self = shift;
-        my $username = shift;
+        my $user_id = shift;
 
-        my $user = FModel::Users -> get( name => $username );
+        my $user = FModel::Users -> get( id => $user_id );
 
-        if( $user -> name() eq $self -> user() )
+        if( $user -> name() eq $self -> user() -> name() )
         {
                 &ar( USER_HOME_PROFILE => 1 );
         }
@@ -267,7 +266,7 @@ sub change_email
         my $email = shift;
         $email = lc( $email );
 
-        my $user = FModel::Users -> get( name => $self -> user() );
+        my $user = FModel::Users -> get( id => $self -> user() -> id() );
         $user -> email( $email );
         $user -> update();
 
@@ -277,10 +276,10 @@ sub change_email
 sub change_password
 {
         my $self = shift;
-        my $username = shift;
+        my $user_id = shift;
         my $new_password = shift;
 
-        my $user = FModel::Users -> get( name => $username );
+        my $user = FModel::Users -> get( id => $user_id );
         $user -> password( $new_password );
         $user -> update();
 

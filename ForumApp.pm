@@ -20,8 +20,7 @@ use Scalar::Util 'looks_like_number';
 use Moose;
 extends 'Wendy::App';
 
-has 'user' => ( is => 'rw', isa => 'Str' );
-has 'user_id' => ( is => 'rw', isa => 'Int' );
+has 'user' => ( is => 'rw', isa => 'Maybe[FModel::Users]' );
 
 has 'session_expires_after' => ( is => 'rw', isa => 'Int', default => 900 );
 
@@ -46,6 +45,7 @@ sub init
                 $self -> init_user();
         }
 
+        &lm( 'ANY');
         &lm();
 
         return $rv;
@@ -65,7 +65,10 @@ sub construct_page
         my $success_msg = $args{ 'success_msg' } || '';
         my $restricted_msg = $args{ 'restricted_msg' } || '';
 
-        &ar( CURRENT_USER => $self -> user() );
+        if( $self -> user() )
+        {
+                &ar( CURRENT_USER => $self -> user() -> name() );
+        }
 
         if( $error_msg )
         {
@@ -102,8 +105,8 @@ sub init_user
 
         my $session = FModel::Sessions -> get( session_key => $session_key );
 
-        my $rv = 0;
-        
+        my $user;
+
         if( $session )
         {
                 my $expired = 0;
@@ -117,14 +120,15 @@ sub init_user
                         $session -> delete( session_key => $session_key );
                 } else
                 {
+                        $user = FModel::Users -> get( id => $session -> user_id() -> id() );
                         $session -> expires( $self -> session_expires() );
-                        $rv = $self -> user( $session -> user_id() -> name() );
-                        $self -> user_id( $session -> user_id() -> id() );
                         $session -> update();
                 }
         }
 
-        return $rv;
+        $self -> user( $user );
+
+        return $user;
 }
 
 sub log_user_in
@@ -139,8 +143,7 @@ sub log_user_in
 
         $self -> set_cookie( '-name' => 'session_key', '-value' => $session_key );
 
-        $self -> user( $username );
-        $self -> user_id( $user -> id() );
+        $self -> user( $user );
 
         return $session_key;
 }
@@ -356,10 +359,10 @@ sub is_message_belongs_to_current_user
 
         my $belongs = 0;
 
-        if( $self -> user_id() )
+        if( $self -> user() )
         {
                 my $message = FModel::Messages -> get( id => $message_id );
-                $belongs = ( $self -> user_id() eq $message -> user_id() -> id() );
+                $belongs = ( $self -> user() -> id() eq $message -> user_id() -> id() );
         }
 
         return $belongs;
@@ -372,10 +375,10 @@ sub is_thread_belongs_to_current_user
 
         my $belongs = 0;
 
-        if( $self -> user_id() )
+        if( $self -> user() )
         {
                 my $thread = FModel::Threads -> get( id => $thread_id );
-                $belongs = ( $self -> user_id() eq $thread -> user_id() -> id() );
+                $belongs = ( $self -> user() -> id() eq $thread -> user_id() -> id() );
         }
 
         return $belongs;
@@ -443,11 +446,11 @@ sub can_do_action_with_message
 
         my $can = 0;
 
-        my $error = ( ( not $self -> user_id() ) or $self -> check_if_proper_message_id_provided( $message_id ) );
+        my $error = ( ( not $self -> user() ) or $self -> check_if_proper_message_id_provided( $message_id ) );
 
         if( not $error and $self -> is_message_belongs_to_current_user( $message_id ) )
         {
-                my $cur_user = FModel::Users -> get( id => $self -> user_id() );
+                my $cur_user = FModel::Users -> get( id => $self -> user() -> id() );
                 my $cur_user_permissions = FModel::Permissions -> get( id => $cur_user -> permissions_id() );
 
                 if( ( $action eq 'delete' and $cur_user_permissions -> delete_messages() ) or
@@ -462,7 +465,7 @@ sub can_do_action_with_message
                 my $author_permissions = FModel::Permissions -> get( id => $message -> user_id() -> permissions_id() );
                 my $author_permissions_title = $author_permissions -> title();
 
-                my $cur_user = FModel::Users -> get( id => $self -> user_id() );
+                my $cur_user = FModel::Users -> get( id => $self -> user() -> id() );
                 my $cur_user_permissions = FModel::Permissions -> get( id => $cur_user -> permissions_id() );
 
                 my $can_do_action_with_messages_of;
@@ -497,11 +500,11 @@ sub can_do_action_with_thread
 
         my $can = 0;
         
-        my $error = ( ( not $self -> user_id() ) or $self -> check_if_proper_thread_id_provided( $thread_id ) );
+        my $error = ( ( not $self -> user() ) or $self -> check_if_proper_thread_id_provided( $thread_id ) );
 
         if( not $error and $self -> is_thread_belongs_to_current_user( $thread_id ) )
         {
-                my $cur_user = FModel::Users -> get( id => $self -> user_id() );
+                my $cur_user = FModel::Users -> get( id => $self -> user() -> id() );
                 my $cur_user_permissions = FModel::Permissions -> get( id => $cur_user -> permissions_id() );
 
                 if( ( $action eq 'delete' and $cur_user_permissions -> delete_threads() ) or
@@ -516,7 +519,7 @@ sub can_do_action_with_thread
                 my $author_permissions = FModel::Permissions -> get( id => $thread -> user_id() -> permissions_id() );
                 my $author_permissions_title = $author_permissions -> title();
 
-                my $cur_user = FModel::Users -> get( id => $self -> user_id() );
+                my $cur_user = FModel::Users -> get( id => $self -> user() -> id() );
                 my $cur_user_permissions = FModel::Permissions -> get( id => $cur_user -> permissions_id() );
 
                 my $can_do_action_with_threads_of;
@@ -566,11 +569,11 @@ sub can_do_action_with_user
 
         my $can = 0;
         
-        my $error = ( ( not $self -> user_id() ) or $self -> check_if_proper_user_id_provided( $user_id ) );
+        my $error = ( ( not $self -> user() ) or $self -> check_if_proper_user_id_provided( $user_id ) );
 
         if( not $error )
         {
-                my $cur_user = FModel::Users -> get( id => $self -> user_id() );
+                my $cur_user = FModel::Users -> get( id => $self -> user() -> id() );
                 my $permissions = FModel::Permissions -> get( id => $cur_user -> permissions_id() );
 
                 my $user_to_act = FModel::Users -> get( id => $user_id );
