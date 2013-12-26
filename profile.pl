@@ -14,6 +14,7 @@ extends 'ForumApp';
 use Data::Dumper 'Dumper';
 use Wendy::Shorts qw( ar gr );
 use File::Copy 'cp';
+use ForumConst qw( avatars_dir_abs );
 
 sub _run_modes { [ 'default', 'change_email', 'change_password', 'search', 'upload_avatar', 'ban', 'unban' ] };
 
@@ -189,7 +190,7 @@ sub app_mode_upload_avatar
         {
                 my $filename = $self -> user() -> id();
 
-                my $filepath = $self -> avatars_dir_abs() . $filename;
+                my $filepath = ForumConst -> avatars_dir_abs() . $filename;
 
                 if( cp( $avatar, $filepath ) )
                 {

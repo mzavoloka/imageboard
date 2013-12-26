@@ -16,19 +16,12 @@ use Wendy::Shorts qw( ar gr lm );
 use DateTime;
 use Wendy::Config 'CONF_MYPATH';
 use Scalar::Util 'looks_like_number';
+use ForumConst qw( session_expires_after avatars_dir_url pinned_images_dir_url );
 
 use Moose;
 extends 'Wendy::App';
 
 has 'user' => ( is => 'rw', isa => 'Maybe[FModel::Users]' );
-
-has 'session_expires_after' => ( is => 'rw', isa => 'Int', default => 900 );
-
-has 'avatars_dir_abs' => ( is => 'rw', isa => 'Str', default => CONF_MYPATH . '/var/hosts/localhost/htdocs/static/img/avatars/' );
-has 'avatars_dir_url' => ( is => 'rw', isa => 'Str', default => '/static/img/avatars/' );
-
-has 'pinned_images_dir_abs' => ( is => 'rw', isa => 'Str', default => CONF_MYPATH . '/var/hosts/localhost/htdocs/static/img/pinned/' );
-has 'pinned_images_dir_url' => ( is => 'rw', isa => 'Str', default => '/static/img/pinned/' );
 
 sub init
 {
@@ -49,11 +42,6 @@ sub init
         &lm();
 
         return $rv;
-}
-
-sub cleanup
-{
-        my $self = shift;
 }
 
 sub construct_page
@@ -163,6 +151,7 @@ sub log_user_out
 sub now
 {
         my $self = shift;
+
         return DateTime -> now( time_zone => 'local' );
 }
 
@@ -170,7 +159,7 @@ sub session_expires
 {
         my $self = shift;
 
-        return DateTime -> from_epoch( epoch => time() + $self -> session_expires_after(), time_zone => 'local' );
+        return DateTime -> from_epoch( epoch => time() + ForumConst -> session_expires_after(), time_zone => 'local' );
 }
 
 sub readable_date
@@ -391,7 +380,7 @@ sub get_user_avatar_src
 
         my $user = FModel::Users -> get( id => $user_id );
 
-        my $avatar_src = $self -> avatars_dir_url();
+        my $avatar_src = ForumConst-> avatars_dir_url();
 
         if( $user -> avatar() )
         {
@@ -415,7 +404,7 @@ sub get_thread_pinned_image_src
 
         if( $thread -> pinned_img() )
         {
-                $image_src = $self -> pinned_images_dir_url() . $thread -> pinned_img();
+                $image_src = ForumConst -> pinned_images_dir_url() . $thread -> pinned_img();
         }
 
         return $image_src;
@@ -432,7 +421,7 @@ sub get_message_pinned_image_src
 
         if( $message -> pinned_img() )
         {
-                $image_src = $self -> pinned_images_dir_url() . $message -> pinned_img();
+                $image_src = ForumConst -> pinned_images_dir_url() . $message -> pinned_img();
         }
 
         return $image_src;
@@ -735,6 +724,80 @@ sub min_of
         }
 
         return $min;
+}
+
+sub check_pinned_image
+{
+        my $self = shift;
+        my $image = shift || '';
+
+        my $error_msg = '';
+
+        my $filesize = -s $image;
+
+        if( $image and CGI::uploadInfo( $image ) -> { 'Content-Type' } ne 'image/jpeg' ) # New function for this thing that uses special modules for filetype check
+        {
+                $error_msg = 'PINNED_IMAGE_INCORRECT_FILETYPE';
+        }
+        elsif( $image and $filesize > ForumConst -> pinned_image_max_filesize() )
+        {
+                $error_msg = 'PINNED_IMAGE_FILESIZE_TOO_BIG';
+        }
+
+        return $error_msg;
+}
+
+sub update_thread
+{
+        my $self = shift;
+        my $id = shift;
+
+        my $success = 0;
+
+        if( not my $error = $self -> check_if_proper_thread_id_provided( $id ) )
+        {
+                my $thread = FModel::Threads -> get( id => $id );
+                $thread -> updated( $self -> now() );
+                $thread -> update();
+
+                $success = 1;
+        }
+
+        return $success;
+}
+
+sub new_pinned_image_filename
+{
+        my $self = shift;
+
+        my $filename = '';
+
+        for my $number ( 1 .. 20 )
+        {
+                $filename .= int( rand( 10 ) );
+        }
+
+        if( $self -> is_pinned_filename_exists( $filename ) )
+        {
+                $filename = $self -> new_pinned_image_filename();
+        }
+
+        return $filename;
+}
+
+sub is_pinned_filename_exists
+{
+        my $self = shift;
+        my $filename = shift;
+
+        my $exists = 0;
+
+        if( -e ForumConst -> pinned_images_dir_abs() . $filename )
+        {
+                $exists = 1;
+        }
+
+        return $exists;
 }
 
 

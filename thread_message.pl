@@ -8,16 +8,17 @@ sub wendy_handler
 }
 
 package ForumMessage;
-#use Wendy::Shorts qw( ar gr lm );
-#use Wendy::Templates::TT 'tt';
-#use Carp::Assert 'assert';
-#use File::Copy 'cp';
+use Wendy::Shorts 'ar';
+use Carp::Assert 'assert';
+use File::Copy 'cp';
+use URI qw( new query_from as_string );
 use Data::Dumper 'Dumper';
+use ForumConst qw( pinned_images_dir_abs );
 
 use Moose;
 extends 'ForumApp';
 
-sub _run_modes { [ 'default', 'create_form', 'do_create', 'edit_form', 'edit', 'delete' ] };
+sub _run_modes { [ 'create_form', 'do_create', 'edit_form', 'do_edit', 'delete' ] };
 
 sub init
 {
@@ -29,16 +30,48 @@ sub init
         {
                 $rv = $error;
         }
-        elsif( defined $self -> arg( 'mode' ) and ( not $self -> user() ) )
+        elsif( not $self -> user() )
         {
                 $rv = $self -> construct_page( restricted_msg => 'MESSAGE_RESTRICTED' );
         }
-        elsif( defined $self -> arg( 'mode' ) and $self -> user() and $self -> is_user_banned( $self -> user() -> id() ) )
+        elsif( $self -> is_user_banned( $self -> user() -> id() ) )
         {
                 $rv = $self -> construct_page( restricted_msg => 'YOU_ARE_BANNED' );
         }
 
         return $rv;
+}
+
+sub app_mode_create_form
+{
+        my $self = shift;
+
+        my $output = $self -> show_create_form();
+
+        return $output;
+}
+
+sub app_mode_do_create
+{
+        my $self = shift;
+
+        my $output;
+
+        if( my $error_msg = $self -> can_create() )
+        {
+                $output = $self -> show_create_form( error_msg => $error_msg );
+        } else
+        {
+                $self -> create();
+                my $u = URI -> new( '/thread/' );
+
+                my $thread_id = $self -> arg( 'thread_id' );
+                $u -> query_form( id => $thread_id, success_msg => 'NEW_MESSAGE_CREATED' );
+
+                $output = $self -> ncrd( $u -> as_string() );
+        }
+
+        return $output;
 }
 
 sub app_mode_edit_form
@@ -54,88 +87,66 @@ sub app_mode_do_edit
 {
         my $self = shift;
 
-        my $id           = $self -> arg( 'id' );
-        my $subject      = $self -> arg( 'subject' ) || '';
-        my $content      = $self -> arg( 'content' ) || '';
-        my $pinned_image = $self -> upload( 'pinned_image' );
-
         my $output;
 
-        if( my $error_msg = $self -> can_edit_message( $id, $subject, $content, $pinned_image ) )
+        if( my $error_msg = $self -> can_edit() )
         {
-                $self -> add_message_data( $id, 'full' );
-                $output = $self -> construct_page( middle_tpl => 'message_edit', error_msg => $error_msg );
+                $output = $self -> show_edit_form( error_msg => $error_msg );
         }
         else
         {
-                $self -> edit_message( $id, $subject, $content, $pinned_image );
-                my $message = FModel::Messages -> get( id => $id );
-                $output = $self -> ncrd( '/thread/?id=' . $message -> thread_id() -> id() );
+                $self -> edit_message();
+
+                my $u = URI -> new( '/thread/' );
+                $u -> query_form( succes_msg => 'MESSAGE_EDITED',
+                                  id => $self -> get_message_thread_id( $self -> arg( 'id' ) ) );
+                $output = $self -> ncrd( $u -> as_string() );
         }
 
         return $output;
 }
 
-# old
-sub app_mode_edit
+sub app_mode_delete
 {
         my $self = shift;
-
-        my $id           = $self -> arg( 'id' );
-        my $subject      = $self -> arg( 'subject' ) || '';
-        my $content      = $self -> arg( 'content' ) || '';
-        my $pinned_image = $self -> upload( 'pinned_image' );
 
         my $output;
 
-        my $error_msg = $self -> can_edit_message( $id, $subject, $content, $pinned_image );
-
-        if( $error_msg or ( ( not $error_msg ) and ( not $edit_button_pressed ) ) )
+        # Handle from param
+        
+        if( my $error_msg = $self -> check_if_can_delete() )
         {
-                $self -> add_message_data( $id, 'full' );
-                $output = $self -> construct_page( middle_tpl => 'message_edit', error_msg => $error_msg );
+                my $u = URI -> new( '/' );
+                $u -> query_form( error_msg => $error_msg );
+                $output = $self -> ncrd( $u -> as_string() );
         }
-        elsif( ( not $error_msg ) and $edit_button_pressed )
+        else
         {
-                $self -> edit_message( $id, $subject, $content, $pinned_image );
-                my $message = FModel::Messages -> get( id => $id );
-                $output = $self -> ncrd( '/thread/?id=' . $message -> thread_id() -> id() );
+                $self -> delete_message();
+
+                my $u = URI -> new( '/' );
+                $u -> query_form( success_msg => 'MESSAGE_DELETED' );
+                $output = $self -> ncrd( $u -> as_string() );
         }
 
         return $output;
 }
 
-sub can_edit_message
+sub check_if_can_delete
 {
         my $self = shift;
-        my $id = shift;
-        my $subject = shift;
-        my $content = shift;
-        my $edit_button_pressed = shift;
-        my $pinned_image = shift;
+
+        my $id = $self -> arg( 'id' ) || shift || 0;
 
         my $error_msg = '';
-        
-        my $fields_are_filled = ( $self -> trim( $subject ) and $self -> trim( $content ) );
 
-        my $can_edit = $self -> can_do_action_with_message( 'edit', $id );
-
-        if( not $can_edit )
+        if( my $id_error = $self -> check_if_proper_message_id_provided( $id ) )
         {
-                $error_msg = 'CANNOT_EDIT_MESSAGE';
-                &ar( DONT_SHOW_MESSAGE_DATA => 1 );
+                $error_msg = $id_error;
         }
-        elsif( $can_edit and $edit_button_pressed and ( not $fields_are_filled ) )
+        elsif( not $self -> can_do_action_with_message( 'delete', $id ) )
         {
-                $error_msg = 'FIELDS_ARE_NOT_FILLED';
-        }
-        elsif( $can_edit and $edit_button_pressed and $fields_are_filled and ( not $self -> is_message_subject_length_acceptable( $subject ) ) )
-        {
-                $error_msg = 'MESSAGE_SUBJECT_TOO_LONG';
-        }
-        elsif( my $pinned_image_error = $self -> check_pinned_image( $pinned_image ) )
-        {
-                $error_msg = $pinned_image_error;
+                $error_msg = 'CANNOT_DELETE_MESSAGE';
         }
 
         return $error_msg;
@@ -176,73 +187,80 @@ sub add_message_data
         return;
 }
 
-sub edit_message
+sub show_create_form
 {
         my $self = shift;
-        my $id = shift;
-        my $subject = shift;
-        my $content = shift;
-        my $pinned_image = shift;
+        my %params = @_;
 
-        my $message = FModel::Messages -> get( id => $id );
+        my $error_msg = $params{ 'error_msg' } || '';
 
-        $message -> subject( $subject );
-        $message -> content( $content );
+        my $thread_id    = $self -> arg( 'thread_id' );
+        my $subject      = $self -> arg( 'subject' ) || '';
+        my $content      = $self -> arg( 'content' ) || '';
+        my $pinned_image = $self -> upload( 'pinned_image' );
 
-        $message -> modified( 1 );
-        $message -> modified_date( $self -> now() );
+        &ar( DYN_THREAD_ID => $thread_id, DYN_SUBJECT => $subject, DYN_CONTENT => $content, DYN_PINNED_IMAGE => $pinned_image );
 
-        $message -> update();
-
-        $self -> pin_image_to_message( $id, $pinned_image );
-
-        return;
-}
-
-sub app_mode_delete_message
-{
-        my $self = shift;
-
-        my $id = $self -> arg( 'id' ) || 0;
-        my $from = $self -> arg( 'from' ) || 'thread';
-         
-        my $output;
-
-        my $thread_id = $self -> get_message_thread_id( $id );
-
-        if( my $can_delete = $self -> can_do_action_with_message( 'delete', $id ) )
-        {
-                $self -> delete_message( $id );
-
-                my $success_msg = 'MESSAGE_DELETED';
-
-                if( $from eq 'thread' )
-                {
-                        $self -> add_thread_data( $thread_id, 'full', 'with_messages' );
-                        $output = $self -> construct_page( middle_tpl => 'thread', success_msg => $success_msg );
-                }
-                elsif( $from eq 'mainpage' )
-                {
-                        $output = $self -> ncrd( '/?success_msg=' . $success_msg );
-                }
-        }
-        elsif( ( not $can_delete ) and ( $from eq 'thread' ) )
-        {
-                $self -> add_thread_data( $thread_id, 'full', 'with_messages' );
-                $output = $self -> construct_page( middle_tpl => 'thread', error_msg => 'CANNOT_DELETE_MESSAGE' );
-        }
-        elsif( ( not $can_delete ) and ( $from ne 'thread' ) )
-        {
-                $output = $self -> ncrd( '/?error_msg=' . 'CANNOT_DELETE_MESSAGE' );
-        }
+        my $output = $self -> construct_page( middle_tpl => 'message_create', error_msg => $error_msg );
 
         return $output;
+}
+
+sub show_edit_form
+{
+        my $self = shift;
+        my %params = @_;
+
+        my $id = $self -> arg( 'id' ) || $params{ 'id' } || 0;
+
+        my $error_msg = $params{ 'error_msg' } || '';
+        
+        &ar( DYN_ID => $id );
+
+        if( my $cant_show_form_msg = $self -> check_if_can_show_edit_form() )
+        {
+                $error_msg = $cant_show_form_msg;
+                &ar( DYN_DONT_SHOW_MESSAGE_DATA => 1 );
+        } else
+        {
+                my $message = FModel::Messages -> get( id => $id );
+
+                &ar( DYN_SUBJECT => $message -> subject(),
+                     DYN_CONTENT => $message -> content(),
+                     DYN_PINNED_IMAGE => $self -> get_message_pinned_image_src( $id )
+                     );
+        }
+
+        my $output = $self -> construct_page( middle_tpl => 'message_edit', error_msg => $error_msg );
+
+        return $output;
+}
+
+sub check_if_can_show_edit_form
+{
+        my $self = shift;
+
+        my $id = shift || $self -> arg( 'id' ) || 0;
+
+        my $error_msg = '';
+
+        if( my $id_error = $self -> check_if_proper_message_id_provided( $id ) )
+        {
+                $error_msg = $id_error;
+        }
+        elsif( not $self -> can_do_action_with_message( 'edit', $id ) )
+        {
+                $error_msg = 'CANNOT_EDIT_MESSAGE';
+        }
+
+        return $error_msg;
 }
 
 sub delete_message
 {
         my $self = shift;
-        my $id = shift;
+
+        my $id = $self -> arg( 'id' ) || shift || 0;
 
         my $success = 0;
 
@@ -252,7 +270,7 @@ sub delete_message
 
                 if( my $pinned_image = $message -> pinned_img() )
                 {
-                        unlink $self -> pinned_images_dir_abs() . $pinned_image;
+                        unlink ForumConst -> pinned_images_dir_abs() . $pinned_image;
                 }
 
                 $message -> delete();
@@ -266,13 +284,13 @@ sub delete_message
 sub get_message_thread_id
 {
         my $self = shift;
-        my $id = shift;
+        my $message_id = shift;
 
         my $thread_id;
 
-        if( not my $error = $self -> check_if_proper_message_id_provided( $id ) )
+        if( not my $error = $self -> check_if_proper_message_id_provided( $message_id ) )
         {
-                my $message = FModel::Messages -> get( id => $id );
+                my $message = FModel::Messages -> get( id => $message_id );
 
                 $thread_id = $message -> thread_id() -> id();
         }
@@ -280,14 +298,7 @@ sub get_message_thread_id
         return $thread_id;
 }
 
-sub app_mode_create
-{
-        my $self = shift;
-
-        my $thread_id = 
-}
-
-sub app_mode_create
+sub can_create
 {
         my $self = shift;
 
@@ -295,51 +306,16 @@ sub app_mode_create
         my $subject = $self -> arg( 'subject' ) || '';
         my $content = $self -> arg( 'content' ) || '';
         my $pinned_image = $self -> upload( 'pinned_image' );
-        my $reply_button_pressed = $self -> arg( 'reply_button' ) || '';
-
-        my $output;
-
-        my $thread_id_error = $self -> check_if_proper_thread_id_provided( $thread_id );
-
-        if( $thread_id_error )
-        {
-                $output = $self -> construct_page( middle_tpl => 'thread_reply', error_msg => $thread_id_error );
-        }
-        elsif( ( not $thread_id_error ) and $reply_button_pressed )
-        {
-                if( my $error_msg = $self -> can_reply( $subject, $content, $pinned_image ) )
-                {
-                        $self -> add_thread_data( $thread_id );
-                        &ar( SUBJECT => $subject, CONTENT => $content, PINNED_IMAGE => $pinned_image );
-                        $output = $self -> construct_page( middle_tpl => 'thread_reply', error_msg => $error_msg );
-                } else
-                {
-                        $self -> reply( $thread_id, $subject, $content, $pinned_image );
-                        $output = $self -> ncrd( '/thread/?id=' . $thread_id );
-                }
-        }
-        elsif( ( not $thread_id_error ) and ( not $reply_button_pressed ) )
-        {
-                $self -> add_thread_data( $thread_id );
-                $output = $self -> construct_page( middle_tpl => 'thread_reply' );
-        }
-
-
-        return $output;
-}
-
-sub can_create
-{
-        my $self = shift;
-        my $subject = shift;
-        my $content = shift;
-        my $pinned_image = shift;
 
         my $error_msg = '';
 
         my $fields_are_filled = ( $self -> trim( $subject ) and $self -> trim( $content ) );
 
-        if( not $fields_are_filled )
+        if( my $thread_id_error = $self -> check_if_proper_thread_id_provided( $thread_id ) )
+        {
+                $error_msg = $thread_id_error;
+        }
+        elsif( not $fields_are_filled )
         {
                 $error_msg = 'FIELDS_ARE_NOT_FILLED';
         }
@@ -358,10 +334,11 @@ sub can_create
 sub create
 {
         my $self = shift;
-        my $thread_id = shift;
-        my $subject = shift;
-        my $content = shift;
-        my $pinned_image = shift;
+
+        my $thread_id = $self -> arg( 'thread_id' ) || 0;
+        my $subject = $self -> arg( 'subject' ) || '';
+        my $content = $self -> arg( 'content' ) || '';
+        my $pinned_image = $self -> upload( 'pinned_image' );
         
         my $user = FModel::Users -> get( name => $self -> user() -> name() );
 
@@ -376,6 +353,70 @@ sub create
 
         return;
 }
+
+sub can_edit
+{
+        my $self = shift;
+
+        my $id           = $self -> arg( 'id' );
+        my $subject      = $self -> arg( 'subject' ) || '';
+        my $content      = $self -> arg( 'content' ) || '';
+        my $pinned_image = $self -> upload( 'pinned_image' );
+
+        my $error_msg = '';
+        
+        my $fields_are_filled = ( $self -> trim( $subject ) and $self -> trim( $content ) );
+
+        if( my $message_id_error = $self -> check_if_proper_message_id_provided( $id ) )
+        {
+                $error_msg = $message_id_error;
+        }
+        elsif( not $self -> can_do_action_with_message( 'edit', $id ) )
+        {
+                $error_msg = 'CANNOT_EDIT_MESSAGE';
+        }
+        elsif( not $fields_are_filled )
+        {
+                $error_msg = 'FIELDS_ARE_NOT_FILLED';
+        }
+        elsif( not $self -> is_message_subject_length_acceptable( $subject ) )
+        {
+                $error_msg = 'MESSAGE_SUBJECT_TOO_LONG';
+        }
+        elsif( my $pinned_image_error = $self -> check_pinned_image( $pinned_image ) )
+        {
+                $error_msg = $pinned_image_error;
+        }
+
+        return $error_msg;
+}
+
+sub edit_message
+{
+        my $self = shift;
+
+        my $id           = $self -> arg( 'id' );
+        my $subject      = $self -> arg( 'subject' ) || '';
+        my $content      = $self -> arg( 'content' ) || '';
+        my $pinned_image = $self -> upload( 'pinned_image' );
+
+        # add transaction;
+
+        my $message = FModel::Messages -> get( id => $id );
+
+        $message -> subject( $subject );
+        $message -> content( $content );
+
+        $message -> modified( 1 );
+        $message -> modified_date( $self -> now() );
+
+        $message -> update();
+
+        $self -> pin_image_to_message( $id, $pinned_image );
+
+        return;
+}
+
 
 sub pin_image_to_message
 {
@@ -392,11 +433,11 @@ sub pin_image_to_message
 
                 if( my $old_image_filename = $message -> pinned_img() )
                 {
-                        unlink $self -> pinned_images_dir_abs() . $old_image_filename;
+                        unlink ForumConst -> pinned_images_dir_abs() . $old_image_filename;
                 }
 
                 my $filename = $self -> new_pinned_image_filename();
-                my $filepath = $self -> pinned_images_dir_abs() . $filename;
+                my $filepath = ForumConst -> pinned_images_dir_abs() . $filename;
 
                 cp( $image, $filepath );
                 $message -> pinned_img( $filename );
@@ -415,14 +456,13 @@ sub is_message_subject_length_acceptable
         
         my $acceptable = 1;
 
-        if( length( $subject ) > &gr( 'MESSAGE_SUBJECT_MAX_LENGTH' ) )
+        if( length( $subject ) > ForumConst -> message_subject_max_length() )
         {
                 $acceptable = 0;
         }
 
         return $acceptable;
 }
-
 
 
 1;

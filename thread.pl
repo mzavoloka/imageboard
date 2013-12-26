@@ -8,11 +8,13 @@ sub wendy_handler
 }
 
 package ForumThread;
-use Wendy::Shorts qw( ar gr lm );
+use Wendy::Shorts qw( ar );
 use Wendy::Templates::TT 'tt';
 use Carp::Assert 'assert';
 use File::Copy 'cp';
+use URI qw( new query_from as_string );
 use Data::Dumper 'Dumper';
+use ForumConst qw( pinned_images_dir_abs );
 
 use Moose;
 extends 'ForumApp';
@@ -45,10 +47,7 @@ sub app_mode_default
 {
         my $self = shift;
 
-        my $id = $self -> arg( 'id' ) || 0;
-        my $page = $self -> arg( 'page' ) || 1;
-        
-        my $output = $self -> show_thread( id => $id, page => $page );
+        my $output = $self -> show_thread();
 
         return $output;
 }
@@ -66,21 +65,15 @@ sub app_mode_do_create
 {
         my $self = shift;
 
-        my $title = $self -> arg( 'title' ) || '';
-        my $content = $self -> arg( 'content' ) || '';
-        my $pinned_image = $self -> upload( 'pinned_image' );
-        my $vote = $self -> arg( 'vote' ) || 0;
-
         my $output;
 
-        if( my $error_msg = $self -> can_do_create( $title, $content, $pinned_image, $vote ) )
+        if( my $error_msg = $self -> can_create() )
         {
                 $output = $self -> show_create_form( error_msg => $error_msg );
-        }
-        else
+        } else
         {
-                my $new_thread_id = $self -> do_create( $title, $content, $pinned_image, $vote );
-                $output = $self -> show_thread( id => $new_thread_id );
+                my $new_thread_id = $self -> create();
+                $output = $self -> show_thread( id => $new_thread_id, success_msg => 'NEW_THREAD_CREATED' );
         }
 
         return $output;
@@ -99,21 +92,16 @@ sub app_mode_do_edit
 {
         my $self = shift;
 
-        my $id           = $self -> arg( 'id' ) || 0;
-        my $title        = $self -> arg( 'title' ) || '';
-        my $content      = $self -> arg( 'content' ) || '';
-        my $pinned_image = $self -> upload( 'pinned_image' );
-
         my $output;
 
-        if( my $error_msg = $self -> can_do_edit( $id, $title, $content, $pinned_image ) )
+        if( my $error_msg = $self -> can_edit() )
         {
-                $self -> show_edit_form( error_msg => $error_msg );
+                $output = $self -> show_edit_form( error_msg => $error_msg );
         }
         else
         {
-                $self -> edit( $id, $title, $content, $pinned_image );
-                $self -> show_thread( id => $id );
+                $self -> edit();
+                $output = $self -> show_thread( success_msg => 'THREAD_EDITED' );
         }
         
         return $output;
@@ -123,27 +111,46 @@ sub app_mode_delete
 {
         my $self = shift;
 
-        my $id = $self -> arg( 'id' ) || 0;
-
         my $output;
 
-        if( my $has_permission = $self -> can_do_action_with_thread( 'delete', $id ) )
-        {
-                $self -> delete_thread( $id );
+        # Handle from param
 
-                # сделать что-нибудь с uri
-                # $output = $self -> ();
-                my $success_msg = 'THREAD_DELETED';
-                $output = $self -> ncrd( '/?success_msg=' . $success_msg );
+        if( my $error_msg = $self -> check_if_can_delete() )
+        {
+                my $u = URI -> new( '/' );
+                $u -> query_form( error_msg => $error_msg );
+                $output = $self -> ncrd( $u -> as_string() );
         }
         else
         {
-                # сделать что-нибудь с uri
-                # $output = $self -> ();
-                $output = $self -> ncrd( '/?error_msg=' . 'CANNOT_DELETE_THREAD' );
+                $self -> delete_thread();
+
+                my $u = URI -> new( '/' );
+                $u -> query_form( success_msg => 'THREAD_DELETED' );
+                $output = $self -> ncrd( $u -> as_string() );
         }
 
         return $output;
+}
+
+sub check_if_can_delete
+{
+        my $self = shift;
+
+        my $id = $self -> arg( 'id' ) || shift || 0;
+
+        my $error_msg = '';
+
+        if( my $id_error = $self -> check_if_proper_thread_id_provided( $id ) )
+        {
+                $error_msg = $id_error;
+        }
+        elsif( not $self -> can_do_action_with_thread( 'delete', $id ) )
+        {
+                $error_msg = 'CANNOT_DELETE_THREAD';
+        }
+
+        return $error_msg;
 }
 
 sub app_mode_vote
@@ -153,16 +160,16 @@ sub app_mode_vote
 
         my $output;
 
+        # Handle from param
+
         if( my $error_msg = $self -> check_if_proper_thread_id_provided( $id ) )
         {
-                $self -> show_thread( id => $id, error_msg => $error_msg );
+                $output = $self -> show_thread( error_msg => $error_msg );
         }
         else
         {
                 $self -> do_vote( $id );
-
-                my $success_msg = 'VOTE_SUCCESS';
-                $self -> show_thread( id => $id, success_msg => $success_msg );
+                $output = $self -> show_thread( success_msg => 'VOTE_SUCCESS' );
         }
 
         return $output;
@@ -181,23 +188,19 @@ sub do_vote
 sub show_thread
 {
         my $self = shift;
-        my $params = @_;
-        my $id = $params -> { 'id' } || 0;
-        my $page = $params -> { 'page' } || 1;
-        my $error_msg = $params -> { 'error_msg' } || '';
-        my $success_msg = $params -> { 'success_msg' } || '';
+        my %params = @_;
+        my $id = $self -> arg( 'id' )                                      || $params{ 'id' }        || 0;
+        my $page = $self -> arg( 'page' )                                  || $params{ 'page' }      || 1;
+        my $error_msg = $self -> check_if_proper_thread_id_provided( $id ) || $params{ 'error_msg' } || '';
+        my $success_msg = $params{ 'success_msg' } || '';
 
         &ar( DYN_ID => $id ); 
 
-        if( my $cant_show_thread = $self -> can_show_thread( $id ) )
-        {
-                $output = $self -> construct_page( middle_tpl => 'thread', error_msg => $cant_show_thread );
-        } else
+        if( not $error_msg )
         {
                 my $thread = FModel::Threads -> get( id => $id );
 
-                &ar( DYN_ID => $id,
-                     DYN_TITLE => $thread -> title(),
+                &ar( DYN_TITLE => $thread -> title(),
                      DYN_CONTENT => $thread -> content(),
                      DYN_PINNED_IMAGE => $self -> get_thread_pinned_image_src( $id ),
                      DYN_CREATED => $self -> readable_date( $thread -> created() ),
@@ -215,27 +218,19 @@ sub show_thread
 
                 $self -> add_messages( $id, $page );
 
-                $output = $self -> construct_page( middle_tpl => 'thread', error_msg => $error_msg, success_msg => $success_msg );
         }
 
+        my $output = $self -> construct_page( middle_tpl => 'thread', error_msg => $error_msg, success_msg => $success_msg );
+
         return $output;
-}
-
-sub can_show_thread
-{
-        my $self = shift;
-        my $id = shift;
-
-        my $error_msg = $self -> check_if_proper_thread_id_provided( $id );
-
-        return $error_msg;
 }
 
 sub show_create_form
 {
         my $self = shift;
-        my $params = @_;
-        my $error_msg = $params -> { 'error_msg' } || '';
+        my %params = @_;
+
+        my $error_msg = $params{ 'error_msg' } || '';
 
         my $title        = $self -> arg( 'title' ) || '';
         my $content      = $self -> arg( 'content' ) || '';
@@ -254,43 +249,78 @@ sub show_create_form
 sub show_edit_form
 {
         my $self = shift;
-        my $params = @_;
-        my $error_msg = $params -> { 'error_msg' } || '';
+        my %params = @_;
 
-        my $id           = $self -> arg( 'id' ) || 0;
-        my $title        = $self -> arg( 'title' ) || '';
-        my $content      = $self -> arg( 'content' ) || '';
-        my $pinned_image = $self -> upload( 'pinned_image' );
-        my $vote         = $self -> arg( 'vote' ) || 0;
+        my $id = $self -> arg( 'id' ) || $params{ 'id' } || 0;
 
-        $self -> add_voting_options_data();
+        my $error_msg = $params{ 'error_msg' } || '';
 
-        &ar( DYN_ID => $id, DYN_TITLE => $title, DYN_CONTENT => $content, DYN_PINNED_IMAGE => $pinned_image, DYN_VOTE => $vote ); # maybe do smth with pinned_image
+        &ar( DYN_ID => $id ); 
+
+        if( my $cant_show_form_msg = $self -> check_if_can_show_edit_form( $id ) )
+        {
+                $error_msg = $cant_show_form_msg;
+                &ar( DYN_DONT_SHOW_THREAD_DATA => 1 );
+        } else
+        {
+                my $thread = FModel::Threads -> get( id => $id );
+
+                &ar( DYN_TITLE => $thread -> title(),
+                     DYN_CONTENT => $thread -> content(),
+                     DYN_PINNED_IMAGE => $self -> get_thread_pinned_image_src( $id ),
+                     DYN_VOTING_OPTIONS => $self -> get_voting_options( $id )
+                     );
+
+                $self -> add_voting_options_data();
+        }
 
         my $output = $self -> construct_page( middle_tpl => 'thread_edit', error_msg => $error_msg );
 
         return $output;
 }
 
-sub can_do_edit
+sub check_if_can_show_edit_form
 {
         my $self = shift;
-        my $id = shift;
-        my $title = shift;
-        my $content = shift;
-        my $pinned_image = shift;
+
+        my $id = $self -> arg( 'id' ) || shift || 0;
+
+        my $error_msg = '';
+
+        if( my $id_error = $self -> check_if_proper_thread_id_provided( $id ) )
+        {
+                $error_msg = $id_error;
+        }
+        elsif( not $self -> can_do_action_with_thread( 'edit', $id ) )
+        {
+                $error_msg = 'CANNOT_EDIT_THREAD';
+        }
+
+        return $error_msg;
+}
+
+sub can_edit
+{
+        my $self = shift;
+
+        my $id           = $self -> arg( 'id' ) || 0;
+        my $title        = $self -> arg( 'title' ) || '';
+        my $content      = $self -> arg( 'content' ) || '';
+        my $pinned_image = $self -> upload( 'pinned_image' );
 
         my $error_msg = '';
 
         my $fields_are_filled = ( $self -> trim( $title ) and $self -> trim( $content ) );
         
-        my $has_permission = $self -> can_do_action_with_thread( 'edit', $id );
-
-        if( not $has_permission )
+        if( my $thread_id_error = $self -> check_if_proper_thread_id_provided( $id ) )
+        {
+                $error_msg = $thread_id_error;
+        }
+        if( not $self -> can_do_action_with_thread( 'edit', $id ) )
         {
                 $error_msg = 'CANNOT_EDIT_THREAD';
         }
-        elsif( not $fields_are_filled ) )
+        elsif( not $fields_are_filled )
         {
                 $error_msg = 'FIELDS_ARE_NOT_FILLED';
         }
@@ -309,10 +339,13 @@ sub can_do_edit
 sub edit
 {
         my $self = shift;
-        my $id = shift;
-        my $title = shift;
-        my $content = shift;
-        my $pinned_image = shift;
+
+        my $id           = $self -> arg( 'id' ) || 0;
+        my $title        = $self -> arg( 'title' ) || '';
+        my $content      = $self -> arg( 'content' ) || '';
+        my $pinned_image = $self -> upload( 'pinned_image' );
+
+        # add transaction
 
         my $thread = FModel::Threads -> get( id => $id );
 
@@ -331,27 +364,6 @@ sub edit
         return;
 }
 
-sub check_pinned_image
-{
-        my $self = shift;
-        my $image = shift || '';
-
-        my $error_msg = '';
-
-        my $filesize = -s $image;
-
-        if( $image and CGI::uploadInfo( $image ) -> { 'Content-Type' } ne 'image/jpeg' ) # Add macros for this thing with list of correct filetypes
-        {
-                $error_msg = 'PINNED_IMAGE_INCORRECT_FILETYPE';
-        }
-        elsif( $image and $filesize > &gr( 'PINNED_IMAGE_MAX_SIZE' ) )
-        {
-                $error_msg = 'PINNED_IMAGE_FILESIZE_TOO_BIG';
-        }
-
-        return $error_msg;
-}
-
 sub pin_image_to_thread
 {
         my $self = shift;
@@ -366,11 +378,11 @@ sub pin_image_to_thread
 
                 if( my $old_image_filename = $thread -> pinned_img() )
                 {
-                        unlink $self -> pinned_images_dir_abs() . $old_image_filename;
+                        unlink ForumConst -> pinned_images_dir_abs() . $old_image_filename;
                 }
 
                 my $filename = $self -> new_pinned_image_filename();
-                my $filepath = $self -> pinned_images_dir_abs() . $filename;
+                my $filepath = ForumConst -> pinned_images_dir_abs() . $filename;
 
                 cp( $image, $filepath );
                 $thread -> pinned_img( $filename );
@@ -382,63 +394,11 @@ sub pin_image_to_thread
         return $success;
 }
 
-sub update_thread
-{
-        my $self = shift;
-        my $id = shift;
-
-        my $success = 0;
-
-        if( not my $error = $self -> check_if_proper_thread_id_provided( $id ) )
-        {
-                my $thread = FModel::Threads -> get( id => $id );
-                $thread -> updated( $self -> now() );
-                $thread -> update();
-
-                $success = 1;
-        }
-
-        return $success;
-}
-
-sub new_pinned_image_filename
-{
-        my $self = shift;
-
-        my $filename = '';
-
-        for my $number ( 1 .. 20 )
-        {
-                $filename .= int( rand( 10 ) );
-        }
-
-        if( $self -> is_pinned_filename_exists( $filename ) )
-        {
-                $filename = $self -> new_pinned_image_filename();
-        }
-
-        return $filename;
-}
-
-sub is_pinned_filename_exists
-{
-        my $self = shift;
-        my $filename = shift;
-
-        my $exists = 0;
-
-        if( -e $self -> pinned_images_dir_abs() . $filename )
-        {
-                $exists = 1;
-        }
-
-        return $exists;
-}
-
 sub delete_thread
 {
         my $self = shift;
-        my $id = shift || 0;
+
+        my $id = $self -> arg( 'id' ) || 0;
 
         if( not my $error = $self -> check_if_proper_thread_id_provided( $id ) )
         {
@@ -448,24 +408,21 @@ sub delete_thread
 
                 foreach my $message ( @thread_messages )
                 {
-                        $self -> delete_message( $message -> id() );
+                        $message -> delete();
+
+                        if( my $pinned_image = $message -> pinned_img() )
+                        {
+                                unlink ForumConst -> pinned_images_dir_abs() . $pinned_image;
+                        }
                 }
 
                 if( my $pinned_image = $thread -> pinned_img() )
                 {
-                        unlink $self -> pinned_images_dir_abs() . $pinned_image;
+                        unlink ForumConst -> pinned_images_dir_abs() . $pinned_image;
                 }
 
                 $thread -> delete();
         }
-
-        return;
-}
-
-sub add_thread_data
-{
-        my $self = shift;
-        my $id = shift;
 
         return;
 }
@@ -507,7 +464,7 @@ sub add_messages
         my $messages = [];
 
         my $count_of_messages = scalar( @messages_sorted );
-        my $messages_on_page = &gr( 'MESSAGES_ON_PAGE' );
+        my $messages_on_page = ForumConst -> messages_on_page();
         my $show_from = ( $page - 1 ) * $messages_on_page;
         my $show_to = $self -> min_of( $show_from + $messages_on_page, $count_of_messages );
 
@@ -552,7 +509,7 @@ sub add_pages
         my $current_page = shift;
 
         my $count_of_messages = FModel::Messages -> count( thread_id => $id );
-        my $messages_on_page = &gr( 'MESSAGES_ON_PAGE' );
+        my $messages_on_page = ForumConst -> messages_on_page();
 
         my $num_of_pages = int( $count_of_messages / $messages_on_page ) + 1;
 
@@ -578,13 +535,14 @@ sub add_pages
         return &tt( 'pages' );
 }
 
-sub can_do_create
+sub can_create
 {
         my $self = shift;
-        my $title = shift;
-        my $content = shift;
-        my $pinned_image = shift;
-        my $vote = shift;
+
+        my $title = $self -> arg( 'title' ) || '';
+        my $content = $self -> arg( 'content' ) || '';
+        my $pinned_image = $self -> upload( 'pinned_image' );
+        my $vote = $self -> arg( 'vote' ) || 0;
 
         my $error_msg = '';
 
@@ -639,11 +597,11 @@ sub get_voting_options
 
         my $rv = [];
 
-        my @voting_options = FModel::VotingOptions -> get_many( thread_id => $id, _sortby => 'id' );
+        my @options = FModel::VotingOptions -> get_many( thread_id => $id, _sortby => 'id' );
 
-        for my $option ( @voting_options )
+        for my $option ( @options )
         {
-                my $hash = { ID => $option -> id(), TITLE => $option -> title() };
+                my $hash = { DYN_ID => $option -> id(), DYN_TITLE => $option -> title() };
                 push( @$rv, $hash );
                 
         }
@@ -655,18 +613,18 @@ sub get_voting_options_from_args
 {
         my $self = shift;
 
-        my $vote_options = {};
+        my $options = {};
 
         for my $arg ( keys $self -> args() )
         {
                 if( $arg =~ m/^option\d+$/ )
                 {
                         my ( $number ) = $arg =~ /(\d+)/;
-                        $vote_options -> { $number } = $self -> trim( $self -> arg( $arg ) );
+                        $options -> { $number } = $self -> trim( $self -> arg( $arg ) );
                 }
         }
 
-        return $vote_options;
+        return $options;
 }
 
 sub is_thread_title_length_acceptable
@@ -676,7 +634,7 @@ sub is_thread_title_length_acceptable
         
         my $acceptable = 1;
 
-        if( length( $title ) > &gr( 'THREAD_TITLE_MAX_LENGTH' ) )
+        if( length( $title ) > ForumConst -> thread_title_max_length() ) )
         {
                 $acceptable = 0;
         }
@@ -684,13 +642,14 @@ sub is_thread_title_length_acceptable
         return $acceptable;
 }
 
-sub do_create
+sub create
 {
         my $self = shift;
-        my $title = shift;
-        my $content = shift;
-        my $pinned_image = shift;
-        my $vote = shift;
+
+        my $title = $self -> arg( 'title' ) || '';
+        my $content = $self -> arg( 'content' ) || '';
+        my $pinned_image = $self -> upload( 'pinned_image' );
+        my $vote = $self -> arg( 'vote' ) || 0;
 
         # add transaction
 
