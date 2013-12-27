@@ -2,6 +2,11 @@ use strict;
 package FModel::Permissions;
 
 use FModel::Funcs;
+use Wendy::Db qw( dbconnect );
+use FModel::CanBanUsersOf;
+use FModel::CanDeleteMessagesOf;
+use Data::Dumper 'Dumper';
+
 use Moose;
 extends 'LittleORM::GenericID';
 
@@ -21,15 +26,63 @@ has 'edit_threads' => ( is => 'rw', isa => 'Bool' );
 
 has 'delete_threads' => ( is => 'rw', isa => 'Bool' );
 
-has 'edit_messages_of' => ( is => 'rw', isa => 'Str' );
 
-has 'delete_messages_of' => ( is => 'rw', isa => 'Str' );
+LittleORM::Db -> init( &dbconnect() );
 
-has 'edit_threads_of' => ( is => 'rw', isa => 'Str' );
+sub can_ban_users_of
+{
+        my $self = shift;
 
-has 'delete_threads_of' => ( is => 'rw', isa => 'Str' );
+        my @rows = FModel::CanBanUsersOf -> get_many( permission_id => $self -> id() );
 
-has 'ban_users' => ( is => 'rw', isa => 'Str' );
+        my @users_of_permission_ids = map { $_ -> users_of_permission_id() -> id() } @rows;
+
+        return \@users_of_permission_ids;
+}
+
+sub can_edit_messages_of
+{
+        my $self = shift;
+
+        my @rows = FModel::CanEditMessagesOf -> get_many( permission_id => $self -> id() );
+
+        my @messages_of_permission_ids = map { $_ -> messages_of_permission_id() -> id() } @rows;
+
+        return \@messages_of_permission_ids;
+}
+
+sub can_edit_threads_of
+{
+        my $self = shift;
+
+        my @rows = FModel::CanEditThreadsOf -> get_many( permission_id => $self -> id() );
+
+        my @threads_of_permission_ids = map { $_ -> threads_of_permission_id() -> id() } @rows;
+
+        return \@threads_of_permission_ids;
+}
+
+sub can_delete_messages_of
+{
+        my $self = shift;
+
+        my @rows = FModel::CanDeleteMessagesOf -> get_many( permission_id => $self -> id() );
+
+        my @messages_of_permission_ids = map { $_ -> messages_of_permission_id() -> id() } @rows;
+
+        return \@messages_of_permission_ids;
+}
+
+sub can_delete_threads_of
+{
+        my $self = shift;
+
+        my @rows = FModel::CanDeleteThreadsOf -> get_many( permission_id => $self -> id() );
+
+        my @messages_of_permission_ids = map { $_ -> messages_of_permission_id() -> id() } @rows;
+
+        return \@messages_of_permission_ids;
+}
 
 
 1;

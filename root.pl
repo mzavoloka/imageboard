@@ -47,6 +47,8 @@ sub get_threads
                 my $hash = { DYN_THREAD_ID     => $thread -> id(),
                              DYN_TITLE         => $thread -> title(),
                              DYN_CONTENT       => $thread -> content(),
+                             DYN_VOTE          => $thread -> vote(),
+                             DYN_VOTING_OPTIONS => $self -> get_voting_options( $thread -> id() ),
                              DYN_PINNED_IMAGE  => $self -> get_thread_pinned_image_src( $thread -> id() ),
                              DYN_AUTHOR        => $thread -> user_id() -> name(),
                              DYN_CREATED       => $self -> readable_date( $thread -> created() ),

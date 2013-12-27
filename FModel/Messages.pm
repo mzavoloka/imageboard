@@ -1,5 +1,6 @@
-package FModel::Messages;
 use strict;
+
+package FModel::Messages;
 
 use FModel::Funcs;
 use Moose;

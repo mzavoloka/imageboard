@@ -2,7 +2,7 @@ use strict;
 
 package ForumApp;
 
-use LittleORM::Db 'init';
+use LittleORM::Db 'init', 'get_write_dbh';
 use FModel::Users;
 use FModel::Sessions;
 use FModel::Messages;
@@ -439,11 +439,8 @@ sub can_do_action_with_message
 
         if( not $error and $self -> is_message_belongs_to_current_user( $message_id ) )
         {
-                my $cur_user = FModel::Users -> get( id => $self -> user() -> id() );
-                my $cur_user_permissions = FModel::Permissions -> get( id => $cur_user -> permissions_id() );
-
-                if( ( $action eq 'delete' and $cur_user_permissions -> delete_messages() ) or
-                    ( $action eq 'edit' and $cur_user_permissions -> edit_messages() ) )
+                if( ( $action eq 'delete' and $self -> user() -> permission_id() -> delete_messages() ) or
+                    ( $action eq 'edit' and $self -> user() -> permission_id() -> edit_messages() ) )
                 {
                         $can = 1;
                 }
@@ -451,29 +448,29 @@ sub can_do_action_with_message
         elsif( not $error and ( not $self -> is_message_belongs_to_current_user( $message_id ) ) )
         {
                 my $message = FModel::Messages -> get( id => $message_id );
-                my $author_permissions = FModel::Permissions -> get( id => $message -> user_id() -> permissions_id() );
-                my $author_permissions_title = $author_permissions -> title();
 
-                my $cur_user = FModel::Users -> get( id => $self -> user() -> id() );
-                my $cur_user_permissions = FModel::Permissions -> get( id => $cur_user -> permissions_id() );
-
-                my $can_do_action_with_messages_of;
+                my $message_author_permission = $message -> user_id() -> permission_id() -> id();
 
                 if( $action eq 'delete' )
                 {
-                        $can_do_action_with_messages_of = $cur_user_permissions -> delete_messages_of();
+                        for my $permission ( $self -> user() -> permission_id() -> can_delete_messages_of() );
+                        {
+                                if( $permission eq $message_author_permission )
+                                {
+                                        $can = 1;
+                                        last;
+                                }
+                        }
                 }
                 elsif( $action eq 'edit' )
                 {
-                        $can_do_action_with_messages_of = $cur_user_permissions -> edit_messages_of();
-                }
-
-                for my $title ( split( ', ', $can_do_action_with_messages_of ) )
-                {
-                        if( $author_permissions_title eq $title ) 
+                        for my $permission ( $self -> user() -> permission_id() -> can_edit_messages_of() );
                         {
-                                $can = 1;
-                                last;
+                                if( $permission eq $message_author_permission )
+                                {
+                                        $can = 1;
+                                        last;
+                                }
                         }
                 }
         }
@@ -493,11 +490,8 @@ sub can_do_action_with_thread
 
         if( not $error and $self -> is_thread_belongs_to_current_user( $thread_id ) )
         {
-                my $cur_user = FModel::Users -> get( id => $self -> user() -> id() );
-                my $cur_user_permissions = FModel::Permissions -> get( id => $cur_user -> permissions_id() );
-
-                if( ( $action eq 'delete' and $cur_user_permissions -> delete_threads() ) or
-                    ( $action eq 'edit' and $cur_user_permissions -> edit_threads() ) )
+                if( ( $action eq 'delete' and $self -> user() -> permission_id() -> delete_threads() ) or
+                    ( $action eq 'edit' and $self -> user() -> permission_id() -> edit_threads() ) )
                 {
                         $can = 1;
                 }
@@ -505,32 +499,32 @@ sub can_do_action_with_thread
         elsif( not $error and ( not $self -> is_thread_belongs_to_current_user( $thread_id ) ) )
         {
                 my $thread = FModel::Threads -> get( id => $thread_id );
-                my $author_permissions = FModel::Permissions -> get( id => $thread -> user_id() -> permissions_id() );
-                my $author_permissions_title = $author_permissions -> title();
 
-                my $cur_user = FModel::Users -> get( id => $self -> user() -> id() );
-                my $cur_user_permissions = FModel::Permissions -> get( id => $cur_user -> permissions_id() );
-
-                my $can_do_action_with_threads_of;
+                my $thread_author_permission = $thread -> user_id() -> permission_id() -> id();
 
                 if( $action eq 'delete' )
                 {
-                        $can_do_action_with_threads_of = $cur_user_permissions -> delete_threads_of();
+                        for my $permission ( $self -> user() -> permission_id() -> can_delete_threads_of() );
+                        {
+                                if( $permission eq $thread_author_permission )
+                                {
+                                        $can = 1;
+                                        last;
+                                }
+                        }
                 }
                 elsif( $action eq 'edit' )
                 {
-                        $can_do_action_with_threads_of = $cur_user_permissions -> edit_threads_of();
-                }
-
-                for my $title ( split( ', ', $can_do_action_with_threads_of ) )
-                {
-                        if( $author_permissions_title eq $title ) 
+                        for my $permission ( $self -> user() -> permission_id() -> can_edit_threads_of() );
                         {
-                                $can = 1;
-                                last;
+                                if( $permission eq $thread_author_permission )
+                                {
+                                        $self -> can_delete_thread_messages();
+                                        $can = 1;
+                                        last;
+                                }
                         }
                 }
-                
         }
 
         if( not $error and $can and $action eq 'delete' )
@@ -798,6 +792,43 @@ sub is_pinned_filename_exists
         }
 
         return $exists;
+}
+
+sub get_voting_options
+{
+        my $self = shift;
+        my $id = shift;
+
+        my $rv = [];
+
+        my @options = FModel::VotingOptions -> get_many( thread_id => $id, _sortby => 'id' );
+
+        for my $option ( @options )
+        {
+                my $hash = { DYN_ID => $option -> id(), DYN_TITLE => $option -> title() };
+                push( @$rv, $hash );
+                
+        }
+
+        return $rv;
+}
+
+sub get_voting_options_from_args
+{
+        my $self = shift;
+
+        my $options = {};
+
+        for my $arg ( keys $self -> args() )
+        {
+                if( $arg =~ m/^option\d+$/ )
+                {
+                        my ( $number ) = $arg =~ /(\d+)/;
+                        $options -> { $number } = $self -> trim( $self -> arg( $arg ) );
+                }
+        }
+
+        return $options;
 }
 
 

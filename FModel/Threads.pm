@@ -1,5 +1,6 @@
-package FModel::Threads;
 use strict;
+
+package FModel::Threads;
 use Moose;
 extends 'LittleORM::GenericID'; 
 

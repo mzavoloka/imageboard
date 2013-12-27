@@ -3,11 +3,42 @@ package TestApp;
 
 use Data::Dumper;
 use Carp::Assert;
+use LittleORM::Db 'init';
+use Wendy::Db qw( dbconnect );
 
 use Moose;
 extends 'ForumApp';
 
-sub _run_modes { [ 'default', 'tell_ip' , 'dump_self', 'littleorm', 'sprintf', 'coerce', 'validate_email', 'assert', 'max_length' ] }
+sub _run_modes { [ 'perm', 'default', 'tell_ip' , 'dump_self', 'littleorm', 'sprintf', 'coerce', 'validate_email', 'assert', 'max_length', 'transaction' ] }
+
+sub app_mode_perm
+{
+        my $self = shift;
+
+        my $moderator = FModel::Users -> get( name => 'moderator' );
+        my $output = $moderator -> permission_id() -> can_ban_users_of();
+
+        return $self -> nctd( Dumper( $output ) );
+}
+
+sub app_mode_transaction
+{
+        my $self = shift;
+
+        FModel::Users -> set_class_dbh( &dbconnect() );
+
+        my $dbh = FModel::Users -> get_class_dbh();
+        $dbh -> begin_work();
+
+        FModel::Users -> create( name => 'shouldnot_be_created', password => 'test', email => 't@t.t', registered => $self -> now() );
+        FModel::Users -> create( name => 'wrong_email', password => 'test', email => '.t', registered => $self -> now() );
+
+        assert( $dbh -> commit() );
+
+        my $output = 'successful_transaction';
+
+        return $self -> nctd( $output );
+}
 
 sub app_mode_default
 {

@@ -1,4 +1,5 @@
 use strict;
+
 package FModel::Users;
 
 use FModel::Funcs;
@@ -24,22 +25,12 @@ has 'registered' => ( is => 'rw',
 
 has 'avatar' => ( is => 'rw', isa => 'Str' );
 
-has 'permissions_id' => ( is => 'rw', isa => 'Int' );
+has 'permission_id' => ( is => 'rw',
+                          metaclass => 'LittleORM::Meta::Attribute',
+                          isa => 'FModel::Permissions',
+                          description => { foreign_key => 'FModel::Permissions' } );
 
 has 'banned' => ( is => 'rw', isa => 'Bool' );
 
-sub get_id()
-{
-        my $self = shift;
-
-die $self;
-        my $id = 0;
-        if( defined $self ) 
-        {
-                $id = $self -> id();
-        }
-
-        return $id;
-}
 
 1;

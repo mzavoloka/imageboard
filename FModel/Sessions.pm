@@ -1,5 +1,6 @@
-package FModel::Sessions;
 use strict;
+
+package FModel::Sessions;
 
 use FModel::Funcs;
 use Moose;

@@ -205,6 +205,7 @@ sub show_thread
                      DYN_PINNED_IMAGE => $self -> get_thread_pinned_image_src( $id ),
                      DYN_CREATED => $self -> readable_date( $thread -> created() ),
                      DYN_AUTHOR  => $thread -> user_id() -> name(),
+                     DYN_VOTE          => $thread -> vote(),
                      DYN_VOTING_OPTIONS => $self -> get_voting_options( $id ),
                      DYN_CAN_DELETE => $self -> can_do_action_with_thread( 'delete', $id ),
                      DYN_CAN_EDIT   => $self -> can_do_action_with_thread( 'edit', $id ),
@@ -511,7 +512,7 @@ sub add_pages
         my $count_of_messages = FModel::Messages -> count( thread_id => $id );
         my $messages_on_page = ForumConst -> messages_on_page();
 
-        my $num_of_pages = int( $count_of_messages / $messages_on_page ) + 1;
+        my $num_of_pages = int( abs( $count_of_messages - 1 ) / $messages_on_page ) + 1;
 
         my $pages = [];
 
@@ -519,18 +520,18 @@ sub add_pages
         {
                 for my $page ( 1 .. $num_of_pages )
                 {
-                        my $hash = { PAGE => $page };
+                        my $hash = { DYN_PAGE => $page };
 
                         if( $page == $current_page )
                         {
-                                $hash -> { 'CURRENT' } = 1;
+                                $hash -> { 'DYN_CURRENT' } = 1;
                         }
 
                         push( @$pages, $hash );
                 }
         }
 
-        &ar( DYN_PAGES => $pages );
+        &ar( DYN_THREAD_ID => $id, DYN_PAGES => $pages );
 
         return &tt( 'pages' );
 }
@@ -590,43 +591,6 @@ sub vote_options_filled
         return $filled;
 }
 
-sub get_voting_options
-{
-        my $self = shift;
-        my $id = shift;
-
-        my $rv = [];
-
-        my @options = FModel::VotingOptions -> get_many( thread_id => $id, _sortby => 'id' );
-
-        for my $option ( @options )
-        {
-                my $hash = { DYN_ID => $option -> id(), DYN_TITLE => $option -> title() };
-                push( @$rv, $hash );
-                
-        }
-
-        return $rv;
-}
-
-sub get_voting_options_from_args
-{
-        my $self = shift;
-
-        my $options = {};
-
-        for my $arg ( keys $self -> args() )
-        {
-                if( $arg =~ m/^option\d+$/ )
-                {
-                        my ( $number ) = $arg =~ /(\d+)/;
-                        $options -> { $number } = $self -> trim( $self -> arg( $arg ) );
-                }
-        }
-
-        return $options;
-}
-
 sub is_thread_title_length_acceptable
 {
         my $self = shift;
@@ -634,7 +598,7 @@ sub is_thread_title_length_acceptable
         
         my $acceptable = 1;
 
-        if( length( $title ) > ForumConst -> thread_title_max_length() ) )
+        if( length( $title ) > ForumConst -> thread_title_max_length() )
         {
                 $acceptable = 0;
         }
@@ -651,7 +615,8 @@ sub create
         my $pinned_image = $self -> upload( 'pinned_image' );
         my $vote = $self -> arg( 'vote' ) || 0;
 
-        # add transaction
+        my $dbh = LittleORM::Db -> get_write_dbh();
+        $dbh -> begin_work();
 
         my $user = FModel::Users -> get( name => $self -> user() -> name() );
 
@@ -665,6 +630,8 @@ sub create
                         FModel::VotingOptions -> create( thread_id => $new_thread -> id(), title => $vote_options -> { $number } );
                 }
         }
+        
+        assert( $dbh -> commit() );
 
         $self -> pin_image_to_thread( $new_thread -> id(), $pinned_image );
 
