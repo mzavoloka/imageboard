@@ -48,15 +48,15 @@ sub get_threads
                              DYN_TITLE         => $thread -> title(),
                              DYN_CONTENT       => $thread -> content(),
                              DYN_VOTE          => $thread -> vote(),
-                             DYN_VOTING_OPTIONS => $self -> get_voting_options( $thread -> id() ),
-                             DYN_PINNED_IMAGE  => $self -> get_thread_pinned_image_src( $thread -> id() ),
+                             DYN_VOTING_OPTIONS => $self -> get_voting_options_for_replace( $thread -> id() ),
+                             DYN_PINNED_IMAGE  => $thread -> pinned_image_src(),
                              DYN_AUTHOR        => $thread -> user_id() -> name(),
                              DYN_CREATED       => $self -> readable_date( $thread -> created() ),
                              DYN_MESSAGES      => $self -> get_thread_messages( $thread -> id() ),
                              DYN_CAN_DELETE    => $self -> can_do_action_with_thread( 'delete', $thread -> id() ),
                              DYN_CAN_EDIT      => $self -> can_do_action_with_thread( 'edit', $thread -> id() ),
-                             DYN_AUTHOR_AVATAR => $self -> get_user_avatar_src( $thread -> user_id() -> id() ),
-                             DYN_AUTHOR_PERMISSIONS => $self -> get_user_special_permissions ( $thread -> user_id() -> id() ) };
+                             DYN_AUTHOR_AVATAR => $thread -> user_id() -> get_avatar_src(),
+                             DYN_AUTHOR_PERMISSIONS => $thread -> user_id() -> get_special_permission_title() };
 
                 if( $thread -> modified() )
                 {
@@ -94,12 +94,12 @@ sub get_thread_messages
                                          DYN_POSTED     => $self -> readable_date( $message -> posted() ),
                                          DYN_SUBJECT    => $message -> subject(),
                                          DYN_CONTENT    => $message -> content(),
-                                         DYN_PINNED_IMAGE => $self -> get_message_pinned_image_src( $message -> id() ),
+                                         DYN_PINNED_IMAGE => $message -> pinned_image_src(),
                                          DYN_AUTHOR     => $message -> user_id() -> name(),
                                          DYN_CAN_DELETE => $self -> can_do_action_with_message( 'delete', $message -> id() ),
                                          DYN_CAN_EDIT   => $self -> can_do_action_with_message( 'edit', $message -> id() ),
-                                         DYN_AUTHOR_AVATAR => $self -> get_user_avatar_src( $message -> user_id() -> id() ),
-                                         DYN_AUTHOR_PERMISSIONS => $self -> get_user_special_permissions ( $message -> user_id() -> id() ) };
+                                         DYN_AUTHOR_AVATAR => $message -> user_id() -> get_avatar_src(),
+                                         DYN_AUTHOR_PERMISSIONS => $message -> user_id() -> get_special_permission_title() };
 
                         if( $message -> modified() )
                         {

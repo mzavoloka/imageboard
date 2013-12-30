@@ -26,7 +26,7 @@ sub init
         {
                 $rv = $error;
         }
-        elsif( defined $self -> user() )
+        elsif( $self -> user() )
         {
                 $rv = $self -> construct_page( restricted_msg => 'REGISTER_RESTRICTED' );
         }
@@ -47,33 +47,32 @@ sub app_mode_do_register
 {
         my $self = shift;
 
-        my $username     = $self -> arg( 'username') || '';
-      	my $email        = $self -> arg( 'email' ) || '';
-      	my $password     = $self -> arg( 'password' ) || '';
-      	my $confirmation = $self -> arg( 'confirmation' ) || '';
+        my $username = $self -> arg( 'username') || '';
+      	my $email    = $self -> arg( 'email' ) || '';
 
         my $output;
 
-        if( my $error_msg = $self -> can_register_new_user( $username, $email, $confirmation, $password ) )
+        if( my $error_msg = $self -> can_register() )
         {
                 &ar( USERNAME => $username, EMAIL => $email );
                 $output = $self -> construct_page( message_tpl => 'register', error_msg => $error_msg );
       	} else
         {
-                $self -> do_register( $username, $password, $email, $confirmation );
+                $self -> do_register();
                 $output = $self -> ncrd( '/' );
         }
 
         return $output;
 }
 
-sub can_register_new_user
+sub can_register
 {
         my $self = shift;
-        my $username = shift;
-        my $email = shift;
-        my $password = shift;
-        my $confirmation = shift;
+
+        my $username     = $self -> arg( 'username') || '';
+      	my $email        = $self -> arg( 'email' ) || '';
+      	my $password     = $self -> arg( 'password' ) || '';
+      	my $confirmation = $self -> arg( 'confirmation' ) || '';
         
         my $error_msg = '';
 
@@ -129,10 +128,11 @@ sub can_register_new_user
 sub do_register
 {
         my $self = shift;
-        my $username = shift;
-      	my $password = shift;
-      	my $email = shift;
 
+        my $username     = $self -> arg( 'username') || '';
+      	my $email        = $self -> arg( 'email' ) || '';
+      	my $password     = $self -> arg( 'password' ) || '';
+        
         $username = lc( $username );
         $email = lc( $email );
 

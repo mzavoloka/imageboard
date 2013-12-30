@@ -3,6 +3,8 @@ use strict;
 package FModel::Messages;
 
 use FModel::Funcs;
+use ForumConst qw( pinned_images_dir_url );
+
 use Moose;
 extends 'LittleORM::GenericID'; 
 
@@ -39,6 +41,21 @@ has 'modified_date' => ( is => 'rw',
 has 'modified' => ( is => 'rw', isa => 'Bool' );
 
 has 'pinned_img' => ( is => 'rw', isa => 'Str' );
+
+
+sub pinned_image_src
+{
+        my $self = shift;
+
+        my $image_src;
+
+        if( $self -> pinned_img() )
+        {
+                $image_src = ForumConst -> pinned_images_dir_url() . $self -> pinned_img();
+        }
+
+        return $image_src;
+}
 
 
 1;

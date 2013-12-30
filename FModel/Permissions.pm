@@ -1,10 +1,13 @@
 use strict;
 package FModel::Permissions;
 
-use FModel::Funcs;
 use Wendy::Db qw( dbconnect );
 use FModel::CanBanUsersOf;
+use FModel::CanEditMessagesOf;
 use FModel::CanDeleteMessagesOf;
+use FModel::CanEditThreadsOf;
+use FModel::CanDeleteThreadsOf;
+use FModel::Users;
 use Data::Dumper 'Dumper';
 
 use Moose;
@@ -37,7 +40,7 @@ sub can_ban_users_of
 
         my @users_of_permission_ids = map { $_ -> users_of_permission_id() -> id() } @rows;
 
-        return \@users_of_permission_ids;
+        return @users_of_permission_ids;
 }
 
 sub can_edit_messages_of
@@ -48,7 +51,7 @@ sub can_edit_messages_of
 
         my @messages_of_permission_ids = map { $_ -> messages_of_permission_id() -> id() } @rows;
 
-        return \@messages_of_permission_ids;
+        return @messages_of_permission_ids;
 }
 
 sub can_edit_threads_of
@@ -59,7 +62,7 @@ sub can_edit_threads_of
 
         my @threads_of_permission_ids = map { $_ -> threads_of_permission_id() -> id() } @rows;
 
-        return \@threads_of_permission_ids;
+        return @threads_of_permission_ids;
 }
 
 sub can_delete_messages_of
@@ -70,7 +73,7 @@ sub can_delete_messages_of
 
         my @messages_of_permission_ids = map { $_ -> messages_of_permission_id() -> id() } @rows;
 
-        return \@messages_of_permission_ids;
+        return @messages_of_permission_ids;
 }
 
 sub can_delete_threads_of
@@ -79,9 +82,9 @@ sub can_delete_threads_of
 
         my @rows = FModel::CanDeleteThreadsOf -> get_many( permission_id => $self -> id() );
 
-        my @messages_of_permission_ids = map { $_ -> messages_of_permission_id() -> id() } @rows;
+        my @threads_of_permission_ids = map { $_ -> threads_of_permission_id() -> id() } @rows;
 
-        return \@messages_of_permission_ids;
+        return @threads_of_permission_ids;
 }
 
 

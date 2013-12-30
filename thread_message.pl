@@ -34,7 +34,7 @@ sub init
         {
                 $rv = $self -> construct_page( restricted_msg => 'MESSAGE_RESTRICTED' );
         }
-        elsif( $self -> is_user_banned( $self -> user() -> id() ) )
+        elsif( $self -> user() -> banned() )
         {
                 $rv = $self -> construct_page( restricted_msg => 'YOU_ARE_BANNED' );
         }
@@ -87,6 +87,8 @@ sub app_mode_do_edit
 {
         my $self = shift;
 
+        my $id = $self -> arg( 'id' );
+
         my $output;
 
         if( my $error_msg = $self -> can_edit() )
@@ -98,8 +100,9 @@ sub app_mode_do_edit
                 $self -> edit_message();
 
                 my $u = URI -> new( '/thread/' );
+                my $message = FModel::Messages -> get( id => $id );
                 $u -> query_form( succes_msg => 'MESSAGE_EDITED',
-                                  id => $self -> get_message_thread_id( $self -> arg( 'id' ) ) );
+                                  id =>  $message -> thread_id() -> id() );
                 $output = $self -> ncrd( $u -> as_string() );
         }
 
@@ -169,7 +172,7 @@ sub add_message_data
                 if( $full )
                 {
                         &ar( CONTENT => $message -> content(),
-                             PINNED_IMAGE => $self -> get_message_pinned_image_src( $id ),
+                             PINNED_IMAGE => $message -> pinned_image_src(),
                              POSTED => $self -> readable_date( $message -> posted() ),
                              AUTHOR  => $message -> user_id() -> name(),
                              SHOW_MANAGE_LINKS => $self -> is_message_belongs_to_current_user( $id ) );
@@ -227,7 +230,7 @@ sub show_edit_form
 
                 &ar( DYN_SUBJECT => $message -> subject(),
                      DYN_CONTENT => $message -> content(),
-                     DYN_PINNED_IMAGE => $self -> get_message_pinned_image_src( $id )
+                     DYN_PINNED_IMAGE => $message -> pinned_image_src()
                      );
         }
 
@@ -348,8 +351,12 @@ sub create
                                                       thread_id => $thread_id,
                                                       posted    => $self -> now() );
 
+
         $self -> pin_image_to_message( $new_message -> id(), $pinned_image );
-        $self -> update_thread( $thread_id );
+
+        my $thread = FModel::Threads -> get( id => $thread_id );
+
+        $thread -> update_thread();
 
         return;
 }
@@ -400,7 +407,8 @@ sub edit_message
         my $content      = $self -> arg( 'content' ) || '';
         my $pinned_image = $self -> upload( 'pinned_image' );
 
-        # add transaction;
+        my $dbh = LittleORM::Db -> get_write_dbh();
+        $dbh -> begin_work();
 
         my $message = FModel::Messages -> get( id => $id );
 
@@ -413,6 +421,8 @@ sub edit_message
         $message -> update();
 
         $self -> pin_image_to_message( $id, $pinned_image );
+
+        assert( $dbh -> commit() );
 
         return;
 }
@@ -428,7 +438,6 @@ sub pin_image_to_message
 
         if( $image and ( not my $error = $self -> check_if_proper_message_id_provided( $id ) ) )
         {
-
                 my $message = FModel::Messages -> get( id => $id );
 
                 if( my $old_image_filename = $message -> pinned_img() )

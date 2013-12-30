@@ -43,5 +43,10 @@ sub validate_email
         return $rv;
 }
 
+sub now
+{
+        return DateTime -> now( time_zone => 'local' );
+}
+
 
 1;

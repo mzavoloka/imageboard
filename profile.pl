@@ -43,9 +43,11 @@ sub app_mode_default
         my $username = $self -> arg( 'username' ) || $self -> user() -> name() || '';
 
         my $error_msg = '';
+
         if( $self -> is_username_exists( $username ) )
         {
-                $self -> add_profile_data( $username );
+                my $user = FModel::Users -> get( name => $username );
+                $self -> add_profile_data( $user -> id() );
         } else
         {
                 $error_msg = 'USER_NOT_FOUND';
@@ -61,17 +63,15 @@ sub app_mode_change_email
 {
         my $self = shift;
 
-        my $email = $self -> arg( 'email' ) || '';
-
         my $output;
 
-        if( my $error_msg = $self -> can_change_email( $email, $self -> user() -> name() ) )
+        if( my $error_msg = $self -> can_change_email() )
         {
                 $self -> add_profile_data( $self -> user() -> id() );
                 $output = $self -> construct_page( middle_tpl => 'profile', error_msg => $error_msg );
         } else
         {
-                $self -> change_email( $email );
+                $self -> change_email();
                 $self -> add_profile_data( $self -> user() -> id() );
                 $output = $self -> construct_page( middle_tpl => 'profile', success_msg => 'EMAIL_CHANGED' );
         }
@@ -82,8 +82,8 @@ sub app_mode_change_email
 sub can_change_email
 {
         my $self = shift;
-        my $email = shift;
-        my $username = shift;
+
+        my $email = $self -> arg( 'email' ) || '';
 
         my $error_msg = '';
 
@@ -93,7 +93,7 @@ sub can_change_email
         {
                 $error_msg = 'INVALID_EMAIL';
         }
-        elsif( $email_valid and $self -> is_email_exists_except_user( $email, $username ) )
+        elsif( $email_valid and $self -> is_email_exists_except_user( $email, $self -> user() -> id() ) )
         {
                 $error_msg = 'EMAIL_ALREADY_EXISTS';
         }
@@ -254,9 +254,9 @@ sub add_profile_data
 
         &ar( NAME => $user -> name(), ID => $user -> id(), REGISTERED => $self -> readable_date( $user -> registered() ),
              EMAIL => $user -> email(), NUM_OF_MESSAGES => $num_of_messages, NUM_OF_THREADS => $num_of_threads,
-             AVATAR => $self -> get_user_avatar_src( $user -> id() ), USER_ID => $user -> id(),
+             AVATAR => $user -> get_avatar_src(), USER_ID => $user -> id(),
              CAN_BAN => $self -> can_do_action_with_user( 'ban', $user -> id() ), BANNED => $user -> banned(),
-             PERMISSIONS => $self -> get_user_special_permissions( $user -> id() ) );
+             PERMISSIONS => $user -> get_special_permission_title() );
 
         return;
 }
@@ -264,7 +264,9 @@ sub add_profile_data
 sub change_email
 {
         my $self = shift;
-        my $email = shift;
+
+        my $email = $self -> arg( 'email' ) || '';
+
         $email = lc( $email );
 
         my $user = FModel::Users -> get( id => $self -> user() -> id() );
@@ -299,9 +301,7 @@ sub app_mode_ban
         {
                 $self -> ban( $user_id );
 
-                my $user = FModel::Users -> get( id => $user_id );
-
-                $self -> add_profile_data( $user -> name() );
+                $self -> add_profile_data( $user_id );
                 $output = $self -> construct_page( middle_tpl => 'profile' ); 
         }
         else
@@ -343,9 +343,7 @@ sub app_mode_unban
         {
                 $self -> unban( $user_id );
 
-                my $user = FModel::Users -> get( id => $user_id );
-
-                $self -> add_profile_data( $user -> name() );
+                $self -> add_profile_data( $user_id );
                 $output = $self -> construct_page( middle_tpl => 'profile' ); 
         }
         else

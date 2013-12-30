@@ -1,5 +1,7 @@
-package FModel::VotingOptions;
 use strict;
+
+package FModel::VotingOptions;
+
 use Moose;
 extends 'LittleORM::GenericID'; 
 
@@ -12,6 +14,7 @@ has 'thread_id' => ( is => 'rw',
                      isa => 'FModel::Threads',
                      description => { foreign_key => 'FModel::Threads',
                                       foreign_key_attr_name => 'id' } );
+
 
 
 1;

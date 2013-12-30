@@ -35,7 +35,7 @@ sub init
         {
                 $rv = $self -> construct_page( restricted_msg => 'THREAD_RESTRICTED' );
         }
-        elsif( defined $self -> arg( 'mode' ) and $self -> user() and $self -> is_user_banned( $self -> user() -> id() ) )
+        elsif( defined $self -> arg( 'mode' ) and $self -> user() -> banned() )
         {
                 $rv = $self -> construct_page( restricted_msg => 'YOU_ARE_BANNED' );
         }
@@ -202,15 +202,15 @@ sub show_thread
 
                 &ar( DYN_TITLE => $thread -> title(),
                      DYN_CONTENT => $thread -> content(),
-                     DYN_PINNED_IMAGE => $self -> get_thread_pinned_image_src( $id ),
+                     DYN_PINNED_IMAGE => $thread -> pinned_image_src(),
                      DYN_CREATED => $self -> readable_date( $thread -> created() ),
                      DYN_AUTHOR  => $thread -> user_id() -> name(),
                      DYN_VOTE          => $thread -> vote(),
-                     DYN_VOTING_OPTIONS => $self -> get_voting_options( $id ),
+                     DYN_VOTING_OPTIONS => $self -> get_voting_options_for_replace( $id ),
                      DYN_CAN_DELETE => $self -> can_do_action_with_thread( 'delete', $id ),
                      DYN_CAN_EDIT   => $self -> can_do_action_with_thread( 'edit', $id ),
-                     DYN_AUTHOR_AVATAR => $self -> get_user_avatar_src( $thread -> user_id() -> id() ),
-                     DYN_AUTHOR_PERMISSIONS => $self -> get_user_special_permissions ( $thread -> user_id() -> id() ) );
+                     DYN_AUTHOR_AVATAR => $thread -> user_id() -> get_avatar_src(),
+                     DYN_AUTHOR_PERMISSIONS => $thread -> user_id() -> get_special_permission_title() );
 
                 if( $thread -> modified() )
                 {
@@ -268,7 +268,7 @@ sub show_edit_form
 
                 &ar( DYN_TITLE => $thread -> title(),
                      DYN_CONTENT => $thread -> content(),
-                     DYN_PINNED_IMAGE => $self -> get_thread_pinned_image_src( $id ),
+                     DYN_PINNED_IMAGE => $thread -> pinned_image_src(),
                      DYN_VOTING_OPTIONS => $self -> get_voting_options( $id )
                      );
 
@@ -346,7 +346,8 @@ sub edit
         my $content      = $self -> arg( 'content' ) || '';
         my $pinned_image = $self -> upload( 'pinned_image' );
 
-        # add transaction
+        my $dbh = LittleORM::Db -> get_write_dbh();
+        $dbh -> begin_work();
 
         my $thread = FModel::Threads -> get( id => $id );
 
@@ -361,6 +362,8 @@ sub edit
         $thread -> update();
 
         $self -> pin_image_to_thread( $id, $pinned_image );
+
+        assert( $dbh -> commit() );
 
         return;
 }
@@ -477,12 +480,12 @@ sub add_messages
                                  DYN_POSTED     => $self -> readable_date( $message -> posted() ),
                                  DYN_SUBJECT    => $message -> subject(),
                                  DYN_CONTENT    => $message -> content(),
-                                 DYN_PINNED_IMAGE => $self -> get_message_pinned_image_src( $message -> id() ),
+                                 DYN_PINNED_IMAGE => $message -> pinned_image_src(),
                                  DYN_AUTHOR     => $message -> user_id() -> name(),
                                  DYN_CAN_DELETE => $self -> can_do_action_with_message( 'delete', $message -> id() ),
                                  DYN_CAN_EDIT   => $self -> can_do_action_with_message( 'edit', $message -> id() ),
-                                 DYN_AUTHOR_AVATAR => $self -> get_user_avatar_src( $message -> user_id() -> id() ),
-                                 DYN_AUTHOR_PERMISSIONS => $self -> get_user_special_permissions ( $message -> user_id() -> id() )
+                                 DYN_AUTHOR_AVATAR => $message -> user_id() -> get_avatar_src(),
+                                 DYN_AUTHOR_PERMISSIONS => $message -> user_id() -> get_special_permission_title()
                                  };
 
                 if( $message -> modified() )
@@ -631,11 +634,29 @@ sub create
                 }
         }
         
-        assert( $dbh -> commit() );
-
         $self -> pin_image_to_thread( $new_thread -> id(), $pinned_image );
 
+        assert( $dbh -> commit() );
+
         return $new_thread -> id();
+}
+
+sub get_voting_options_from_args
+{
+        my $self = shift;
+
+        my $options = {};
+
+        for my $arg ( keys $self -> args() )
+        {
+                if( $arg =~ m/^option\d+$/ )
+                {
+                        my ( $number ) = $arg =~ /(\d+)/;
+                        $options -> { $number } = $self -> trim( $self -> arg( $arg ) );
+                }
+        }
+
+        return $options;
 }
 
 

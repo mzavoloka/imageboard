@@ -29,6 +29,8 @@ class_has 'thread_title_max_length' => ( is => 'ro', isa => 'Str', default => su
 
 class_has 'message_subject_max_length' => ( is => 'ro', isa => 'Str', default => sub { &get_message_subject_max_length() } );
 
+class_has 'proper_image_filetypes' => ( is => 'ro', isa => 'ArrayRef[Str]', default => sub { &get_proper_image_filetypes() } );
+
 
 sub get_session_expires_after
 {
@@ -109,6 +111,15 @@ sub get_message_subject_max_length
         my $message_subject_max_length = $const -> value();
 
         return $message_subject_max_length;
+}
+
+sub get_proper_image_filetypes
+{
+        my $const = FModel::Const -> get( name => 'proper_image_filetypes' );
+        
+        my @filetypes = split( ', ', $const -> value() );
+
+        return \@filetypes;
 }
 
 

@@ -3,6 +3,8 @@ use strict;
 package FModel::Users;
 
 use FModel::Funcs;
+use ForumConst qw( avatars_dir_url );
+
 use Moose;
 extends 'LittleORM::GenericID';
 
@@ -31,6 +33,48 @@ has 'permission_id' => ( is => 'rw',
                           description => { foreign_key => 'FModel::Permissions' } );
 
 has 'banned' => ( is => 'rw', isa => 'Bool' );
+
+sub get_permission_title
+{
+        my $self = shift;
+
+        my $title = $self -> permission_id() -> title();
+
+        return $title;
+}
+
+sub get_special_permission_title
+{
+        my $self = shift;
+
+        my $title = $self -> get_permission_title();
+
+        my $special_title = '';
+
+        if( $title ne 'regular' )
+        {
+                $special_title = $title;
+        }
+
+        return $special_title;
+}
+
+sub get_avatar_src
+{
+        my $self = shift;
+
+        my $avatar_src = ForumConst -> avatars_dir_url();
+
+        if( $self -> avatar() )
+        {
+                $avatar_src .= $self -> avatar();
+        } else
+        {
+                $avatar_src .= 'default'; 
+        }
+
+        return $avatar_src;
+}
 
 
 1;
