@@ -18,6 +18,7 @@ use Wendy::Config 'CONF_MYPATH';
 use Scalar::Util 'looks_like_number';
 use File::Type;
 use ForumConst qw( session_expires_after proper_image_filetypes );
+use File::Copy 'cp';
 
 use Moose;
 extends 'Wendy::App';
@@ -637,12 +638,35 @@ sub is_image_has_proper_filetype
 
         my $proper = 0;
 
-        my $ft = File::Type -> new();
+        my $tmp_image_filepath = CGI -> new() -> tmpFileName( $image );
 
-        #use File::Slurp 'read_file';
-        #my $image_content = read_file( $image );
+        #my $backup_filepath = $self -> backup_image( $image );
 
-        my $filetype = $ft -> mime_type( $image );
+        use File::Slurp 'read_file';
+        my $image_content = read_file( $image );
+
+        use File::MimeInfo::Magic;
+        my $filetype = &File::MimeInfo::Magic::magic( $tmp_image_filepath ) || '';
+
+        use Fcntl ':seek';
+        seek( $image, 0, SEEK_SET );
+
+        #tried this one:
+        #use File::LibMagic;
+        #my $magic = File::LibMagic -> new();
+
+        #die my $filetype = $magic -> describe_contents( $image_content );
+
+        #tried this one:
+        #die my $mimetype = CGI -> new() -> uploadInfo( $image ) -> { 'Content-Type' };
+
+        #also tried File::Type module
+
+
+        #unlink $tmp_image_filepath;
+
+        #cp( $backup_filepath, $tmp_image_filepath );
+
 
         for my $proper_filetype ( @{ ForumConst -> proper_image_filetypes() } )
         {
@@ -655,6 +679,34 @@ sub is_image_has_proper_filetype
 
         return $proper;
 }
+
+sub backup_image
+{
+        my $self = shift;
+        my $image = shift;
+
+        my $filename = $self -> new_pinned_image_filename();
+
+        my $backup_filepath = ForumConst -> images_tmp_dir() . $filename;
+
+        cp( $image, $backup_filepath );
+
+        return $backup_filepath;
+}
+
+#sub restore_image
+#{
+#        my $self = shift;
+#        my $filename = shift;
+#
+#        my $tmp_filepath = ForumConst -> images_tmp_dir() . $filename;
+#
+#        my $filepath = ForumConst -> pinned_images_dir_abs();
+#
+#        cp( $tmp_filepath, $filepath );
+#
+#        return;
+#}
 
 sub new_pinned_image_filename
 {

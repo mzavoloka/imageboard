@@ -224,13 +224,9 @@ sub can_upload_avatar
         {
                 $error_msg = 'AVATAR_FILE_NOT_CHOSEN';
         }
-        elsif( $avatar and ( CGI::uploadInfo( $avatar ) -> { 'Content-Type' } ne 'image/jpeg' ) ) # Add macros for this thing with list of correct filetypes
+        elsif( my $image_error = $self -> check_avatar_image( $avatar ) )
         {
-                $error_msg = 'AVATAR_INCORRECT_FILETYPE';
-        }
-        elsif( $avatar and $filesize > &gr( 'AVATAR_MAX_SIZE' ) )
-        {
-                $error_msg = 'AVATAR_FILESIZE_TOO_BIG';
+                $error_msg = $image_error;
         }
 
         return $error_msg;
@@ -371,6 +367,27 @@ sub unban
         }
 
         return $success;
+}
+
+sub check_avatar_image
+{
+        my $self = shift;
+        my $image = shift || '';
+
+        my $error_msg = '';
+
+        my $filesize = -s $image;
+
+        if( $image and not $self -> is_image_has_proper_filetype( $image ) )
+        {
+                $error_msg = 'AVATAR_INCORRECT_FILETYPE';
+        }
+        elsif( $image and $filesize > ForumConst -> avatar_max_filesize() )
+        {
+                $error_msg = 'AVATAR_FILESIZE_TOO_BIG';
+        }
+
+        return $error_msg;
 }
 
 

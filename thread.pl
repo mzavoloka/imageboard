@@ -659,5 +659,41 @@ sub get_voting_options_from_args
         return $options;
 }
 
+sub set_page_switcher
+{
+        # very cool universal page switcher, items count is first arg
+        my ( $self, $items_count ) = @_;
+
+        my $page = int( $self -> arg( 'page' ) );
+        my $perpage = ( $self -> arg( 'perpage' ) or 20 );
+        assert( $perpage > 0 );
+
+        my $pages = int( $items_count / $perpage ) + ( $items_count % $perpage ? 1 : 0 );
+
+        my %query_args = %{ $self -> args() };
+
+        $query_args{ $self -> _mode_arg() } = $self -> mode();
+
+        my @links = ();
+
+        my $url = $self -> url();
+
+        for( my $i = 0; $i < $pages; $i ++ )
+        {
+                $query_args{ 'page' } = $i;
+
+                $url -> query_form( %query_args );
+
+                my $link = $i + 1;
+
+                unless( $i == $page )
+                {
+                        $link = sprintf( '<a href="%s">%d</a>', $url -> as_string(), $i + 1 ); # do not use $link twice, its ambiguous
+                }
+                push @links, $link;
+        }
+        &ar( DYN_PAGE_SWITCHER => join( ' ', @links ) );
+}
+
 
 1;

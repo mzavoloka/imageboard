@@ -4,7 +4,7 @@ package ForumConst;
 use FModel::Const;
 use Wendy::Db qw( dbconnect );
 
-use Wendy::Config 'CONF_MYPATH';
+use Wendy::Config 'CONF_VARPATH';
 
 use Moose;
 use MooseX::ClassAttribute;
@@ -13,15 +13,19 @@ LittleORM::Db -> init( &dbconnect() );
 
 class_has 'session_expires_after' => ( is => 'ro', isa => 'Int', default => sub { &get_session_expires_after() } );
 
+class_has 'htdocs_dir' => ( is => 'ro', isa => 'Str', default => sub { &get_htdocs_dir() } );
+
 class_has 'avatars_dir_url' => ( is => 'ro', isa => 'Str', default => sub { &get_avatars_dir_url() } );
 
 class_has 'avatars_dir_abs' => ( is => 'ro', isa => 'Str', default => sub{ &get_avatars_dir_abs() } );
+
+class_has 'avatar_max_filesize' => ( is => 'ro', isa => 'Int', default => sub { &get_avatar_max_filesize() } );
 
 class_has 'pinned_images_dir_url' => ( is => 'ro', isa => 'Str', default => sub { &get_pinned_images_dir_url() } );
 
 class_has 'pinned_images_dir_abs' => ( is => 'ro', isa => 'Str', default => sub { &get_pinned_images_dir_abs() } );
 
-class_has 'pinned_image_max_filesize' => ( is => 'ro', isa => 'Str', default => sub { &get_pinned_image_max_filesize() } );
+class_has 'pinned_image_max_filesize' => ( is => 'ro', isa => 'Int', default => sub { &get_pinned_image_max_filesize() } );
 
 class_has 'messages_on_page' => ( is => 'ro', isa => 'Str', default => sub { &get_messages_on_page() } );
 
@@ -31,6 +35,8 @@ class_has 'message_subject_max_length' => ( is => 'ro', isa => 'Str', default =>
 
 class_has 'proper_image_filetypes' => ( is => 'ro', isa => 'ArrayRef[Str]', default => sub { &get_proper_image_filetypes() } );
 
+class_has 'images_tmp_dir' => ( is => 'ro', isa => 'Str', default => sub { &get_images_tmp_dir() } );
+
 
 sub get_session_expires_after
 {
@@ -39,6 +45,13 @@ sub get_session_expires_after
         my $session_expires_after = $const -> value();
 
         return $session_expires_after;
+}
+
+sub get_htdocs_dir
+{
+        my $htdocs_dir = CONF_VARPATH . '/hosts/localhost/htdocs/';
+
+        return $htdocs_dir;
 }
 
 sub get_avatars_dir_url
@@ -54,9 +67,18 @@ sub get_avatars_dir_url
 
 sub get_avatars_dir_abs
 {
-        my $avatars_dir_abs = CONF_MYPATH . '/var/hosts/localhost/htdocs' . &get_avatars_dir_url();
+        my $avatars_dir_abs = &get_htdocs_dir() . &get_avatars_dir_url();
 
         return $avatars_dir_abs;
+}
+
+sub get_avatar_max_filesize
+{
+        my $const = FModel::Const -> get( name => 'avatar_max_filesize' );
+
+        my $avatar_max_filesize = $const -> value();
+
+        return $avatar_max_filesize;
 }
 
 sub get_pinned_images_dir_url
@@ -72,7 +94,7 @@ sub get_pinned_images_dir_url
 
 sub get_pinned_images_dir_abs
 {
-        my $pinned_images_dir_abs = CONF_MYPATH . '/var/hosts/localhost/htdocs' . &get_pinned_images_dir_url();
+        my $pinned_images_dir_abs = &get_htdocs_dir() . &get_pinned_images_dir_url();
 
         return $pinned_images_dir_abs;
 }
@@ -120,6 +142,15 @@ sub get_proper_image_filetypes
         my @filetypes = split( ', ', $const -> value() );
 
         return \@filetypes;
+}
+
+sub get_images_tmp_dir
+{
+        my $const = FModel::Const -> get( name => 'images_tmp_dir' );
+
+        my $images_tmp_dir = &get_htdocs_dir() . $const -> value();
+
+        return $images_tmp_dir;
 }
 
 
