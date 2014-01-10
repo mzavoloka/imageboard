@@ -6,15 +6,17 @@ extends 'LittleORM::GenericID';
 
 sub _db_table { 'can_ban_users_of' }
 
-has 'permission_id' => ( is => 'rw',
-                         metaclass => 'LittleORM::Meta::Attribute',
-                         isa => 'FModel::Permissions',
-                         description => { foreign_key => 'FModel::Permissions' } );
+has 'permission' => ( is => 'rw',
+                      metaclass => 'LittleORM::Meta::Attribute',
+                      isa => 'FModel::Permissions',
+                      description => { foreign_key => 'yes',
+                                       db_field => 'permission_id' } );
 
-has 'users_of_permission_id' => ( is => 'rw',
-                                  metaclass => 'LittleORM::Meta::Attribute',
-                                  isa => 'FModel::Permissions',
-                                  description => { foreign_key => 'FModel::Permissions' } );
+has 'users_of_permission' => ( is => 'rw',
+                               metaclass => 'LittleORM::Meta::Attribute',
+                               isa => 'FModel::Permissions',
+                               description => { foreign_key => 'yes',
+                                                db_field => 'users_of_permission_id' } );
 
 
 1;

@@ -6,6 +6,7 @@ use FModel::Users;
 use DateTime::Format::Strptime;
 use DateTime::TimeZone;
 use DateTime;
+use Carp 'croak';
 
 sub ts2dt
 {
@@ -37,7 +38,7 @@ sub validate_email
                 $rv = $email;
         } else
         {
-                $rv = {}; # костыль
+                croak 'Invalid email. ';
         }
 
         return $rv;

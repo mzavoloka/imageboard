@@ -38,7 +38,7 @@ sub app_mode_default
 {
         my $self = shift;
 
-        my $output = $self -> construct_page( message_tpl => 'register' );
+        my $output = $self -> construct_page( middle_tpl => 'register' );
 
   	return $output;
 }
@@ -47,15 +47,15 @@ sub app_mode_do_register
 {
         my $self = shift;
 
-        my $username = $self -> arg( 'username') || '';
-      	my $email    = $self -> arg( 'email' ) || '';
+        my $username = $self -> arg( 'username' );
+      	my $email    = $self -> arg( 'email' );
 
         my $output;
 
         if( my $error_msg = $self -> can_register() )
         {
                 &ar( USERNAME => $username, EMAIL => $email );
-                $output = $self -> construct_page( message_tpl => 'register', error_msg => $error_msg );
+                $output = $self -> construct_page( middle_tpl => 'register', error_msg => $error_msg );
       	} else
         {
                 $self -> do_register();
@@ -69,10 +69,10 @@ sub can_register
 {
         my $self = shift;
 
-        my $username     = $self -> arg( 'username') || '';
-      	my $email        = $self -> arg( 'email' ) || '';
-      	my $password     = $self -> arg( 'password' ) || '';
-      	my $confirmation = $self -> arg( 'confirmation' ) || '';
+        my $username     = $self -> arg( 'username');
+      	my $email        = $self -> arg( 'email' );
+      	my $password     = $self -> arg( 'password' );
+      	my $confirmation = $self -> arg( 'confirmation' );
         
         my $error_msg = '';
 
@@ -101,23 +101,23 @@ sub can_register
         {
         	$error_msg = 'FIELDS_ARE_NOT_FILLED';
         }
-        elsif( $fields_are_filled and ( not $valid_username ) )
+        elsif( not $valid_username )
         {
                 $error_msg = 'INVALID_USERNAME';
         }
-        elsif( $fields_are_filled and $valid_username and $user_exists )
+        elsif( $user_exists )
         {
                 $error_msg = 'USER_ALREADY_EXISTS';
         }
-        elsif( $fields_are_filled and $valid_username and ( not $user_exists ) and ( not $valid_email ) )
+        elsif( not $valid_email )
         {
                 $error_msg = 'INVALID_EMAIL';
         }
-        elsif( $fields_are_filled and $valid_username and ( not $user_exists ) and $valid_email and $email_exists )
+        elsif( $email_exists )
         {
                 $error_msg = 'EMAIL_ALREADY_EXISTS';
         }
-        elsif( $fields_are_filled and $valid_username and ( not $user_exists ) and $valid_email and ( not $email_exists ) and ( not $password_confirmed ) )
+        elsif( not $password_confirmed )
         {
         	$error_msg = 'PASSWORD_CONFIRMATION_FAILED';
         }
@@ -129,14 +129,14 @@ sub do_register
 {
         my $self = shift;
 
-        my $username     = $self -> arg( 'username') || '';
-      	my $email        = $self -> arg( 'email' ) || '';
-      	my $password     = $self -> arg( 'password' ) || '';
+        my $username = $self -> arg( 'username');
+      	my $email    = $self -> arg( 'email' );
+      	my $password = $self -> arg( 'password' );
         
         $username = lc( $username );
         $email = lc( $email );
 
-        FModel::Users -> create( name => $username, password => $password, email => $email, registered => $self -> now() );
+        FModel::Users -> create( name => $username, password => $password, email => $email, registered => Funcs::now() );
 
         $self -> log_user_in( $username );
 

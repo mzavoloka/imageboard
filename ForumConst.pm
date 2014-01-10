@@ -1,8 +1,10 @@
 use strict;
 
 package ForumConst;
+
 use FModel::Const;
 use Wendy::Db qw( dbconnect );
+use File::Spec;
 
 use Wendy::Config 'CONF_VARPATH';
 
@@ -49,7 +51,7 @@ sub get_session_expires_after
 
 sub get_htdocs_dir
 {
-        my $htdocs_dir = CONF_VARPATH . '/hosts/localhost/htdocs/';
+        my $htdocs_dir = File::Spec -> catfile( CONF_VARPATH, '/hosts/localhost/htdocs/' );
 
         return $htdocs_dir;
 }
@@ -67,7 +69,7 @@ sub get_avatars_dir_url
 
 sub get_avatars_dir_abs
 {
-        my $avatars_dir_abs = &get_htdocs_dir() . &get_avatars_dir_url();
+        my $avatars_dir_abs = File::Spec -> catfile( &get_htdocs_dir(), &get_avatars_dir_url() );
 
         return $avatars_dir_abs;
 }
@@ -94,7 +96,7 @@ sub get_pinned_images_dir_url
 
 sub get_pinned_images_dir_abs
 {
-        my $pinned_images_dir_abs = &get_htdocs_dir() . &get_pinned_images_dir_url();
+        my $pinned_images_dir_abs = File::Spec -> catfile( &get_htdocs_dir(), &get_pinned_images_dir_url() );
 
         return $pinned_images_dir_abs;
 }
@@ -148,7 +150,7 @@ sub get_images_tmp_dir
 {
         my $const = FModel::Const -> get( name => 'images_tmp_dir' );
 
-        my $images_tmp_dir = &get_htdocs_dir() . $const -> value();
+        my $images_tmp_dir = File::Spec -> catfile( &get_htdocs_dir(), $const -> value() );
 
         return $images_tmp_dir;
 }

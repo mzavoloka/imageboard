@@ -13,12 +13,15 @@ use Wendy::Templates::TT 'tt';
 use Wendy::Db qw( dbconnect );
 use Data::Dumper 'Dumper';
 use Wendy::Shorts qw( ar gr lm );
-use DateTime;
 use Wendy::Config 'CONF_MYPATH';
 use Scalar::Util 'looks_like_number';
 use File::Type;
-use ForumConst qw( session_expires_after proper_image_filetypes );
+use ForumConst 'proper_image_filetypes';
 use File::Copy 'cp';
+use Carp::Assert 'assert';
+use Carp 'croak';
+use Funcs;
+use File::Spec;
 
 use Moose;
 extends 'Wendy::App';
@@ -40,7 +43,7 @@ sub init
                 $self -> init_user();
         }
 
-        &lm( 'ANY');
+        &lm( 'ANY' );
         &lm();
 
         return $rv;
@@ -48,30 +51,9 @@ sub init
 
 sub construct_page
 {
-        my $self = shift;
-        my %args = @_;
-        my $middle_tpl = $args{ 'middle_tpl' } || '';
-        my $error_msg = $args{ 'error_msg' } || '';
-        my $success_msg = $args{ 'success_msg' } || '';
-        my $restricted_msg = $args{ 'restricted_msg' } || '';
+        my ( $self, %params ) = @_;
+        my ( $middle_tpl, $error_msg, $success_msg, $restricted_msg ) = @params{ 'middle_tpl', 'error_msg', 'success_msg', 'restricted_msg' };
 
-        if( $self -> user() )
-        {
-                &ar( CURRENT_USER => $self -> user() -> name() );
-        }
-
-        if( $error_msg )
-        {
-                &ar( ERROR_MSG => &gr( $error_msg ) );
-        }
-
-        if( $success_msg )
-        {
-                &ar( SUCCESS_MSG => &gr( $success_msg ) );
-        }
-
-        my $header = &tt( 'header' );
-        my $footer = &tt( 'footer' );
         my $middle = '';
 
         if( $restricted_msg )
@@ -80,8 +62,28 @@ sub construct_page
                 $middle = &tt( 'restricted' );
         } else
         {
+                assert( $middle_tpl );
+
+                if( $self -> user() )
+                {
+                        &ar( CURRENT_USER => $self -> user() -> name() );
+                }
+
+                if( $error_msg )
+                {
+                        &ar( ERROR_MSG => &gr( $error_msg ) );
+                }
+                
+                if( $success_msg )
+                {
+                        &ar( SUCCESS_MSG => &gr( $success_msg ) );
+                }
+
                 $middle = &tt( $middle_tpl );
         }
+
+        my $header = &tt( 'header' );
+        my $footer = &tt( 'footer' );
 
         &ar( HEADER => $header, MIDDLE => $middle, FOOTER => $footer );
 
@@ -91,7 +93,7 @@ sub construct_page
 sub init_user
 {
         my $self = shift;
-        my $session_key = $self -> get_cookie( 'session_key' ) || '';
+        my $session_key = $self -> get_cookie( 'session_key' );
 
         my $session = FModel::Sessions -> get( session_key => $session_key );
 
@@ -100,7 +102,7 @@ sub init_user
         if( $session )
         {
                 my $expired = 0;
-                if( $self -> now() gt $session -> expires() )
+                if( Funcs::now() gt $session -> expires() )
                 {
                         $expired = 1;
                 }
@@ -110,8 +112,8 @@ sub init_user
                         $session -> delete( session_key => $session_key );
                 } else
                 {
-                        $user = FModel::Users -> get( id => $session -> user_id() -> id() );
-                        $session -> expires( $self -> session_expires() );
+                        $user = FModel::Users -> get( id => $session -> user() -> id() );
+                        $session -> expires( FModel::Sessions -> session_expires() );
                         $session -> update();
                 }
         }
@@ -123,13 +125,13 @@ sub init_user
 
 sub log_user_in
 {
-        my $self = shift;
-        my $username = shift;
+        my ( $self, $username ) = @_;
 
-        my $session_key = $self -> new_session_key();
+        my $session_key = FModel::Sessions -> new_session_key();
 
         my $user = FModel::Users -> get( name => $username );
-        FModel::Sessions -> create( user_id => $user -> id(), expires => $self -> session_expires(), session_key => $session_key );
+
+        assert( FModel::Sessions -> create( user => $user, expires => FModel::Sessions -> session_expires(), session_key => $session_key ) );
 
         $self -> set_cookie( '-name' => 'session_key', '-value' => $session_key );
 
@@ -150,36 +152,9 @@ sub log_user_out
         return;
 }
 
-sub now
-{
-        my $self = shift;
-
-        return DateTime -> now( time_zone => 'local' );
-}
-
-sub session_expires
-{
-        my $self = shift;
-
-        return DateTime -> from_epoch( epoch => time() + ForumConst -> session_expires_after(), time_zone => 'local' );
-}
-
-sub readable_date
-{
-        my $self = shift;
-	my $date = shift;
-
-	my ( $part1, $part2 ) = split ( 'T', $date );
-	my ( $year, $month, $day ) = split ( '-', $part1 );
-	my ( $time, $milliseconds ) = split ( /\./, $part2 );
-
-	return ( $day . '.' . $month . '.' . $year . ' ' . $time );
-}
-
 sub is_email_valid
 {
-        my $self = shift;
-        my $email = shift;
+        my ( $self, $email ) = @_;
         $email = lc( $email );
 
         return( $email =~ /.+@.+\..+/i );
@@ -187,8 +162,7 @@ sub is_email_valid
 
 sub is_email_exists
 {
-        my $self = shift;
-        my $email = shift;
+        my ( $self, $email ) = @_;
 
         my $exists = 0;
 
@@ -201,27 +175,9 @@ sub is_email_exists
         return( $exists );
 }
 
-sub is_email_exists_except_user
-{
-        my $self = shift;
-        my $email = shift;
-        my $user_id = shift;
-
-        my $exists = 0;
-
-        if( $self -> is_email_valid( $email ) )
-        {
-                $email = lc( $email );
-                $exists = FModel::Users -> count( email => $email, id => { '!=', $user_id } );
-        }
-
-        return( $exists );
-}
-
 sub is_username_valid
 {
-        my $self = shift;
-        my $username = shift;
+        my ( $self, $username ) = @_;
         $username = lc( $username );
 
         return( $username =~ /^[a-z0-9_-]{3,16}$/ );
@@ -229,8 +185,7 @@ sub is_username_valid
 
 sub is_user_exists
 {
-        my $self = shift;
-        my $user_id = shift || 0;
+        my ( $self, $user_id ) = @_;
 
         my $exists = 0;
 
@@ -244,8 +199,7 @@ sub is_user_exists
 
 sub is_username_exists
 {
-        my $self = shift;
-        my $username = shift || '';
+        my ( $self, $username ) = @_;
 
         my $exists = 0;
 
@@ -256,15 +210,6 @@ sub is_username_exists
         }
 
         return( $exists );
-}
-
-sub new_session_key
-{
-        my $self = shift;
-
-        my $key = Digest::MD5::md5_base64( rand() );
-
-        return $key;
 }
 
 sub set_cookie
@@ -283,23 +228,9 @@ sub set_cookie
 	push( @{ $self -> out_cookies() }, $cookie );
 }
 
-sub trim
-{
-        my $self = shift;
-        my $str = shift;
-
-        if( $str )
-        {
-                $str =~ s/^\s+|\s+$//g;
-        }
-
-        return $str;
-}
-
 sub is_thread_exists
 {
-        my $self = shift;
-        my $thread_id = shift || '';
+        my ( $self, $thread_id ) = @_;
 
         my $exists = 0;
 
@@ -313,8 +244,7 @@ sub is_thread_exists
 
 sub is_message_exists
 {
-        my $self = shift;
-        my $message_id = shift || '';
+        my ( $self, $message_id ) = @_;
 
         my $exists = 0;
 
@@ -328,15 +258,14 @@ sub is_message_exists
 
 sub is_message_belongs_to_current_user
 {
-        my $self = shift;
-        my $message_id = shift;
+        my ( $self, $message_id ) = @_;
 
         my $belongs = 0;
 
         if( $self -> user() )
         {
                 my $message = FModel::Messages -> get( id => $message_id );
-                $belongs = ( $self -> user() -> id() eq $message -> user_id() -> id() );
+                $belongs = ( $self -> user() -> id() eq $message -> user() -> id() );
         }
 
         return $belongs;
@@ -344,15 +273,14 @@ sub is_message_belongs_to_current_user
 
 sub is_thread_belongs_to_current_user
 {
-        my $self = shift;
-        my $thread_id = shift;
+        my ( $self, $thread_id ) = @_;
 
         my $belongs = 0;
 
         if( $self -> user() )
         {
                 my $thread = FModel::Threads -> get( id => $thread_id );
-                $belongs = ( $self -> user() -> id() eq $thread -> user_id() -> id() );
+                $belongs = ( $self -> user() -> id() eq $thread -> user() -> id() );
         }
 
         return $belongs;
@@ -360,9 +288,12 @@ sub is_thread_belongs_to_current_user
 
 sub can_do_action_with_message
 {
-        my $self = shift;
-        my $action = shift || '';
-        my $message_id = shift || 0;
+        my ( $self, $action, $message_id ) = @_;
+
+        if( $action ne 'delete' and $action ne 'edit' )
+        {
+                croak 'You wrongly defined, which action that you intend to do with message needs to be checked';
+        }
 
         my $can = 0;
 
@@ -370,8 +301,8 @@ sub can_do_action_with_message
 
         if( not $error and $self -> is_message_belongs_to_current_user( $message_id ) )
         {
-                if( ( $action eq 'delete' and $self -> user() -> permission_id() -> delete_messages() ) or
-                    ( $action eq 'edit' and $self -> user() -> permission_id() -> edit_messages() ) )
+                if( ( $action eq 'delete' and $self -> user() -> permission() -> delete_messages() ) or
+                    ( $action eq 'edit' and $self -> user() -> permission() -> edit_messages() ) )
                 {
                         $can = 1;
                 }
@@ -380,11 +311,11 @@ sub can_do_action_with_message
         {
                 my $message = FModel::Messages -> get( id => $message_id );
 
-                my $message_author_permission = $message -> user_id() -> permission_id() -> id();
+                my $message_author_permission = $message -> user() -> permission() -> id();
 
                 if( $action eq 'delete' )
                 {
-                        for my $permission ( $self -> user() -> permission_id() -> can_delete_messages_of() )
+                        for my $permission ( $self -> user() -> permission() -> can_delete_messages_of() )
                         {
                                 if( $permission eq $message_author_permission )
                                 {
@@ -395,7 +326,7 @@ sub can_do_action_with_message
                 }
                 elsif( $action eq 'edit' )
                 {
-                        for my $permission ( $self -> user() -> permission_id() -> can_edit_messages_of() )
+                        for my $permission ( $self -> user() -> permission() -> can_edit_messages_of() )
                         {
                                 if( $permission eq $message_author_permission )
                                 {
@@ -409,11 +340,16 @@ sub can_do_action_with_message
         return $can;
 }
 
+
+
 sub can_do_action_with_thread
 {
-        my $self = shift;
-        my $action = shift || '';
-        my $thread_id = shift || 0;
+        my ( $self, $action, $thread_id ) = @_;
+
+        if( $action ne 'delete' and $action ne 'edit' )
+        {
+                croak 'You wrongly defined, which action that you intend to do with thread needs to be checked';
+        }
 
         my $can = 0;
         
@@ -421,8 +357,8 @@ sub can_do_action_with_thread
 
         if( not $error and $self -> is_thread_belongs_to_current_user( $thread_id ) )
         {
-                if( ( $action eq 'delete' and $self -> user() -> permission_id() -> delete_threads() ) or
-                    ( $action eq 'edit' and $self -> user() -> permission_id() -> edit_threads() ) )
+                if( ( $action eq 'delete' and $self -> user() -> permission() -> delete_threads() ) or
+                    ( $action eq 'edit' and $self -> user() -> permission() -> edit_threads() ) )
                 {
                         $can = 1;
                 }
@@ -431,11 +367,11 @@ sub can_do_action_with_thread
         {
                 my $thread = FModel::Threads -> get( id => $thread_id );
 
-                my $thread_author_permission = $thread -> user_id() -> permission_id() -> id();
+                my $thread_author_permission = $thread -> user() -> permission() -> id();
 
                 if( $action eq 'delete' )
                 {
-                        for my $permission ( $self -> user() -> permission_id() -> can_delete_threads_of() )
+                        for my $permission ( $self -> user() -> permission() -> can_delete_threads_of() )
                         {
                                 if( $permission eq $thread_author_permission )
                                 {
@@ -446,7 +382,7 @@ sub can_do_action_with_thread
                 }
                 elsif( $action eq 'edit' )
                 {
-                        for my $permission ( $self -> user() -> permission_id() -> can_edit_threads_of() )
+                        for my $permission ( $self -> user() -> permission() -> can_edit_threads_of() )
                         {
                                 if( $permission eq $thread_author_permission )
                                 {
@@ -459,7 +395,7 @@ sub can_do_action_with_thread
 
         if( not $error and $can and $action eq 'delete' )
         {
-                my @messages = FModel::Messages -> get_many( thread_id => $thread_id );
+                my @messages = FModel::Messages -> get_many( thread => $thread_id );
 
                 for my $message ( @messages )
                 {
@@ -476,9 +412,12 @@ sub can_do_action_with_thread
 
 sub can_do_action_with_user
 {
-        my $self = shift;
-        my $action = shift || '';
-        my $user_id = shift || 0;
+        my ( $self, $action, $user_id ) = @_;
+
+        if( $action ne 'ban' and $action ne 'unban' )
+        {
+                croak 'You wrongly defined, which action that you intend to do with user needs to be checked';
+        }
 
         my $can = 0;
         
@@ -487,11 +426,11 @@ sub can_do_action_with_user
         if( not $error )
         {
                 my $user_to_act = FModel::Users -> get( id => $user_id );
-                my $user_to_act_permission = $user_to_act -> permission_id() -> id();
+                my $user_to_act_permission = $user_to_act -> permission() -> id();
 
                 if( $action eq 'ban' or $action eq 'unban' )
                 {
-                        for my $permission ( $self -> user() -> permission_id() -> can_ban_users_of() )
+                        for my $permission ( $self -> user() -> permission() -> can_ban_users_of() )
                         {
                                 if( $permission eq $user_to_act_permission )
                                 {
@@ -507,8 +446,7 @@ sub can_do_action_with_user
 
 sub check_if_proper_user_id_provided
 {
-        my $self = shift;
-        my $user_id = shift || '';
+        my ( $self, $user_id ) = @_;
 
         my $error = '';
 
@@ -530,8 +468,7 @@ sub check_if_proper_user_id_provided
 
 sub check_if_proper_thread_id_provided
 {
-        my $self = shift;
-        my $thread_id = shift || '';
+        my ( $self, $thread_id ) = @_;
 
         my $error = '';
 
@@ -553,8 +490,7 @@ sub check_if_proper_thread_id_provided
 
 sub check_if_proper_message_id_provided
 {
-        my $self = shift;
-        my $message_id = shift || '';
+        my ( $self, $message_id ) = @_;
 
         my $error = '';
 
@@ -574,46 +510,9 @@ sub check_if_proper_message_id_provided
         return $error;
 }
 
-sub max_of
-{
-        my $self = shift;
-        my @numbers = @_;
-
-        my $max = $numbers[0];
-
-        for my $num ( @numbers )
-        {
-                if( $num > $max )
-                {
-                        $max = $num;
-                }
-        }
-
-        return $max;
-}
-
-sub min_of
-{
-        my $self = shift;
-        my @numbers = @_;
-
-        my $min = $numbers[0];
-
-        for my $num ( @numbers )
-        {
-                if( $num < $min )
-                {
-                        $min = $num;
-                }
-        }
-
-        return $min;
-}
-
 sub check_pinned_image
 {
-        my $self = shift;
-        my $image = shift || '';
+        my ( $self, $image ) = @_;
 
         my $error_msg = '';
 
@@ -633,40 +532,14 @@ sub check_pinned_image
 
 sub is_image_has_proper_filetype
 {
-        my $self = shift;
-        my $image = shift;
+        my ( $self, $image ) = @_;
 
         my $proper = 0;
 
         my $tmp_image_filepath = CGI -> new() -> tmpFileName( $image );
 
-        #my $backup_filepath = $self -> backup_image( $image );
-
-        use File::Slurp 'read_file';
-        my $image_content = read_file( $image );
-
         use File::MimeInfo::Magic;
-        my $filetype = &File::MimeInfo::Magic::magic( $tmp_image_filepath ) || '';
-
-        use Fcntl ':seek';
-        seek( $image, 0, SEEK_SET );
-
-        #tried this one:
-        #use File::LibMagic;
-        #my $magic = File::LibMagic -> new();
-
-        #die my $filetype = $magic -> describe_contents( $image_content );
-
-        #tried this one:
-        #die my $mimetype = CGI -> new() -> uploadInfo( $image ) -> { 'Content-Type' };
-
-        #also tried File::Type module
-
-
-        #unlink $tmp_image_filepath;
-
-        #cp( $backup_filepath, $tmp_image_filepath );
-
+        my $filetype = &File::MimeInfo::Magic::magic( $tmp_image_filepath );
 
         for my $proper_filetype ( @{ ForumConst -> proper_image_filetypes() } )
         {
@@ -679,34 +552,6 @@ sub is_image_has_proper_filetype
 
         return $proper;
 }
-
-sub backup_image
-{
-        my $self = shift;
-        my $image = shift;
-
-        my $filename = $self -> new_pinned_image_filename();
-
-        my $backup_filepath = ForumConst -> images_tmp_dir() . $filename;
-
-        cp( $image, $backup_filepath );
-
-        return $backup_filepath;
-}
-
-#sub restore_image
-#{
-#        my $self = shift;
-#        my $filename = shift;
-#
-#        my $tmp_filepath = ForumConst -> images_tmp_dir() . $filename;
-#
-#        my $filepath = ForumConst -> pinned_images_dir_abs();
-#
-#        cp( $tmp_filepath, $filepath );
-#
-#        return;
-#}
 
 sub new_pinned_image_filename
 {
@@ -729,12 +574,11 @@ sub new_pinned_image_filename
 
 sub is_pinned_filename_exists
 {
-        my $self = shift;
-        my $filename = shift;
+        my ( $self, $filename ) = @_;
 
         my $exists = 0;
 
-        if( -e ForumConst -> pinned_images_dir_abs() . $filename )
+        if( -e File::Spec -> catfile( ForumConst -> pinned_images_dir_abs(), $filename ) )
         {
                 $exists = 1;
         }
@@ -744,8 +588,7 @@ sub is_pinned_filename_exists
 
 sub get_voting_options_for_replace()
 {
-        my $self = shift;
-        my $thread_id = shift;
+        my ( $self, $thread_id ) = @_;
 
         my $thread = FModel::Threads -> get( id => $thread_id );
 

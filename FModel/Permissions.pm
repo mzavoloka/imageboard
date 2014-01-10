@@ -36,9 +36,9 @@ sub can_ban_users_of
 {
         my $self = shift;
 
-        my @rows = FModel::CanBanUsersOf -> get_many( permission_id => $self -> id() );
+        my @rows = FModel::CanBanUsersOf -> get_many( permission => $self );
 
-        my @users_of_permission_ids = map { $_ -> users_of_permission_id() -> id() } @rows;
+        my @users_of_permission_ids = map { $_ -> users_of_permission() -> id() } @rows;
 
         return @users_of_permission_ids;
 }
@@ -47,9 +47,9 @@ sub can_edit_messages_of
 {
         my $self = shift;
 
-        my @rows = FModel::CanEditMessagesOf -> get_many( permission_id => $self -> id() );
+        my @rows = FModel::CanEditMessagesOf -> get_many( permission => $self );
 
-        my @messages_of_permission_ids = map { $_ -> messages_of_permission_id() -> id() } @rows;
+        my @messages_of_permission_ids = map { $_ -> messages_of_permission() -> id() } @rows;
 
         return @messages_of_permission_ids;
 }
@@ -58,9 +58,9 @@ sub can_edit_threads_of
 {
         my $self = shift;
 
-        my @rows = FModel::CanEditThreadsOf -> get_many( permission_id => $self -> id() );
+        my @rows = FModel::CanEditThreadsOf -> get_many( permission => $self );
 
-        my @threads_of_permission_ids = map { $_ -> threads_of_permission_id() -> id() } @rows;
+        my @threads_of_permission_ids = map { $_ -> threads_of_permission() -> id() } @rows;
 
         return @threads_of_permission_ids;
 }
@@ -69,9 +69,9 @@ sub can_delete_messages_of
 {
         my $self = shift;
 
-        my @rows = FModel::CanDeleteMessagesOf -> get_many( permission_id => $self -> id() );
+        my @rows = FModel::CanDeleteMessagesOf -> get_many( permission => $self );
 
-        my @messages_of_permission_ids = map { $_ -> messages_of_permission_id() -> id() } @rows;
+        my @messages_of_permission_ids = map { $_ -> messages_of_permission() -> id() } @rows;
 
         return @messages_of_permission_ids;
 }
@@ -80,9 +80,9 @@ sub can_delete_threads_of
 {
         my $self = shift;
 
-        my @rows = FModel::CanDeleteThreadsOf -> get_many( permission_id => $self -> id() );
+        my @rows = FModel::CanDeleteThreadsOf -> get_many( permission => $self );
 
-        my @threads_of_permission_ids = map { $_ -> threads_of_permission_id() -> id() } @rows;
+        my @threads_of_permission_ids = map { $_ -> threads_of_permission() -> id() } @rows;
 
         return @threads_of_permission_ids;
 }

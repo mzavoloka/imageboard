@@ -67,9 +67,7 @@ sub app_mode_do_login
 
 sub can_log_user_in
 {
-        my $self = shift;
-        my $username = shift;
-        my $password = shift;
+        my ( $self, $username, $password ) = @_;
 
         my $error_msg = '';
 
@@ -82,7 +80,6 @@ sub can_log_user_in
         if( $fields_are_filled )
         {
                 $user = FModel::Users -> get( name => $username );
-                $user_exists = $self -> is_username_exists( $username );
                 $password_correct = $self -> is_password_correct( $password, $username );
         }
 
@@ -90,13 +87,13 @@ sub can_log_user_in
 	{
                 $error_msg = 'FIELDS_ARE_NOT_FILLED';
       	}
-        elsif( $fields_are_filled and ( not $user_exists ) )
+        elsif( not $password_correct )
 	{
-        	$error_msg = 'NO_SUCH_USER';
+        	$error_msg = 'NO_USER_WITH_SUCH_PASSWORD';
       	}
-        elsif( $fields_are_filled and $user_exists and ( not $password_correct ) )
+        elsif( $user -> banned() )
         {
-                $error_msg = 'PASSWORD_INCORRECT';
+                $error_msg = 'YOU_ARE_BANNED';
         }
 
         return $error_msg;
@@ -104,19 +101,9 @@ sub can_log_user_in
 
 sub is_password_correct
 {
-        my $self = shift;
-        my $password = shift;
-        my $username = shift;
+        my ( $self, $password, $username ) = @_;
 
-        my $correct = 0;
-
-        if( $self -> is_username_exists( $username ) )
-        {
-                my $user = FModel::Users -> get( name => $username );
-                my $password_in_db = $user -> password();
-
-                $correct = ( $password eq $password_in_db );
-        }
+        my $correct = FModel::Users -> count( name => $username, password => $password );
 
         return $correct;
 }

@@ -14,7 +14,7 @@ use Carp::Assert 'assert';
 use File::Copy 'cp';
 use URI qw( new query_from as_string );
 use Data::Dumper 'Dumper';
-use ForumConst qw( pinned_images_dir_abs );
+use ForumConst;
 
 use Moose;
 extends 'ForumApp';
@@ -31,13 +31,9 @@ sub init
         {
                 $rv = $error;
         }
-        elsif( defined $self -> arg( 'mode' ) and ( not $self -> user() ) )
+        elsif( $self -> arg( 'mode' ) and $self -> arg( 'mode' ) ne 'default' and ( not $self -> user() ) )
         {
                 $rv = $self -> construct_page( restricted_msg => 'THREAD_RESTRICTED' );
-        }
-        elsif( defined $self -> arg( 'mode' ) and $self -> user() -> banned() )
-        {
-                $rv = $self -> construct_page( restricted_msg => 'YOU_ARE_BANNED' );
         }
 
         return $rv;
@@ -72,7 +68,7 @@ sub app_mode_do_create
                 $output = $self -> show_create_form( error_msg => $error_msg );
         } else
         {
-                my $new_thread_id = $self -> create();
+                my $new_thread_id = $self -> create_thread();
                 $output = $self -> show_thread( id => $new_thread_id, success_msg => 'NEW_THREAD_CREATED' );
         }
 
@@ -137,7 +133,7 @@ sub check_if_can_delete
 {
         my $self = shift;
 
-        my $id = $self -> arg( 'id' ) || shift || 0;
+        my $id = int( $self -> arg( 'id' ) );
 
         my $error_msg = '';
 
@@ -156,7 +152,7 @@ sub check_if_can_delete
 sub app_mode_vote
 {
         my $self = shift;
-        my $id = $self -> arg( 'id' ) || 0;
+        my $id = int( $self -> arg( 'id' ) );
 
         my $output;
 
@@ -178,21 +174,21 @@ sub app_mode_vote
 sub do_vote
 {
         my $self = shift;
-        my $id = shift;
+        my $id = int( shift );
 
-        FModel::Votes -> create( thread_id => $id, user_id => $self -> user() -> id() );
+        FModel::Votes -> create( thread => $id, user => $self -> user() );
 
         return;
 }
 
 sub show_thread
 {
-        my $self = shift;
-        my %params = @_;
-        my $id = $self -> arg( 'id' )                                      || $params{ 'id' }        || 0;
-        my $page = $self -> arg( 'page' )                                  || $params{ 'page' }      || 1;
-        my $error_msg = $self -> check_if_proper_thread_id_provided( $id ) || $params{ 'error_msg' } || '';
-        my $success_msg = $params{ 'success_msg' } || '';
+        my ( $self, %params ) = @_;
+
+        my $id = int( $self -> arg( 'id' ) || $params{ 'id' } );
+        my $page = int( $self -> arg( 'page' ) || $params{ 'page' } ) || 1;
+        my $error_msg = $self -> check_if_proper_thread_id_provided( $id ) || $params{ 'error_msg' };
+        my $success_msg = $params{ 'success_msg' };
 
         &ar( DYN_ID => $id ); 
 
@@ -200,25 +196,20 @@ sub show_thread
         {
                 my $thread = FModel::Threads -> get( id => $id );
 
-                &ar( DYN_TITLE => $thread -> title(),
-                     DYN_CONTENT => $thread -> content(),
-                     DYN_PINNED_IMAGE => $thread -> pinned_image_src(),
-                     DYN_CREATED => $self -> readable_date( $thread -> created() ),
-                     DYN_AUTHOR  => $thread -> user_id() -> name(),
-                     DYN_VOTE          => $thread -> vote(),
-                     DYN_VOTING_OPTIONS => $self -> get_voting_options_for_replace( $id ),
-                     DYN_CAN_DELETE => $self -> can_do_action_with_thread( 'delete', $id ),
-                     DYN_CAN_EDIT   => $self -> can_do_action_with_thread( 'edit', $id ),
-                     DYN_AUTHOR_AVATAR => $thread -> user_id() -> get_avatar_src(),
-                     DYN_AUTHOR_PERMISSIONS => $thread -> user_id() -> get_special_permission_title() );
-
-                if( $thread -> modified() )
-                {
-                        &ar( DYN_MODIFIED => 1, DYN_MODIFIED_DATE => $self -> readable_date( $thread -> modified_date() ) ); # do smth with this. Maybe new method get_modified_date() in model
-                }
+                &ar( DYN_TITLE              => $thread -> title(),
+                     DYN_CONTENT            => $thread -> content(),
+                     DYN_PINNED_IMAGE       => $thread -> pinned_image_src(),
+                     DYN_CREATED            => Funcs::readable_date( $thread -> created() ),
+                     DYN_MODIFIED_DATE      => Funcs::readable_date( $thread -> modified() ),
+                     DYN_AUTHOR             => $thread -> user() -> name(),
+                     DYN_VOTE               => $thread -> vote(),
+                     DYN_VOTING_OPTIONS     => $self -> get_voting_options_for_replace( $id ),
+                     DYN_CAN_DELETE         => $self -> can_do_action_with_thread( 'delete', $id ),
+                     DYN_CAN_EDIT           => $self -> can_do_action_with_thread( 'edit', $id ),
+                     DYN_AUTHOR_AVATAR      => $thread -> user() -> get_avatar_src(),
+                     DYN_AUTHOR_PERMISSIONS => $thread -> user() -> get_special_permission_title() );
 
                 $self -> add_messages( $id, $page );
-
         }
 
         my $output = $self -> construct_page( middle_tpl => 'thread', error_msg => $error_msg, success_msg => $success_msg );
@@ -228,15 +219,14 @@ sub show_thread
 
 sub show_create_form
 {
-        my $self = shift;
-        my %params = @_;
+        my ( $self, %params ) = @_;
 
-        my $error_msg = $params{ 'error_msg' } || '';
+        my $error_msg = $params{ 'error_msg' };
 
-        my $title        = $self -> arg( 'title' ) || '';
-        my $content      = $self -> arg( 'content' ) || '';
+        my $title        = $self -> arg( 'title' );
+        my $content      = $self -> arg( 'content' );
         my $pinned_image = $self -> upload( 'pinned_image' );
-        my $vote         = $self -> arg( 'vote' ) || 0;
+        my $vote         = ( $self -> arg( 'vote' ) );
 
         $self -> add_voting_options_data();
 
@@ -249,16 +239,15 @@ sub show_create_form
 
 sub show_edit_form
 {
-        my $self = shift;
-        my %params = @_;
+        my ( $self, %params ) = @_;
 
-        my $id = $self -> arg( 'id' ) || $params{ 'id' } || 0;
+        my $id = int( $self -> arg( 'id' ) || $params{ 'id' } );
 
-        my $error_msg = $params{ 'error_msg' } || '';
+        my $error_msg = $params{ 'error_msg' };
 
         &ar( DYN_ID => $id ); 
 
-        if( my $cant_show_form_msg = $self -> check_if_can_show_edit_form( $id ) )
+        if( my $cant_show_form_msg = $self -> check_if_can_show_edit_form() )
         {
                 $error_msg = $cant_show_form_msg;
                 &ar( DYN_DONT_SHOW_THREAD_DATA => 1 );
@@ -266,11 +255,10 @@ sub show_edit_form
         {
                 my $thread = FModel::Threads -> get( id => $id );
 
-                &ar( DYN_TITLE => $thread -> title(),
-                     DYN_CONTENT => $thread -> content(),
-                     DYN_PINNED_IMAGE => $thread -> pinned_image_src(),
-                     DYN_VOTING_OPTIONS => $self -> get_voting_options( $id )
-                     );
+                &ar( DYN_TITLE          => $thread -> title(),
+                     DYN_CONTENT        => $thread -> content(),
+                     DYN_PINNED_IMAGE   => $thread -> pinned_image_src(),
+                     DYN_VOTING_OPTIONS => $self -> get_voting_options_for_replace( $id ));
 
                 $self -> add_voting_options_data();
         }
@@ -284,7 +272,7 @@ sub check_if_can_show_edit_form
 {
         my $self = shift;
 
-        my $id = $self -> arg( 'id' ) || shift || 0;
+        my $id = int( $self -> arg( 'id' ) );
 
         my $error_msg = '';
 
@@ -304,14 +292,14 @@ sub can_edit
 {
         my $self = shift;
 
-        my $id           = $self -> arg( 'id' ) || 0;
-        my $title        = $self -> arg( 'title' ) || '';
-        my $content      = $self -> arg( 'content' ) || '';
+        my $id           = int( $self -> arg( 'id' ) );
+        my $title        = $self -> arg( 'title' );
+        my $content      = $self -> arg( 'content' );
         my $pinned_image = $self -> upload( 'pinned_image' );
 
         my $error_msg = '';
 
-        my $fields_are_filled = ( $self -> trim( $title ) and $self -> trim( $content ) );
+        my $fields_are_filled = ( Funcs::trim( $title ) and Funcs::trim( $content ) );
         
         if( my $thread_id_error = $self -> check_if_proper_thread_id_provided( $id ) )
         {
@@ -341,9 +329,9 @@ sub edit
 {
         my $self = shift;
 
-        my $id           = $self -> arg( 'id' ) || 0;
-        my $title        = $self -> arg( 'title' ) || '';
-        my $content      = $self -> arg( 'content' ) || '';
+        my $id           = int( $self -> arg( 'id' ) );
+        my $title        = $self -> arg( 'title' );
+        my $content      = $self -> arg( 'content' );
         my $pinned_image = $self -> upload( 'pinned_image' );
 
         my $dbh = LittleORM::Db -> get_write_dbh();
@@ -354,9 +342,8 @@ sub edit
         $thread -> title( $title );
         $thread -> content( $content );
 
-        $thread -> modified( 1 );
-        my $now = $self -> now();
-        $thread -> modified_date( $now );
+        my $now = Funcs::now();
+        $thread -> modified( $now );
         $thread -> updated( $now );
 
         $thread -> update();
@@ -370,9 +357,7 @@ sub edit
 
 sub pin_image_to_thread
 {
-        my $self = shift;
-        my $id = shift || 0;
-        my $image = shift;
+        my ( $self, $id, $image ) = @_;
 
         my $success = 0;
 
@@ -382,11 +367,11 @@ sub pin_image_to_thread
 
                 if( my $old_image_filename = $thread -> pinned_img() )
                 {
-                        unlink ForumConst -> pinned_images_dir_abs() . $old_image_filename;
+                        unlink File::Spec -> catfile( ForumConst -> pinned_images_dir_abs(), $old_image_filename );
                 }
 
                 my $filename = $self -> new_pinned_image_filename();
-                my $filepath = ForumConst -> pinned_images_dir_abs() . $filename;
+                my $filepath = File::Spec -> catfile( ForumConst -> pinned_images_dir_abs(), $filename );
 
                 cp( $image, $filepath );
                 $thread -> pinned_img( $filename );
@@ -402,13 +387,13 @@ sub delete_thread
 {
         my $self = shift;
 
-        my $id = $self -> arg( 'id' ) || 0;
+        my $id = int( $self -> arg( 'id' ) );
 
         if( not my $error = $self -> check_if_proper_thread_id_provided( $id ) )
         {
                 my $thread = FModel::Threads -> get( id => $id );
 
-                my @thread_messages = FModel::Messages -> get_many( thread_id => $id );
+                my @thread_messages = FModel::Messages -> get_many( thread => $id );
 
                 foreach my $message ( @thread_messages )
                 {
@@ -416,13 +401,13 @@ sub delete_thread
 
                         if( my $pinned_image = $message -> pinned_img() )
                         {
-                                unlink ForumConst -> pinned_images_dir_abs() . $pinned_image;
+                                unlink File::Spec -> catfile( ForumConst -> pinned_images_dir_abs(), $pinned_image );
                         }
                 }
 
                 if( my $pinned_image = $thread -> pinned_img() )
                 {
-                        unlink ForumConst -> pinned_images_dir_abs() . $pinned_image;
+                        unlink File::Spec -> catfile( ForumConst -> pinned_images_dir_abs() . $pinned_image );
                 }
 
                 $thread -> delete();
@@ -434,73 +419,66 @@ sub delete_thread
 sub add_voting_options_data
 {
         my $self = shift;
-        my $vote = $self -> arg( 'vote' );
+
+        my $vote = ( $self -> arg( 'vote' ) );
 
         my $options = [];
 
         if( $vote )
         {
-                &ar( DYN_VOTE => $vote );
+                &ar( DYN_VOTE => 1 );
                 
                 my $vote_options = $self -> get_voting_options_from_args();
 
                 for my $number ( sort keys $vote_options )
                 {
-                        my $option_hash = { DYN_NUMBER => $number, DYN_VALUE => $vote_options -> { $number } };
-                        push( @$options, $option_hash );
+                        push( @$options, ( $number => $vote_options -> { $number } ) );
                 }
         }
         else
         {
-                $options = [ { DYN_NUMBER => 1, DYN_VALUE => '' }, { DYN_NUMBER => 2, DYN_VALUE => '' } ];
+                $options = [ 1 => '', 2 => '' ];
         }
         
-        &ar( DYN_OPTIONS => $options );
+        &ar( DYN_VOTING_OPTIONS => $options );
 }
 
 sub add_messages
 {
-        my $self = shift;
-        my $id = shift;
-        my $page = shift || 1;
+        my ( $self, $id, $page ) = @_;
 
-        my @messages_sorted = sort { $a -> posted() cmp $b -> posted() } FModel::Messages -> get_many( thread_id => $id );
+        my @messages_sorted = sort { $a -> posted() cmp $b -> posted() } FModel::Messages -> get_many( thread => $id );
         my $messages = [];
 
         my $count_of_messages = scalar( @messages_sorted );
         my $messages_on_page = ForumConst -> messages_on_page();
         my $show_from = ( $page - 1 ) * $messages_on_page;
-        my $show_to = $self -> min_of( $show_from + $messages_on_page, $count_of_messages );
+        my $show_to = Funcs::min_of( $show_from + $messages_on_page, $count_of_messages );
 
         for( my $index = $show_from; $index < $show_to; $index++ )
         {
                 my $message = $messages_sorted[ $index ];
 
-                my $msg_hash = { DYN_MESSAGE_ID => $message -> id(),
-                                 DYN_POSTED     => $self -> readable_date( $message -> posted() ),
-                                 DYN_SUBJECT    => $message -> subject(),
-                                 DYN_CONTENT    => $message -> content(),
-                                 DYN_PINNED_IMAGE => $message -> pinned_image_src(),
-                                 DYN_AUTHOR     => $message -> user_id() -> name(),
-                                 DYN_CAN_DELETE => $self -> can_do_action_with_message( 'delete', $message -> id() ),
-                                 DYN_CAN_EDIT   => $self -> can_do_action_with_message( 'edit', $message -> id() ),
-                                 DYN_AUTHOR_AVATAR => $message -> user_id() -> get_avatar_src(),
-                                 DYN_AUTHOR_PERMISSIONS => $message -> user_id() -> get_special_permission_title()
+                my $msg_hash = { DYN_MESSAGE_ID         => $message -> id(),
+                                 DYN_POSTED             => Funcs::readable_date( $message -> posted() ),
+                                 DYN_SUBJECT            => $message -> subject(),
+                                 DYN_CONTENT            => $message -> content(),
+                                 DYN_PINNED_IMAGE       => $message -> pinned_image_src(),
+                                 DYN_MODIFIED_DATE      => Funcs::readable_date( $message -> modified() ),
+                                 DYN_AUTHOR             => $message -> user() -> name(),
+                                 DYN_CAN_DELETE         => $self -> can_do_action_with_message( 'delete', $message -> id() ),
+                                 DYN_CAN_EDIT           => $self -> can_do_action_with_message( 'edit', $message -> id() ),
+                                 DYN_AUTHOR_AVATAR      => $message -> user() -> get_avatar_src(),
+                                 DYN_AUTHOR_PERMISSIONS => $message -> user() -> get_special_permission_title()
                                  };
-
-                if( $message -> modified() )
-                {
-                        $msg_hash -> { 'DYN_MODIFIED' } = 1;
-                        $msg_hash -> { 'DYN_MODIFIED_DATE' } = $self -> readable_date( $message -> modified_date() );
-                }
 
                 push( $messages, $msg_hash );
         }
          
         if( $count_of_messages > 0 )
         {
-                &ar( DYN_MESSAGES => $messages,
-                     DYN_PAGES => $self -> add_pages( $id, $page ) );
+                $self -> set_page_switcher( $count_of_messages );
+                &ar( DYN_MESSAGES => $messages );
         }
 
         return $messages;
@@ -508,11 +486,11 @@ sub add_messages
 
 sub add_pages
 {
-        my $self = shift;
-        my $id = shift;
-        my $current_page = shift;
+        my ( $self, $id, $current_page ) = @_;
 
-        my $count_of_messages = FModel::Messages -> count( thread_id => $id );
+        assert( $current_page );
+
+        my $count_of_messages = FModel::Messages -> count( thread => $id );
         my $messages_on_page = ForumConst -> messages_on_page();
 
         my $num_of_pages = int( abs( $count_of_messages - 1 ) / $messages_on_page ) + 1;
@@ -543,16 +521,16 @@ sub can_create
 {
         my $self = shift;
 
-        my $title = $self -> arg( 'title' ) || '';
-        my $content = $self -> arg( 'content' ) || '';
+        my $title        = $self -> arg( 'title' );
+        my $content      = $self -> arg( 'content' );
+        my $vote         = ( $self -> arg( 'vote' ) );
         my $pinned_image = $self -> upload( 'pinned_image' );
-        my $vote = $self -> arg( 'vote' ) || 0;
 
         my $error_msg = '';
 
         my $vote_options_correctly_filled = ( not $vote or ( $vote and $self -> vote_options_filled() ) );
 
-        my $fields_are_filled = ( $self -> trim( $title ) and $self -> trim( $content ) and $vote_options_correctly_filled );
+        my $fields_are_filled = ( Funcs::trim( $title ) and Funcs::trim( $content ) and $vote_options_correctly_filled );
 
         if( not $fields_are_filled )
         {
@@ -584,7 +562,7 @@ sub vote_options_filled
 
                 for my $option ( keys $vote_options )
                 {
-                        if( $self -> trim( $vote_options -> { $option } ) eq '' )
+                        if( Funcs::trim( $vote_options -> { $option } ) eq '' )
                         {
                                 $filled = 0;
                         }
@@ -596,8 +574,7 @@ sub vote_options_filled
 
 sub is_thread_title_length_acceptable
 {
-        my $self = shift;
-        my $title = shift;
+        my ( $self, $title ) = @_;
         
         my $acceptable = 1;
 
@@ -609,28 +586,28 @@ sub is_thread_title_length_acceptable
         return $acceptable;
 }
 
-sub create
+sub create_thread
 {
         my $self = shift;
 
-        my $title = $self -> arg( 'title' ) || '';
-        my $content = $self -> arg( 'content' ) || '';
+        my $title        = $self -> arg( 'title' );
+        my $content      = $self -> arg( 'content' );
+        my $vote         = ( $self -> arg( 'vote' ) );
         my $pinned_image = $self -> upload( 'pinned_image' );
-        my $vote = $self -> arg( 'vote' ) || 0;
 
         my $dbh = LittleORM::Db -> get_write_dbh();
         $dbh -> begin_work();
 
         my $user = FModel::Users -> get( name => $self -> user() -> name() );
 
-        my $new_thread = FModel::Threads -> create( title => $title, content => $content, user_id => $user -> id(), created => $self -> now(), updated => $self -> now(), vote => $vote );
+        my $new_thread = FModel::Threads -> create( title => $title, content => $content, user => $user, created => Funcs::now(), updated => Funcs::now(), vote => $vote );
 
         if( $vote )
         {
                 my $vote_options = $self -> get_voting_options_from_args();
                 for my $number ( sort keys $vote_options )
                 {
-                        FModel::VotingOptions -> create( thread_id => $new_thread -> id(), title => $vote_options -> { $number } );
+                        FModel::VotingOptions -> create( thread => $new_thread, title => $vote_options -> { $number } );
                 }
         }
         
@@ -649,10 +626,10 @@ sub get_voting_options_from_args
 
         for my $arg ( keys $self -> args() )
         {
-                if( $arg =~ m/^option\d+$/ )
+                if( $arg =~ m/^option(\d+)$/ )
                 {
-                        my ( $number ) = $arg =~ /(\d+)/;
-                        $options -> { $number } = $self -> trim( $self -> arg( $arg ) );
+                        my ( $number ) = $1;
+                        $options -> { $number } = Funcs::trim( $self -> arg( $arg ) );
                 }
         }
 
@@ -661,11 +638,17 @@ sub get_voting_options_from_args
 
 sub set_page_switcher
 {
-        # very cool universal page switcher, items count is first arg
         my ( $self, $items_count ) = @_;
 
         my $page = int( $self -> arg( 'page' ) );
-        my $perpage = ( $self -> arg( 'perpage' ) or 20 );
+
+        if( not $page )
+        {
+                $page = 1;
+        }
+
+        my $perpage = ForumConst -> messages_on_page();
+
         assert( $perpage > 0 );
 
         my $pages = int( $items_count / $perpage ) + ( $items_count % $perpage ? 1 : 0 );
@@ -678,20 +661,21 @@ sub set_page_switcher
 
         my $url = $self -> url();
 
-        for( my $i = 0; $i < $pages; $i ++ )
+        for( my $i = 1; $i <= $pages; $i ++ )
         {
                 $query_args{ 'page' } = $i;
 
                 $url -> query_form( %query_args );
 
-                my $link = $i + 1;
+                my $link = $i;
 
                 unless( $i == $page )
                 {
-                        $link = sprintf( '<a href="%s">%d</a>', $url -> as_string(), $i + 1 ); # do not use $link twice, its ambiguous
+                        $link = sprintf( '<a href="%s">%d</a>', $url -> as_string(), $i );
                 }
-                push @links, $link;
+                push( @links, $link );
         }
+
         &ar( DYN_PAGE_SWITCHER => join( ' ', @links ) );
 }
 

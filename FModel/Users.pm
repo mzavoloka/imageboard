@@ -27,10 +27,11 @@ has 'registered' => ( is => 'rw',
 
 has 'avatar' => ( is => 'rw', isa => 'Str' );
 
-has 'permission_id' => ( is => 'rw',
-                          metaclass => 'LittleORM::Meta::Attribute',
-                          isa => 'FModel::Permissions',
-                          description => { foreign_key => 'FModel::Permissions' } );
+has 'permission' => ( is => 'rw',
+                      metaclass => 'LittleORM::Meta::Attribute',
+                      isa => 'FModel::Permissions',
+                      description => { foreign_key => 'yes',
+                                       db_field => 'permission_id' } );
 
 has 'banned' => ( is => 'rw', isa => 'Bool' );
 
@@ -38,7 +39,7 @@ sub get_permission_title
 {
         my $self = shift;
 
-        my $title = $self -> permission_id() -> title();
+        my $title = $self -> permission() -> title();
 
         return $title;
 }
@@ -67,10 +68,10 @@ sub get_avatar_src
 
         if( $self -> avatar() )
         {
-                $avatar_src .= $self -> avatar();
+                $avatar_src = File::Spec -> catfile( $avatar_src, $self -> avatar() );
         } else
         {
-                $avatar_src .= 'default'; 
+                $avatar_src = File::Spec -> catfile( $avatar_src, 'default' ); 
         }
 
         return $avatar_src;

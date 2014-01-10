@@ -20,8 +20,8 @@ sub app_mode_default
 {
 	my $self = shift;
 
-        my $error_msg = $self -> arg( 'error_msg' ) || '';
-        my $success_msg = $self -> arg( 'success_msg' ) || '';
+        my $error_msg = $self -> arg( 'error_msg' );
+        my $success_msg = $self -> arg( 'success_msg' );
         
         my $threads = $self -> get_threads();
 
@@ -44,25 +44,20 @@ sub get_threads
 
         for my $thread ( @threads_sorted )
         {
-                my $hash = { DYN_THREAD_ID     => $thread -> id(),
-                             DYN_TITLE         => $thread -> title(),
-                             DYN_CONTENT       => $thread -> content(),
-                             DYN_VOTE          => $thread -> vote(),
-                             DYN_VOTING_OPTIONS => $self -> get_voting_options_for_replace( $thread -> id() ),
-                             DYN_PINNED_IMAGE  => $thread -> pinned_image_src(),
-                             DYN_AUTHOR        => $thread -> user_id() -> name(),
-                             DYN_CREATED       => $self -> readable_date( $thread -> created() ),
-                             DYN_MESSAGES      => $self -> get_thread_messages( $thread -> id() ),
-                             DYN_CAN_DELETE    => $self -> can_do_action_with_thread( 'delete', $thread -> id() ),
-                             DYN_CAN_EDIT      => $self -> can_do_action_with_thread( 'edit', $thread -> id() ),
-                             DYN_AUTHOR_AVATAR => $thread -> user_id() -> get_avatar_src(),
-                             DYN_AUTHOR_PERMISSIONS => $thread -> user_id() -> get_special_permission_title() };
-
-                if( $thread -> modified() )
-                {
-                        $hash -> { 'DYN_MODIFIED' } = 1;
-                        $hash -> { 'DYN_MODIFIED_DATE' } = $self -> readable_date( $thread -> modified_date() );
-                }
+                my $hash = { DYN_THREAD_ID          => $thread -> id(),
+                             DYN_TITLE              => $thread -> title(),
+                             DYN_CONTENT            => $thread -> content(),
+                             DYN_VOTE               => $thread -> vote(),
+                             DYN_VOTING_OPTIONS     => $self -> get_voting_options_for_replace( $thread -> id() ),
+                             DYN_PINNED_IMAGE       => $thread -> pinned_image_src(),
+                             DYN_AUTHOR             => $thread -> user() -> name(),
+                             DYN_CREATED            => Funcs::readable_date( $thread -> created() ),
+                             DYN_MODIFIED_DATE      => Funcs::readable_date( $thread -> modified() ),
+                             DYN_MESSAGES           => $self -> get_thread_messages( $thread -> id() ),
+                             DYN_CAN_DELETE         => $self -> can_do_action_with_thread( 'delete', $thread -> id() ),
+                             DYN_CAN_EDIT           => $self -> can_do_action_with_thread( 'edit', $thread -> id() ),
+                             DYN_AUTHOR_AVATAR      => $thread -> user() -> get_avatar_src(),
+                             DYN_AUTHOR_PERMISSIONS => $thread -> user() -> get_special_permission_title() };
 
                 push( $threads, $hash );
         }
@@ -72,10 +67,9 @@ sub get_threads
 
 sub get_thread_messages
 {
-        my $self = shift;
-        my $thread_id = shift;
+        my ( $self, $thread_id ) = @_;
 
-        my @messages_sorted = FModel::Messages -> get_many( thread_id => $thread_id, _sortby => 'posted' );
+        my @messages_sorted = FModel::Messages -> get_many( thread => $thread_id, _sortby => 'posted' );
         my $messages = [];
 
         if( @messages_sorted )
@@ -90,22 +84,17 @@ sub get_thread_messages
                 for( $index; $index <= $#messages_sorted; $index++ )
                 {
                         my $message = $messages_sorted[ $index ];
-                        my $msg_hash = { DYN_MESSAGE_ID => $message -> id(),
-                                         DYN_POSTED     => $self -> readable_date( $message -> posted() ),
-                                         DYN_SUBJECT    => $message -> subject(),
-                                         DYN_CONTENT    => $message -> content(),
-                                         DYN_PINNED_IMAGE => $message -> pinned_image_src(),
-                                         DYN_AUTHOR     => $message -> user_id() -> name(),
-                                         DYN_CAN_DELETE => $self -> can_do_action_with_message( 'delete', $message -> id() ),
-                                         DYN_CAN_EDIT   => $self -> can_do_action_with_message( 'edit', $message -> id() ),
-                                         DYN_AUTHOR_AVATAR => $message -> user_id() -> get_avatar_src(),
-                                         DYN_AUTHOR_PERMISSIONS => $message -> user_id() -> get_special_permission_title() };
-
-                        if( $message -> modified() )
-                        {
-                                $msg_hash -> { 'DYN_MODIFIED' } = 1;
-                                $msg_hash -> { 'DYN_MODIFIED_DATE' } = $self -> readable_date( $message -> modified_date() );
-                        }
+                        my $msg_hash = { DYN_MESSAGE_ID         => $message -> id(),
+                                         DYN_POSTED             => Funcs::readable_date( $message -> posted() ),
+                                         DYN_SUBJECT            => $message -> subject(),
+                                         DYN_CONTENT            => $message -> content(),
+                                         DYN_PINNED_IMAGE       => $message -> pinned_image_src(),
+                                         DYN_AUTHOR             => $message -> user() -> name(),
+                                         DYN_MODIFIED_DATE      => Funcs::readable_date( $message -> modified() ),
+                                         DYN_CAN_DELETE         => $self -> can_do_action_with_message( 'delete', $message -> id() ),
+                                         DYN_CAN_EDIT           => $self -> can_do_action_with_message( 'edit', $message -> id() ),
+                                         DYN_AUTHOR_AVATAR      => $message -> user() -> get_avatar_src(),
+                                         DYN_AUTHOR_PERMISSIONS => $message -> user() -> get_special_permission_title() };
 
                         push( $messages, $msg_hash );
                 }
@@ -113,5 +102,6 @@ sub get_thread_messages
 
         return $messages;
 }
+
 
 1;

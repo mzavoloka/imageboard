@@ -9,12 +9,11 @@ sub _db_table { 'voting_options' }
 
 has 'title' => ( is => 'rw', isa => 'Str' );
 
-has 'thread_id' => ( is => 'rw',
-                     metaclass => 'LittleORM::Meta::Attribute',
-                     isa => 'FModel::Threads',
-                     description => { foreign_key => 'FModel::Threads',
-                                      foreign_key_attr_name => 'id' } );
-
+has 'thread' => ( is => 'rw',
+                  metaclass => 'LittleORM::Meta::Attribute',
+                  isa => 'FModel::Threads',
+                  description => { foreign_key => 'yes',
+                                   db_field => 'thread_id' } );
 
 
 1;

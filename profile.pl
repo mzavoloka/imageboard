@@ -40,7 +40,7 @@ sub app_mode_default
 {
 	my $self = shift;
 
-        my $username = $self -> arg( 'username' ) || $self -> user() -> name() || '';
+        my $username = $self -> arg( 'username' ) || $self -> user() -> name();
 
         my $error_msg = '';
 
@@ -51,7 +51,7 @@ sub app_mode_default
         } else
         {
                 $error_msg = 'USER_NOT_FOUND';
-		&ar( DONT_SHOW_PROFILE_INFO => 1 );
+		&ar( DYN_DONT_SHOW_PROFILE_INFO => 1 );
         }
 
         my $output = $self -> construct_page( middle_tpl => 'profile', error_msg => $error_msg );
@@ -83,7 +83,7 @@ sub can_change_email
 {
         my $self = shift;
 
-        my $email = $self -> arg( 'email' ) || '';
+        my $email = $self -> arg( 'email' );
 
         my $error_msg = '';
 
@@ -101,19 +101,34 @@ sub can_change_email
         return $error_msg;
 }
 
+sub is_email_exists_except_user
+{
+        my ( $self, $email, $user_id ) = @_;
+
+        my $exists = 0;
+
+        if( $self -> is_email_valid( $email ) )
+        {
+                $email = lc( $email );
+                $exists = FModel::Users -> count( email => $email, id => { '!=', $user_id } );
+        }
+
+        return( $exists );
+}
+
 sub app_mode_change_password
 {
         my $self = shift;
 
         my $output;
 
-        my $change_button_pressed = $self -> arg( 'change' ) || '';
+        my $change_button_pressed = $self -> arg( 'change' );
 
         if( $change_button_pressed )
         {
-                my $current_password = $self -> arg( 'current_password' ) || '';
-                my $new_password = $self -> arg( 'new_password' ) || '';
-                my $new_password_confirmation = $self -> arg( 'new_password_confirmation' ) || '';
+                my $current_password = $self -> arg( 'current_password' );
+                my $new_password = $self -> arg( 'new_password' );
+                my $new_password_confirmation = $self -> arg( 'new_password_confirmation' );
 
                 if( my $error_msg = $self -> can_change_password( $current_password, $new_password, $new_password_confirmation ) )
                 {
@@ -134,10 +149,7 @@ sub app_mode_change_password
 
 sub can_change_password
 {
-        my $self = shift;
-        my $current_password = shift;
-        my $new_password = shift;
-        my $new_password_confirmation = shift;
+        my ( $self, $current_password, $new_password, $new_password_confirmation ) = @_;
 
         my $error_msg = '';
 
@@ -190,7 +202,7 @@ sub app_mode_upload_avatar
         {
                 my $filename = $self -> user() -> id();
 
-                my $filepath = ForumConst -> avatars_dir_abs() . $filename;
+                my $filepath = File::Spec -> catfile( ForumConst -> avatars_dir_abs(), $filename );
 
                 if( cp( $avatar, $filepath ) )
                 {
@@ -213,8 +225,7 @@ sub app_mode_upload_avatar
 
 sub can_upload_avatar
 {
-        my $self = shift;
-        my $avatar = shift || '';
+        my ( $self, $avatar ) = @_;
 
         my $error_msg = '';
 
@@ -234,25 +245,28 @@ sub can_upload_avatar
 
 sub add_profile_data
 {
-        my $self = shift;
-        my $user_id = shift;
+        my ( $self, $user_id ) = @_;
 
         my $user = FModel::Users -> get( id => $user_id );
 
         if( $user -> name() eq $self -> user() -> name() )
         {
-                &ar( USER_HOME_PROFILE => 1 );
+                &ar( DYN_USER_HOME_PROFILE => 1 );
         }
 
-        my $num_of_messages = FModel::Messages -> count( user_id => $user -> id() );
+        my $num_of_messages = FModel::Messages -> count( user => $user );
 
-        my $num_of_threads = FModel::Threads -> count( user_id => $user -> id() );
+        my $num_of_threads = FModel::Threads -> count( user => $user );
 
-        &ar( NAME => $user -> name(), ID => $user -> id(), REGISTERED => $self -> readable_date( $user -> registered() ),
-             EMAIL => $user -> email(), NUM_OF_MESSAGES => $num_of_messages, NUM_OF_THREADS => $num_of_threads,
-             AVATAR => $user -> get_avatar_src(), USER_ID => $user -> id(),
-             CAN_BAN => $self -> can_do_action_with_user( 'ban', $user -> id() ), BANNED => $user -> banned(),
-             PERMISSIONS => $user -> get_special_permission_title() );
+        &ar( DYN_ID              => $user -> id(),
+             DYN_NAME            => $user -> name(),
+             DYN_EMAIL           => $user -> email(),
+             DYN_REGISTERED      => $self -> readable_date( $user -> registered() ),
+             DYN_NUM_OF_MESSAGES => $num_of_messages,
+             DYN_NUM_OF_THREADS  => $num_of_threads,
+             DYN_AVATAR          => $user -> get_avatar_src(),
+             DYN_CAN_BAN         => $self -> can_do_action_with_user( 'ban', $user -> id() ), BANNED => $user -> banned(),
+             DYN_PERMISSIONS     => $user -> get_special_permission_title() );
 
         return;
 }
@@ -261,7 +275,7 @@ sub change_email
 {
         my $self = shift;
 
-        my $email = $self -> arg( 'email' ) || '';
+        my $email = $self -> arg( 'email' );
 
         $email = lc( $email );
 
@@ -274,9 +288,7 @@ sub change_email
 
 sub change_password
 {
-        my $self = shift;
-        my $user_id = shift;
-        my $new_password = shift;
+        my ( $self, $user_id, $new_password ) = @_;
 
         my $user = FModel::Users -> get( id => $user_id );
         $user -> password( $new_password );
@@ -289,7 +301,7 @@ sub app_mode_ban
 {
         my $self = shift;
 
-        my $user_id = $self -> arg( 'user_id' );
+        my $user_id = int( $self -> arg( 'user_id' ) );
 
         my $output;
 
@@ -302,7 +314,7 @@ sub app_mode_ban
         }
         else
         {
-                &ar( 'DONT_SHOW_PROFILE_INFO' => 1 );
+                &ar( 'DYN_DONT_SHOW_PROFILE_INFO' => 1 );
                 $output = $self -> construct_page( middle_tpl => 'profile', error_msg => 'CANNOT_BAN_USER' );
         }
 
@@ -311,27 +323,27 @@ sub app_mode_ban
 
 sub ban
 {
-        my $self = shift;
-        my $user_id = shift;
+        my ( $self, $user_id ) = shift;
 
-        my $success = 0;
+        my $dbh = LittleORM::Db -> get_write_dbh();
+        $dbh -> begin_work();
+        
+        my $user = FModel::Users -> get( id => $user_id );
+        $user -> banned( 1 );
+        $user -> update();
 
-        if( not my $error = $self -> check_if_proper_user_id_provided( $user_id ) )
-        {
-                my $user = FModel::Users -> get( id => $user_id );
-                $user -> banned( 1 );
-                $user -> update();
-                $success = 1;
-        }
+        FModel::Sessions -> delete( user_id => $user_id );
 
-        return $success;
+        assert( $dbh -> commit() );
+
+        return;
 }
 
 sub app_mode_unban
 {
         my $self = shift;
 
-        my $user_id = $self -> arg( 'user_id' );
+        my $user_id = int( $self -> arg( 'user_id' ) );
 
         my $output;
 
@@ -344,7 +356,7 @@ sub app_mode_unban
         }
         else
         {
-                &ar( 'DONT_SHOW_PROFILE_INFO' => 1 );
+                &ar( 'DYN_DONT_SHOW_PROFILE_INFO' => 1 );
                 $output = $self -> construct_page( middle_tpl => 'profile', error_msg => 'CANNOT_UNBAN_USER' );
         }
 
@@ -353,8 +365,7 @@ sub app_mode_unban
 
 sub unban
 {
-        my $self = shift;
-        my $user_id = shift;
+        my ( $self, $user_id ) = @_;
 
         my $success = 0;
 
@@ -371,8 +382,7 @@ sub unban
 
 sub check_avatar_image
 {
-        my $self = shift;
-        my $image = shift || '';
+        my ( $self, $image ) = @_;
 
         my $error_msg = '';
 
