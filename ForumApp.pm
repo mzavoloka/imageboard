@@ -9,6 +9,7 @@ use FModel::Messages;
 use FModel::Threads;
 use FModel::Permissions;
 use FModel::VotingOptions;
+use FModel::Votes;
 use Wendy::Templates::TT 'tt';
 use Wendy::Db qw( dbconnect );
 use Data::Dumper 'Dumper';
@@ -19,7 +20,6 @@ use File::Type;
 use ForumConst 'proper_image_filetypes';
 use File::Copy 'cp';
 use Carp::Assert 'assert';
-use Carp 'croak';
 use Funcs;
 use File::Spec;
 
@@ -265,7 +265,7 @@ sub is_message_belongs_to_current_user
         if( $self -> user() )
         {
                 my $message = FModel::Messages -> get( id => $message_id );
-                $belongs = ( $self -> user() -> id() eq $message -> user() -> id() );
+                $belongs = ( $self -> user() -> id() eq $message -> author() -> id() );
         }
 
         return $belongs;
@@ -280,7 +280,7 @@ sub is_thread_belongs_to_current_user
         if( $self -> user() )
         {
                 my $thread = FModel::Threads -> get( id => $thread_id );
-                $belongs = ( $self -> user() -> id() eq $thread -> user() -> id() );
+                $belongs = ( $self -> user() -> id() eq $thread -> author() -> id() );
         }
 
         return $belongs;
@@ -290,10 +290,7 @@ sub can_do_action_with_message
 {
         my ( $self, $action, $message_id ) = @_;
 
-        if( $action ne 'delete' and $action ne 'edit' )
-        {
-                croak 'You wrongly defined, which action that you intend to do with message needs to be checked';
-        }
+        assert( $action eq 'delete' or $action eq 'edit' );
 
         my $can = 0;
 
@@ -311,7 +308,7 @@ sub can_do_action_with_message
         {
                 my $message = FModel::Messages -> get( id => $message_id );
 
-                my $message_author_permission = $message -> user() -> permission() -> id();
+                my $message_author_permission = $message -> author() -> permission() -> id();
 
                 if( $action eq 'delete' )
                 {
@@ -346,9 +343,11 @@ sub can_do_action_with_thread
 {
         my ( $self, $action, $thread_id ) = @_;
 
-        if( $action ne 'delete' and $action ne 'edit' )
+        assert( $action eq 'delete' or $action eq 'edit' or $action eq 'vote' );
+
+        if( $action eq 'vote' and $self -> user() )
         {
-                croak 'You wrongly defined, which action that you intend to do with thread needs to be checked';
+                return 1;
         }
 
         my $can = 0;
@@ -367,7 +366,7 @@ sub can_do_action_with_thread
         {
                 my $thread = FModel::Threads -> get( id => $thread_id );
 
-                my $thread_author_permission = $thread -> user() -> permission() -> id();
+                my $thread_author_permission = $thread -> author() -> permission() -> id();
 
                 if( $action eq 'delete' )
                 {
@@ -414,10 +413,7 @@ sub can_do_action_with_user
 {
         my ( $self, $action, $user_id ) = @_;
 
-        if( $action ne 'ban' and $action ne 'unban' )
-        {
-                croak 'You wrongly defined, which action that you intend to do with user needs to be checked';
-        }
+        assert( $action eq 'ban' or $action eq 'unban' );
 
         my $can = 0;
         
@@ -586,15 +582,18 @@ sub is_pinned_filename_exists
         return $exists;
 }
 
-sub get_voting_options_for_replace()
+sub get_voting_options_for_replace
 {
         my ( $self, $thread_id ) = @_;
 
         my $thread = FModel::Threads -> get( id => $thread_id );
 
         my @voting_options = map {
-                                   { DYN_ID => $_ -> id(),
-                                     DYN_TITLE => $_ -> title() };
+                                   { DYN_ID           => $_ -> id(),
+                                     DYN_TITLE        => $_ -> title(),
+                                     DYN_NUM_OF_VOTES => $_ -> num_of_votes(),
+                                     DYN_PERCENTAGE   => int( $_ -> percentage() ), # Can I gracefully do such formatting using Template-Toolkit?
+                                     DYN_USERS_CHOICE => ( $self -> user() and $_ -> did_certain_user_voted_for_this_option( $self -> user() ) ) }; 
                                  } $thread -> voting_options();
 
         return \@voting_options;

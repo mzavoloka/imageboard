@@ -22,7 +22,7 @@ has 'created' => ( is => 'rw',
 
 has 'content' => ( is => 'rw', isa => 'Str' );
 
-has 'user' => ( is => 'rw',
+has 'author' => ( is => 'rw',
                 metaclass => 'LittleORM::Meta::Attribute',
                 isa => 'FModel::Users',
                 description => { db_field => 'user_id',
@@ -71,18 +71,153 @@ sub update_thread
         return $success;
 }
 
-sub pinned_image_src
+sub pinned_image_url
 {
         my $self = shift;
 
-        my $image_src;
+        my $image_url;
 
         if( $self -> pinned_img() )
         {
-                $image_src = File::Spec -> catfile( ForumConst -> pinned_images_dir_url(), $self -> pinned_img() );
+                $image_url = File::Spec -> catfile( ForumConst -> pinned_images_dir_url(), $self -> pinned_img() );
         }
 
-        return $image_src;
+        return $image_url;
+}
+
+sub pinned_image_abs
+{
+        my $self = shift;
+
+        my $image_abs;
+
+        if( $self -> pinned_img() )
+        {
+                $image_abs = File::Spec -> catfile( ForumConst -> pinned_images_dir_abs(), $self -> pinned_img() );
+        }
+
+        return $image_abs;
+}
+
+sub delete_pinned_image
+{
+        my $self = shift;
+
+        if( $self -> pinned_img() )
+        {
+                unlink $self -> pinned_image_abs();
+        }
+
+        return;
+}
+
+sub delete_voting_options
+{
+        my $self = shift;
+
+        for my $option ( $self -> voting_options() )
+        {
+                $option -> delete();
+        }
+
+        return;
+}
+
+sub delete_votes
+{
+        my $self = shift;
+
+        for my $option ( $self -> voting_options() )
+        {
+                $option -> delete_votes();
+        }
+
+        return;
+}
+
+#sub all_thread_votes
+#{
+#        my $self = shift;
+#
+#        my @all_votes;
+#
+#        for my $option ( $self -> voting_options() )
+#        {
+#                push( @all_votes, $option -> votes() );
+#        }
+#
+#        return @all_votes;
+#}
+
+sub did_certain_user_voted_in_this_thread
+{
+        my ( $self, $user ) = @_;
+
+        my $voted = 0;
+
+        for my $option ( $self -> voting_options() )
+        {
+                if( $option -> did_certain_user_voted_for_this_option( $user ) )
+                {
+                        $voted = 1;
+                        last;
+                }
+        }
+
+        return $voted;
+}
+
+sub option_that_certain_user_voted_for
+{
+        my ( $self, $user ) = @_;
+
+        my $rv;
+
+        for my $option ( $self -> voting_options() )
+        {
+                if( $option -> did_certain_user_voted_for_this_option( $user ) )
+                {
+                        $rv = $option;
+                        last;
+                }
+        }
+
+        return $rv;
+}
+
+sub option_that_author_voted_for
+{
+        my ( $self, $user ) = @_;
+
+        my $option = $self -> option_that_certain_user_voted_for( $self -> author() );
+
+        return $option;
+}
+
+sub option_title_that_author_voted_for
+{
+        my ( $self, $user ) = @_;
+
+        my $title = $self -> option_that_author_voted_for() ? $self -> option_that_author_voted_for() -> title() : '';
+
+        return $title;
+}
+
+sub delete_user_vote
+{
+        my ( $self, $user ) = @_;
+
+        for my $option ( $self -> voting_options() )
+        {
+                if( $option -> did_certain_user_voted_for_this_option( $user ) )
+                {
+                        my $vote = FModel::Votes -> get( user => $user, voting_option => $option );
+                        $vote -> delete();
+                        last;
+                }
+        }
+
+        return;
 }
 
 

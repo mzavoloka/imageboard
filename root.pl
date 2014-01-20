@@ -49,15 +49,17 @@ sub get_threads
                              DYN_CONTENT            => $thread -> content(),
                              DYN_VOTE               => $thread -> vote(),
                              DYN_VOTING_OPTIONS     => $self -> get_voting_options_for_replace( $thread -> id() ),
-                             DYN_PINNED_IMAGE       => $thread -> pinned_image_src(),
-                             DYN_AUTHOR             => $thread -> user() -> name(),
+                             DYN_PINNED_IMAGE       => $thread -> pinned_image_url(),
+                             DYN_AUTHOR             => $thread -> author() -> name(),
+                             DYN_AUTHOR_VOTED_FOR   => $thread -> option_title_that_author_voted_for(),
                              DYN_CREATED            => Funcs::readable_date( $thread -> created() ),
                              DYN_MODIFIED_DATE      => Funcs::readable_date( $thread -> modified() ),
                              DYN_MESSAGES           => $self -> get_thread_messages( $thread -> id() ),
+                             DYN_CAN_VOTE           => $self -> can_do_action_with_thread( 'vote', $thread -> id() ),
                              DYN_CAN_DELETE         => $self -> can_do_action_with_thread( 'delete', $thread -> id() ),
                              DYN_CAN_EDIT           => $self -> can_do_action_with_thread( 'edit', $thread -> id() ),
-                             DYN_AUTHOR_AVATAR      => $thread -> user() -> get_avatar_src(),
-                             DYN_AUTHOR_PERMISSIONS => $thread -> user() -> get_special_permission_title() };
+                             DYN_AUTHOR_AVATAR      => $thread -> author() -> avatar_url(),
+                             DYN_AUTHOR_PERMISSIONS => $thread -> author() -> get_special_permission_title() };
 
                 push( $threads, $hash );
         }
@@ -88,13 +90,14 @@ sub get_thread_messages
                                          DYN_POSTED             => Funcs::readable_date( $message -> posted() ),
                                          DYN_SUBJECT            => $message -> subject(),
                                          DYN_CONTENT            => $message -> content(),
-                                         DYN_PINNED_IMAGE       => $message -> pinned_image_src(),
-                                         DYN_AUTHOR             => $message -> user() -> name(),
+                                         DYN_PINNED_IMAGE       => $message -> pinned_image_url(),
+                                         DYN_AUTHOR             => $message -> author() -> name(),
+                                         DYN_AUTHOR_VOTED_FOR   => $message -> option_title_that_author_voted_for(),
                                          DYN_MODIFIED_DATE      => Funcs::readable_date( $message -> modified() ),
                                          DYN_CAN_DELETE         => $self -> can_do_action_with_message( 'delete', $message -> id() ),
                                          DYN_CAN_EDIT           => $self -> can_do_action_with_message( 'edit', $message -> id() ),
-                                         DYN_AUTHOR_AVATAR      => $message -> user() -> get_avatar_src(),
-                                         DYN_AUTHOR_PERMISSIONS => $message -> user() -> get_special_permission_title() };
+                                         DYN_AUTHOR_AVATAR      => $message -> author() -> avatar_url(),
+                                         DYN_AUTHOR_PERMISSIONS => $message -> author() -> get_special_permission_title() };
 
                         push( $messages, $msg_hash );
                 }

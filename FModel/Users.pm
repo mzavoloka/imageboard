@@ -60,21 +60,50 @@ sub get_special_permission_title
         return $special_title;
 }
 
-sub get_avatar_src
+sub avatar_url
 {
         my $self = shift;
 
-        my $avatar_src = ForumConst -> avatars_dir_url();
+        my $avatar_url = ForumConst -> avatars_dir_url();
 
         if( $self -> avatar() )
         {
-                $avatar_src = File::Spec -> catfile( $avatar_src, $self -> avatar() );
+                $avatar_url = File::Spec -> catfile( $avatar_url, $self -> avatar() );
         } else
         {
-                $avatar_src = File::Spec -> catfile( $avatar_src, 'default' ); 
+                $avatar_url = File::Spec -> catfile( $avatar_url, 'default' ); 
         }
 
-        return $avatar_src;
+        return $avatar_url;
+}
+
+sub avatar_abs
+{
+        my $self = shift;
+
+        my $avatar_abs = ForumConst -> avatars_dir_abs();
+
+        if( $self -> avatar() )
+        {
+                $avatar_abs = File::Spec -> catfile( $avatar_abs, $self -> avatar() );
+        } else
+        {
+                $avatar_abs = File::Spec -> catfile( $avatar_abs, 'default' ); 
+        }
+
+        return $avatar_abs;
+}
+
+sub delete_avatar
+{
+        my $self = shift;
+
+        if( $self -> avatar() )
+        {
+                unlink $self -> avatar_abs();
+        }
+
+        return;
 }
 
 

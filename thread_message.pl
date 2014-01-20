@@ -42,7 +42,15 @@ sub app_mode_create_form
 {
         my $self = shift;
 
-        my $output = $self -> show_create_form();
+        my $output;
+
+        if( my $id_error = $self -> check_if_proper_thread_id_provided( int( $self -> arg( 'thread_id' ) ) ) )
+        {
+                $self -> construct_page( middle_tpl => 'unexpected_error', error_msg => $id_error );
+        } else
+        {
+                $output = $self -> show_create_form();
+        }
 
         return $output;
 }
@@ -151,41 +159,6 @@ sub check_if_can_delete
         return $error_msg;
 }
 
-#sub add_message_data
-#{
-#        my $self = shift;
-#        my $id = shift;
-#        my $full = shift;
-#        
-#        &ar( MESSAGE_ID => $id );
-#
-#        if( not my $error = $self -> check_if_proper_message_id_provided( $id ) )
-#        {
-#                my $message = FModel::Messages -> get( id => $id );
-#
-#                &ar( SUBJECT => $message -> subject() );
-#
-#                if( $full )
-#                {
-#                        &ar( CONTENT => $message -> content(),
-#                             PINNED_IMAGE => $message -> pinned_image_src(),
-#                             POSTED => Funcs::readable_date( $message -> posted() ),
-#                             AUTHOR  => $message -> user() -> name(),
-#                             SHOW_MANAGE_LINKS => $self -> is_message_belongs_to_current_user( $id ) );
-#
-#                        if( $message -> modified() )
-#                        {
-#                                &ar( MODIFIED => 1, MODIFIED_DATE => Funcs::readable_date( $message -> modified_date() ) );
-#                        }
-#                }
-#        } else
-#        {
-#                &ar( DONT_SHOW_MESSAGE_DATA => 1 );
-#        }
-#
-#        return;
-#}
-
 sub show_create_form
 {
         my ( $self, %params ) = @_;
@@ -224,7 +197,7 @@ sub show_edit_form
 
                 &ar( DYN_SUBJECT      => $message -> subject(),
                      DYN_CONTENT      => $message -> content(),
-                     DYN_PINNED_IMAGE => $message -> pinned_image_src() );
+                     DYN_PINNED_IMAGE => $message -> pinned_image_url() );
         }
 
         my $output = $self -> construct_page( middle_tpl => 'message_edit', error_msg => $error_msg );
@@ -264,11 +237,7 @@ sub delete_message
         {
                 my $message = FModel::Messages -> get( id => $id );
 
-                if( my $pinned_image = $message -> pinned_img() )
-                {
-                        unlink File::Spec -> catfile( ForumConst -> pinned_images_dir_abs(), $pinned_image );
-                }
-
+                $message -> delete_pinned_image();
                 $message -> delete();
 
                 $success = 1;
@@ -433,13 +402,10 @@ sub pin_image_to_message
         {
                 my $message = FModel::Messages -> get( id => $id );
 
-                if( my $old_image_filename = $message -> pinned_img() )
-                {
-                        unlink File::Spec -> catfile( ForumConst -> pinned_images_dir_abs() . $old_image_filename );
-                }
+                $message -> delete_pinned_image();
 
                 my $filename = $self -> new_pinned_image_filename();
-                my $filepath = File::Spec -> catfile( ForumConst -> pinned_images_dir_abs() . $filename );
+                my $filepath = File::Spec -> catfile( ForumConst -> pinned_images_dir_abs(), $filename );
 
                 cp( $image, $filepath );
                 $message -> pinned_img( $filename );

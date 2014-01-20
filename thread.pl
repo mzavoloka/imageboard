@@ -152,31 +152,66 @@ sub check_if_can_delete
 sub app_mode_vote
 {
         my $self = shift;
-        my $id = int( $self -> arg( 'id' ) );
 
         my $output;
 
         # Handle from param
 
-        if( my $error_msg = $self -> check_if_proper_thread_id_provided( $id ) )
+        if( my $error_msg = $self -> check_if_can_vote()  )
         {
                 $output = $self -> show_thread( error_msg => $error_msg );
         }
         else
         {
-                $self -> do_vote( $id );
+                $self -> do_vote();
                 $output = $self -> show_thread( success_msg => 'VOTE_SUCCESS' );
         }
 
         return $output;
 }
 
-sub do_vote
+sub check_if_can_vote
 {
         my $self = shift;
-        my $id = int( shift );
 
-        FModel::Votes -> create( thread => $id, user => $self -> user() );
+        my $id = int( $self -> arg( 'id' ) );
+
+        my $error_msg = '';
+
+        if( my $id_error = $self -> check_if_proper_thread_id_provided( $id ) )
+        {
+                $error_msg = $id_error;
+        }
+        elsif( my $s = 1 ) # todo check option
+        {
+                $error_msg = '';
+        }
+        elsif( not $self -> can_do_action_with_thread( 'vote', $id ) )
+        {
+                $error_msg = 'CANNOT_VOTE_IN_THIS_THREAD';
+        }
+
+        return $error_msg;
+}
+
+sub do_vote
+{
+        my ( $self ) = shift;
+
+        my $id = int( $self -> arg( 'id' ) );
+
+        my $selected_option = int( $self -> arg( 'voting_option' ) );
+
+        my $dbh = LittleORM::Db -> get_write_dbh();
+        $dbh -> begin_work();
+
+        my $thread = FModel::Threads -> get( id => $id );
+
+        $thread -> delete_user_vote( $self -> user() );
+        
+        FModel::Votes -> create( voting_option => $selected_option, user => $self -> user() );
+
+        assert( $dbh -> commit() );
 
         return;
 }
@@ -198,16 +233,18 @@ sub show_thread
 
                 &ar( DYN_TITLE              => $thread -> title(),
                      DYN_CONTENT            => $thread -> content(),
-                     DYN_PINNED_IMAGE       => $thread -> pinned_image_src(),
+                     DYN_PINNED_IMAGE       => $thread -> pinned_image_url(),
                      DYN_CREATED            => Funcs::readable_date( $thread -> created() ),
                      DYN_MODIFIED_DATE      => Funcs::readable_date( $thread -> modified() ),
-                     DYN_AUTHOR             => $thread -> user() -> name(),
+                     DYN_AUTHOR             => $thread -> author() -> name(),
+                     DYN_AUTHOR_VOTED_FOR   => $thread -> option_title_that_author_voted_for(),
                      DYN_VOTE               => $thread -> vote(),
+                     DYN_CAN_VOTE           => $self -> can_do_action_with_thread( 'vote', $id ),
                      DYN_VOTING_OPTIONS     => $self -> get_voting_options_for_replace( $id ),
                      DYN_CAN_DELETE         => $self -> can_do_action_with_thread( 'delete', $id ),
                      DYN_CAN_EDIT           => $self -> can_do_action_with_thread( 'edit', $id ),
-                     DYN_AUTHOR_AVATAR      => $thread -> user() -> get_avatar_src(),
-                     DYN_AUTHOR_PERMISSIONS => $thread -> user() -> get_special_permission_title() );
+                     DYN_AUTHOR_AVATAR      => $thread -> author() -> avatar_url(),
+                     DYN_AUTHOR_PERMISSIONS => $thread -> author() -> get_special_permission_title() );
 
                 $self -> add_messages( $id, $page );
         }
@@ -230,7 +267,7 @@ sub show_create_form
 
         $self -> add_voting_options_data();
 
-        &ar( DYN_TITLE => $title, DYN_CONTENT => $content, DYN_PINNED_IMAGE => $pinned_image, DYN_VOTE => $vote ); # maybe do smth with pinned_image
+        &ar( DYN_TITLE => $title, DYN_CONTENT => $content, DYN_PINNED_IMAGE => $pinned_image, DYN_VOTE => $vote );
 
         my $output = $self -> construct_page( middle_tpl => 'thread_create', error_msg => $error_msg );
 
@@ -255,12 +292,11 @@ sub show_edit_form
         {
                 my $thread = FModel::Threads -> get( id => $id );
 
-                &ar( DYN_TITLE          => $thread -> title(),
-                     DYN_CONTENT        => $thread -> content(),
-                     DYN_PINNED_IMAGE   => $thread -> pinned_image_src(),
-                     DYN_VOTING_OPTIONS => $self -> get_voting_options_for_replace( $id ));
+                &ar( DYN_TITLE        => $thread -> title(),
+                     DYN_CONTENT      => $thread -> content(),
+                     DYN_PINNED_IMAGE => $thread -> pinned_image_url() );
 
-                $self -> add_voting_options_data();
+                $self -> add_voting_options_data_for_showing_edit_form();
         }
 
         my $output = $self -> construct_page( middle_tpl => 'thread_edit', error_msg => $error_msg );
@@ -333,6 +369,9 @@ sub edit
         my $title        = $self -> arg( 'title' );
         my $content      = $self -> arg( 'content' );
         my $pinned_image = $self -> upload( 'pinned_image' );
+        my $vote         = ( $self -> arg( 'vote' ) );
+
+        my $voting_options = $self -> get_voting_options_from_args();
 
         my $dbh = LittleORM::Db -> get_write_dbh();
         $dbh -> begin_work();
@@ -346,6 +385,17 @@ sub edit
         $thread -> modified( $now );
         $thread -> updated( $now );
 
+        if( $vote )
+        {
+                $thread -> delete_votes();
+
+                my $vote_options = $self -> get_voting_options_from_args();
+                for my $number ( sort keys $vote_options )
+                {
+                        FModel::VotingOptions -> create( thread => $thread, title => $vote_options -> { $number } );
+                }
+        }
+        
         $thread -> update();
 
         $self -> pin_image_to_thread( $id, $pinned_image );
@@ -397,19 +447,12 @@ sub delete_thread
 
                 foreach my $message ( @thread_messages )
                 {
+                        $message -> delete_pinned_image();
                         $message -> delete();
-
-                        if( my $pinned_image = $message -> pinned_img() )
-                        {
-                                unlink File::Spec -> catfile( ForumConst -> pinned_images_dir_abs(), $pinned_image );
-                        }
                 }
 
-                if( my $pinned_image = $thread -> pinned_img() )
-                {
-                        unlink File::Spec -> catfile( ForumConst -> pinned_images_dir_abs() . $pinned_image );
-                }
-
+                $thread -> delete_pinned_image();
+                $thread -> delete_voting_options();
                 $thread -> delete();
         }
 
@@ -428,11 +471,11 @@ sub add_voting_options_data
         {
                 &ar( DYN_VOTE => 1 );
                 
-                my $vote_options = $self -> get_voting_options_from_args();
+                my $voting_options = $self -> get_voting_options_from_args();
 
-                for my $number ( sort keys $vote_options )
+                for my $number ( sort keys %$voting_options )
                 {
-                        push( @$options, ( $number => $vote_options -> { $number } ) );
+                        push( @$options, ( $number => $voting_options -> { $number } ) );
                 }
         }
         else
@@ -441,6 +484,44 @@ sub add_voting_options_data
         }
         
         &ar( DYN_VOTING_OPTIONS => $options );
+
+        return;
+}
+
+sub add_voting_options_data_for_showing_edit_form
+{
+        my $self = shift;
+
+        my $id = int( $self -> arg( 'id' ) );
+        my $thread = FModel::Threads -> get( id => $id );
+
+        my $options = [];
+
+        if( $thread -> vote() )
+        {
+                &ar( DYN_VOTE => 1 );
+                
+                my @voting_options = $thread -> voting_options();
+
+                my $number = 1;
+                for my $option ( @voting_options )
+                {
+                        my $cant_change = 0;
+                        if( scalar $option -> votes() )
+                        {
+                                $cant_change = 1;
+                        }
+                        push( @$options, ( $number ++, $option -> title(), $cant_change ) );
+                }
+        }
+        else
+        {
+                $options = [ 1 => '', 0, 2 => '', 0 ];
+        }
+        
+        &ar( DYN_VOTING_OPTIONS => $options );
+
+        return;
 }
 
 sub add_messages
@@ -463,14 +544,14 @@ sub add_messages
                                  DYN_POSTED             => Funcs::readable_date( $message -> posted() ),
                                  DYN_SUBJECT            => $message -> subject(),
                                  DYN_CONTENT            => $message -> content(),
-                                 DYN_PINNED_IMAGE       => $message -> pinned_image_src(),
+                                 DYN_PINNED_IMAGE       => $message -> pinned_image_url(),
                                  DYN_MODIFIED_DATE      => Funcs::readable_date( $message -> modified() ),
-                                 DYN_AUTHOR             => $message -> user() -> name(),
+                                 DYN_AUTHOR             => $message -> author() -> name(),
+                                 DYN_AUTHOR_VOTED_FOR   => $message -> option_title_that_author_voted_for(),
                                  DYN_CAN_DELETE         => $self -> can_do_action_with_message( 'delete', $message -> id() ),
                                  DYN_CAN_EDIT           => $self -> can_do_action_with_message( 'edit', $message -> id() ),
-                                 DYN_AUTHOR_AVATAR      => $message -> user() -> get_avatar_src(),
-                                 DYN_AUTHOR_PERMISSIONS => $message -> user() -> get_special_permission_title()
-                                 };
+                                 DYN_AUTHOR_AVATAR      => $message -> author() -> avatar_url(),
+                                 DYN_AUTHOR_PERMISSIONS => $message -> author() -> get_special_permission_title() };
 
                 push( $messages, $msg_hash );
         }

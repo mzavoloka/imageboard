@@ -261,10 +261,10 @@ sub add_profile_data
         &ar( DYN_ID              => $user -> id(),
              DYN_NAME            => $user -> name(),
              DYN_EMAIL           => $user -> email(),
-             DYN_REGISTERED      => $self -> readable_date( $user -> registered() ),
+             DYN_REGISTERED      => Funcs::readable_date( $user -> registered() ),
              DYN_NUM_OF_MESSAGES => $num_of_messages,
              DYN_NUM_OF_THREADS  => $num_of_threads,
-             DYN_AVATAR          => $user -> get_avatar_src(),
+             DYN_AVATAR          => $user -> avatar_url(),
              DYN_CAN_BAN         => $self -> can_do_action_with_user( 'ban', $user -> id() ), BANNED => $user -> banned(),
              DYN_PERMISSIONS     => $user -> get_special_permission_title() );
 

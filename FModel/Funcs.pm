@@ -21,9 +21,15 @@ sub dt2ts
 {
         my $dt = shift;
 
-        my $strp = DateTime::Format::Strptime -> new( pattern => '%F %T' );
+        my $rv;
 
-        return $strp -> format_datetime( $dt );
+        if( $dt )
+        {
+                my $strp = DateTime::Format::Strptime -> new( pattern => '%F %T' );
+                $rv = $strp -> format_datetime( $dt );
+        }
+
+        return $rv;
 }
 
 sub validate_email

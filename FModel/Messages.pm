@@ -3,7 +3,7 @@ use strict;
 package FModel::Messages;
 
 use FModel::Funcs;
-use ForumConst qw( pinned_images_dir_url );
+use ForumConst qw( pinned_images_dir_url pinned_images_dir_abs );
 
 use Moose;
 extends 'LittleORM::GenericID'; 
@@ -14,7 +14,7 @@ has 'subject' => ( is => 'rw', isa => 'Str' );
 
 has 'content' => ( is => 'rw', isa => 'Str' );
 
-has 'user' => ( is => 'rw',
+has 'author' => ( is => 'rw',
                 metaclass => 'LittleORM::Meta::Attribute',
                 isa => 'FModel::Users',
                 description => { foreign_key => 'yes',
@@ -41,18 +41,62 @@ has 'modified' => ( is => 'rw',
 has 'pinned_img' => ( is => 'rw', isa => 'Str' );
 
 
-sub pinned_image_src
+sub pinned_image_url
 {
         my $self = shift;
 
-        my $image_src;
+        my $image_url;
 
         if( $self -> pinned_img() )
         {
-                $image_src = File::Spec -> catfile( ForumConst -> pinned_images_dir_url(), $self -> pinned_img() );
+                $image_url = File::Spec -> catfile( ForumConst -> pinned_images_dir_url(), $self -> pinned_img() );
         }
 
-        return $image_src;
+        return $image_url;
+}
+
+sub pinned_image_abs
+{
+        my $self = shift;
+
+        my $image_abs;
+
+        if( $self -> pinned_img() )
+        {
+                $image_abs = File::Spec -> catfile( ForumConst -> pinned_images_dir_abs(), $self -> pinned_img() );
+        }
+
+        return $image_abs;
+}
+
+sub delete_pinned_image
+{
+        my $self = shift;
+
+        if( $self -> pinned_img() )
+        {
+                unlink $self -> pinned_image_abs();
+        }
+
+        return;
+}
+
+sub option_that_author_voted_for
+{
+        my $self = shift;
+
+        my $option = $self -> thread() -> option_that_certain_user_voted_for( $self -> author() );
+
+        return $option;
+}
+
+sub option_title_that_author_voted_for
+{
+        my $self = shift;
+
+        my $title = $self -> option_that_author_voted_for() ? $self -> option_that_author_voted_for() -> title() : '';
+
+        return $title;
 }
 
 
