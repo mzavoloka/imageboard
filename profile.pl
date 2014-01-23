@@ -254,9 +254,9 @@ sub add_profile_data
                 &ar( DYN_USER_HOME_PROFILE => 1 );
         }
 
-        my $num_of_messages = FModel::Messages -> count( user => $user );
+        my $num_of_messages = FModel::Messages -> count( author => $user );
 
-        my $num_of_threads = FModel::Threads -> count( user => $user );
+        my $num_of_threads = FModel::Threads -> count( author => $user );
 
         &ar( DYN_ID              => $user -> id(),
              DYN_NAME            => $user -> name(),

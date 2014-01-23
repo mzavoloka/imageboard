@@ -48,6 +48,7 @@ sub get_threads
                              DYN_TITLE              => $thread -> title(),
                              DYN_CONTENT            => $thread -> content(),
                              DYN_VOTE               => $thread -> vote(),
+                             DYN_VOTE_QUESTION      => $thread -> vote_question(),
                              DYN_VOTING_OPTIONS     => $self -> get_voting_options_for_replace( $thread -> id() ),
                              DYN_PINNED_IMAGE       => $thread -> pinned_image_url(),
                              DYN_AUTHOR             => $thread -> author() -> name(),

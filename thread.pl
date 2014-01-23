@@ -63,7 +63,7 @@ sub app_mode_do_create
 
         my $output;
 
-        if( my $error_msg = $self -> can_create() )
+        if( my $error_msg = $self -> check_if_can_create() )
         {
                 $output = $self -> show_create_form( error_msg => $error_msg );
         } else
@@ -90,7 +90,7 @@ sub app_mode_do_edit
 
         my $output;
 
-        if( my $error_msg = $self -> can_edit() )
+        if( my $error_msg = $self -> check_if_can_edit() )
         {
                 $output = $self -> show_edit_form( error_msg => $error_msg );
         }
@@ -175,6 +175,7 @@ sub check_if_can_vote
         my $self = shift;
 
         my $id = int( $self -> arg( 'id' ) );
+        my $selected_option = int( $self -> arg( 'voting_option' ) );
 
         my $error_msg = '';
 
@@ -182,9 +183,9 @@ sub check_if_can_vote
         {
                 $error_msg = $id_error;
         }
-        elsif( my $s = 1 ) # todo check option
+        elsif( my $voting_option_error = $self -> check_if_proper_voting_option_id_provided( $selected_option ) )
         {
-                $error_msg = '';
+                $error_msg = $voting_option_error;
         }
         elsif( not $self -> can_do_action_with_thread( 'vote', $id ) )
         {
@@ -239,6 +240,7 @@ sub show_thread
                      DYN_AUTHOR             => $thread -> author() -> name(),
                      DYN_AUTHOR_VOTED_FOR   => $thread -> option_title_that_author_voted_for(),
                      DYN_VOTE               => $thread -> vote(),
+                     DYN_VOTE_QUESTION      => $thread -> vote_question(),
                      DYN_CAN_VOTE           => $self -> can_do_action_with_thread( 'vote', $id ),
                      DYN_VOTING_OPTIONS     => $self -> get_voting_options_for_replace( $id ),
                      DYN_CAN_DELETE         => $self -> can_do_action_with_thread( 'delete', $id ),
@@ -260,14 +262,15 @@ sub show_create_form
 
         my $error_msg = $params{ 'error_msg' };
 
-        my $title        = $self -> arg( 'title' );
-        my $content      = $self -> arg( 'content' );
-        my $pinned_image = $self -> upload( 'pinned_image' );
-        my $vote         = ( $self -> arg( 'vote' ) );
+        my $title         = $self -> arg( 'title' );
+        my $content       = $self -> arg( 'content' );
+        my $pinned_image  = $self -> upload( 'pinned_image' );
+        my $vote          = ( $self -> arg( 'vote' ) );
+        my $vote_question = $self -> arg( 'vote_question' );
 
         $self -> add_voting_options_data();
 
-        &ar( DYN_TITLE => $title, DYN_CONTENT => $content, DYN_PINNED_IMAGE => $pinned_image, DYN_VOTE => $vote );
+        &ar( DYN_TITLE => $title, DYN_CONTENT => $content, DYN_PINNED_IMAGE => $pinned_image, DYN_VOTE => $vote, DYN_VOTE_QUESTION => $vote_question );
 
         my $output = $self -> construct_page( middle_tpl => 'thread_create', error_msg => $error_msg );
 
@@ -292,9 +295,11 @@ sub show_edit_form
         {
                 my $thread = FModel::Threads -> get( id => $id );
 
-                &ar( DYN_TITLE        => $thread -> title(),
-                     DYN_CONTENT      => $thread -> content(),
-                     DYN_PINNED_IMAGE => $thread -> pinned_image_url() );
+                &ar( DYN_TITLE         => $thread -> title(),
+                     DYN_CONTENT       => $thread -> content(),
+                     DYN_PINNED_IMAGE  => $thread -> pinned_image_url(),
+                     DYN_VOTE_QUESTION => $thread -> vote_question(),
+                     DYN_CANT_CHANGE_VOTE_QUESTION => $thread -> has_votes() );
 
                 $self -> add_voting_options_data_for_showing_edit_form();
         }
@@ -324,18 +329,21 @@ sub check_if_can_show_edit_form
         return $error_msg;
 }
 
-sub can_edit
+sub check_if_can_edit
 {
         my $self = shift;
 
-        my $id           = int( $self -> arg( 'id' ) );
-        my $title        = $self -> arg( 'title' );
-        my $content      = $self -> arg( 'content' );
-        my $pinned_image = $self -> upload( 'pinned_image' );
+        my $id            = int( $self -> arg( 'id' ) );
+        my $title         = $self -> arg( 'title' );
+        my $content       = $self -> arg( 'content' );
+        my $pinned_image  = $self -> upload( 'pinned_image' );
+        my $vote          = ( $self -> arg( 'vote' ) );
 
         my $error_msg = '';
 
-        my $fields_are_filled = ( Funcs::trim( $title ) and Funcs::trim( $content ) );
+        my $voting_fields_are_filled = ( not $vote or ( $vote and $self -> voting_options_filled() ) );
+
+        my $fields_are_filled = ( Funcs::trim( $title ) and Funcs::trim( $content ) and $voting_fields_are_filled );
         
         if( my $thread_id_error = $self -> check_if_proper_thread_id_provided( $id ) )
         {
@@ -371,8 +379,6 @@ sub edit
         my $pinned_image = $self -> upload( 'pinned_image' );
         my $vote         = ( $self -> arg( 'vote' ) );
 
-        my $voting_options = $self -> get_voting_options_from_args();
-
         my $dbh = LittleORM::Db -> get_write_dbh();
         $dbh -> begin_work();
 
@@ -387,13 +393,22 @@ sub edit
 
         if( $vote )
         {
-                $thread -> delete_votes();
-
-                my $vote_options = $self -> get_voting_options_from_args();
-                for my $number ( sort keys $vote_options )
+                if( my $vote_question = $self -> arg( 'vote_question' ) )
                 {
-                        FModel::VotingOptions -> create( thread => $thread, title => $vote_options -> { $number } );
+                        $thread -> vote_question( $vote_question );
                 }
+
+                $thread -> delete_voting_options_that_have_no_votes();
+
+                my $voting_options = $self -> get_voting_options_from_args();
+                for my $number ( sort keys $voting_options )
+                {
+                        FModel::VotingOptions -> create( thread => $thread, title => $voting_options -> { $number } );
+                }
+        }
+        else
+        {
+                $thread -> clear_vote_data();
         }
         
         $thread -> update();
@@ -441,6 +456,9 @@ sub delete_thread
 
         if( not my $error = $self -> check_if_proper_thread_id_provided( $id ) )
         {
+                my $dbh = LittleORM::Db -> get_write_dbh();
+                $dbh -> begin_work();
+
                 my $thread = FModel::Threads -> get( id => $id );
 
                 my @thread_messages = FModel::Messages -> get_many( thread => $id );
@@ -452,8 +470,10 @@ sub delete_thread
                 }
 
                 $thread -> delete_pinned_image();
-                $thread -> delete_voting_options();
+                $thread -> clear_vote_data();
                 $thread -> delete();
+
+                assert( $dbh -> commit() );
         }
 
         return;
@@ -598,20 +618,21 @@ sub add_pages
         return &tt( 'pages' );
 }
 
-sub can_create
+sub check_if_can_create
 {
         my $self = shift;
 
-        my $title        = $self -> arg( 'title' );
-        my $content      = $self -> arg( 'content' );
-        my $vote         = ( $self -> arg( 'vote' ) );
-        my $pinned_image = $self -> upload( 'pinned_image' );
+        my $title         = $self -> arg( 'title' );
+        my $content       = $self -> arg( 'content' );
+        my $vote          = ( $self -> arg( 'vote' ) );
+        my $vote_question = $self -> arg( 'vote_question' );
+        my $pinned_image  = $self -> upload( 'pinned_image' );
 
         my $error_msg = '';
 
-        my $vote_options_correctly_filled = ( not $vote or ( $vote and $self -> vote_options_filled() ) );
+        my $voting_fields_are_filled = ( not $vote or ( $vote and $vote_question and $self -> voting_options_filled() ) );
 
-        my $fields_are_filled = ( Funcs::trim( $title ) and Funcs::trim( $content ) and $vote_options_correctly_filled );
+        my $fields_are_filled = ( Funcs::trim( $title ) and Funcs::trim( $content ) and $voting_fields_are_filled );
 
         if( not $fields_are_filled )
         {
@@ -621,6 +642,10 @@ sub can_create
         {
                 $error_msg = 'THREAD_TITLE_TOO_LONG';
         }
+        elsif( $vote and not $self -> is_vote_question_length_acceptable( $vote_question ) )
+        {
+                $error_msg = 'VOTE_QUESTION_TOO_LONG';
+        }
         elsif( my $pinned_image_error = $self -> check_pinned_image( $pinned_image ) )
         {
                 $error_msg = $pinned_image_error;
@@ -629,21 +654,21 @@ sub can_create
         return $error_msg;
 }
 
-sub vote_options_filled
+sub voting_options_filled
 {
         my $self = shift;
 
-        my $vote_options = $self -> get_voting_options_from_args();
+        my $voting_options = $self -> get_voting_options_from_args();
 
         my $filled;
 
-        if( scalar $vote_options )
+        if( scalar $voting_options )
         {
                 $filled = 1;
 
-                for my $option ( keys $vote_options )
+                for my $option ( keys $voting_options )
                 {
-                        if( Funcs::trim( $vote_options -> { $option } ) eq '' )
+                        if( Funcs::trim( $voting_options -> { $option } ) eq '' )
                         {
                                 $filled = 0;
                         }
@@ -667,28 +692,44 @@ sub is_thread_title_length_acceptable
         return $acceptable;
 }
 
+sub is_vote_question_length_acceptable
+{
+        my ( $self, $question ) = @_;
+        
+        my $acceptable = 1;
+
+        if( length( $question ) > ForumConst -> vote_question_max_length() )
+        {
+                $acceptable = 0;
+        }
+
+        return $acceptable;
+}
+
 sub create_thread
 {
         my $self = shift;
 
-        my $title        = $self -> arg( 'title' );
-        my $content      = $self -> arg( 'content' );
-        my $vote         = ( $self -> arg( 'vote' ) );
-        my $pinned_image = $self -> upload( 'pinned_image' );
+        my $title         = $self -> arg( 'title' );
+        my $content       = $self -> arg( 'content' );
+        my $vote          = ( $self -> arg( 'vote' ) );
+        my $vote_question = $self -> arg( 'vote_question' );
+        my $pinned_image  = $self -> upload( 'pinned_image' );
 
         my $dbh = LittleORM::Db -> get_write_dbh();
         $dbh -> begin_work();
 
         my $user = FModel::Users -> get( name => $self -> user() -> name() );
 
-        my $new_thread = FModel::Threads -> create( title => $title, content => $content, user => $user, created => Funcs::now(), updated => Funcs::now(), vote => $vote );
+        my $new_thread = FModel::Threads -> create( title => $title, content => $content, author => $user, created => Funcs::now(), updated => Funcs::now(),
+                                                    vote => $vote, vote_question => $vote_question );
 
         if( $vote )
         {
-                my $vote_options = $self -> get_voting_options_from_args();
-                for my $number ( sort keys $vote_options )
+                my $voting_options = $self -> get_voting_options_from_args();
+                for my $number ( sort keys $voting_options )
                 {
-                        FModel::VotingOptions -> create( thread => $new_thread, title => $vote_options -> { $number } );
+                        FModel::VotingOptions -> create( thread => $new_thread, title => $voting_options -> { $number } );
                 }
         }
         

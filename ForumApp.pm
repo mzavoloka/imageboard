@@ -242,6 +242,20 @@ sub is_thread_exists
         return $exists;
 }
 
+sub is_voting_option_exists
+{
+        my ( $self, $option_id ) = @_;
+
+        my $exists = 0;
+
+        if( $option_id )
+        {
+                $exists = FModel::VotingOptions -> count( id => $option_id );
+        }
+
+        return $exists;
+}
+
 sub is_message_exists
 {
         my ( $self, $message_id ) = @_;
@@ -479,6 +493,28 @@ sub check_if_proper_thread_id_provided
         elsif( not $self -> is_thread_exists( $thread_id ) )
         {
                 $error = 'NO_SUCH_THREAD';
+        }
+
+        return $error;
+}
+
+sub check_if_proper_voting_option_id_provided
+{
+        my ( $self, $option_id ) = @_;
+
+        my $error = '';
+
+        if( not $option_id )
+        {
+                $error = 'NO_VOTING_OPTION_ID';
+        }
+        elsif( not looks_like_number( $option_id ) )
+        {
+                $error = 'INVALID_VOTING_OPTION_ID';
+        }
+        elsif( not $self -> is_voting_option_exists( $option_id ) )
+        {
+                $error = 'NO_SUCH_VOTING_OPTION';
         }
 
         return $error;

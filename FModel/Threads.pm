@@ -42,6 +42,8 @@ has 'modified' => ( is => 'rw',
 
 has 'pinned_img' => ( is => 'rw', isa => 'Str' );
 
+has 'vote_question' => ( is => 'rw', isa => 'Str' );
+
 has 'vote' => ( is => 'rw', isa => 'Bool' );
 
 
@@ -106,6 +108,7 @@ sub delete_pinned_image
         if( $self -> pinned_img() )
         {
                 unlink $self -> pinned_image_abs();
+                $self -> pinned_img( '' );
         }
 
         return;
@@ -123,6 +126,21 @@ sub delete_voting_options
         return;
 }
 
+sub delete_voting_options_that_have_no_votes
+{
+        my $self = shift;
+
+        for my $option ( $self -> voting_options() )
+        {
+                unless( $option -> has_votes() )
+                {
+                        $option -> delete();
+                }
+        }
+
+        return;
+}
+
 sub delete_votes
 {
         my $self = shift;
@@ -134,20 +152,6 @@ sub delete_votes
 
         return;
 }
-
-#sub all_thread_votes
-#{
-#        my $self = shift;
-#
-#        my @all_votes;
-#
-#        for my $option ( $self -> voting_options() )
-#        {
-#                push( @all_votes, $option -> votes() );
-#        }
-#
-#        return @all_votes;
-#}
 
 sub did_certain_user_voted_in_this_thread
 {
@@ -165,6 +169,24 @@ sub did_certain_user_voted_in_this_thread
         }
 
         return $voted;
+}
+
+sub has_votes
+{
+        my ( $self, $user ) = @_;
+
+        my $has = 0;
+
+        for my $option ( $self -> voting_options() )
+        {
+                if( $option -> has_votes() )
+                {
+                        $has = 1;
+                        last;
+                }
+        }
+
+        return $has;
 }
 
 sub option_that_certain_user_voted_for
@@ -216,6 +238,18 @@ sub delete_user_vote
                         last;
                 }
         }
+
+        return;
+}
+
+sub clear_vote_data
+{
+        my $self = shift;
+        
+        $self -> vote( 0 );
+        $self -> vote_question( '' );
+        $self -> delete_votes();
+        $self -> delete_voting_options();
 
         return;
 }

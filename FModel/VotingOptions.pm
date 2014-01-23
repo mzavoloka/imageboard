@@ -33,6 +33,20 @@ sub num_of_votes
         return scalar $votes;
 }
 
+sub has_votes
+{
+        my $self = shift;
+
+        my $has = 0;
+
+        if( $self -> num_of_votes() )
+        {
+                $has = 1;
+        }
+
+        return $has;
+}
+
 sub percentage
 {
         my $self = shift;

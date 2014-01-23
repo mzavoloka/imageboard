@@ -33,6 +33,8 @@ class_has 'messages_on_page' => ( is => 'ro', isa => 'Str', default => sub { &ge
 
 class_has 'thread_title_max_length' => ( is => 'ro', isa => 'Str', default => sub { &get_thread_title_max_length() } );
 
+class_has 'vote_question_max_length' => ( is => 'ro', isa => 'Str', default => sub { &get_vote_question_max_length() } );
+
 class_has 'message_subject_max_length' => ( is => 'ro', isa => 'Str', default => sub { &get_message_subject_max_length() } );
 
 class_has 'proper_image_filetypes' => ( is => 'ro', isa => 'ArrayRef[Str]', default => sub { &get_proper_image_filetypes() } );
@@ -126,6 +128,15 @@ sub get_thread_title_max_length
         my $thread_title_max_length = $const -> value();
 
         return $thread_title_max_length;
+}
+
+sub get_vote_question_max_length
+{
+        my $const = FModel::Const -> get( name => 'vote_question_max_length' );
+
+        my $vote_question_max_length = $const -> value();
+
+        return $vote_question_max_length;
 }
 
 sub get_message_subject_max_length

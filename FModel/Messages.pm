@@ -76,6 +76,7 @@ sub delete_pinned_image
         if( $self -> pinned_img() )
         {
                 unlink $self -> pinned_image_abs();
+                $self -> pinned_img( '' );
         }
 
         return;
