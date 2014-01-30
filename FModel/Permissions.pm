@@ -29,6 +29,10 @@ has 'edit_threads' => ( is => 'rw', isa => 'Bool' );
 
 has 'delete_threads' => ( is => 'rw', isa => 'Bool' );
 
+has 'vote' => ( is => 'rw', isa => 'Bool' );
+
+has 'use_adminka' => ( is => 'rw', isa => 'Bool' );
+
 
 LittleORM::Db -> init( &dbconnect() );
 

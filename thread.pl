@@ -241,7 +241,7 @@ sub show_thread
                      DYN_AUTHOR_VOTED_FOR   => $thread -> option_title_that_author_voted_for(),
                      DYN_VOTE               => $thread -> vote(),
                      DYN_VOTE_QUESTION      => $thread -> vote_question(),
-                     DYN_CAN_VOTE           => $self -> can_do_action_with_thread( 'vote', $id ),
+                     DYN_CAN_VOTE           => $self -> can_vote(),
                      DYN_VOTING_OPTIONS     => $self -> get_voting_options_for_replace( $id ),
                      DYN_CAN_DELETE         => $self -> can_do_action_with_thread( 'delete', $id ),
                      DYN_CAN_EDIT           => $self -> can_do_action_with_thread( 'edit', $id ),

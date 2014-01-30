@@ -56,27 +56,31 @@ sub construct_page
 
         my $middle = '';
 
+        if( $self -> user() )
+        {
+                &ar( DYN_CURRENT_USER => $self -> user() -> name() );
+                if( $self -> can_use_adminka() )
+                {
+                        &ar( DYN_CAN_USE_ADMINKA => $self -> user() -> name() );
+                }
+        }
+
         if( $restricted_msg )
         {
-                &ar( RESTRICTED_MSG => &gr( $restricted_msg ) );
+                &ar( DYN_RESTRICTED_MSG => &gr( $restricted_msg ) );
                 $middle = &tt( 'restricted' );
         } else
         {
                 assert( $middle_tpl );
 
-                if( $self -> user() )
-                {
-                        &ar( CURRENT_USER => $self -> user() -> name() );
-                }
-
                 if( $error_msg )
                 {
-                        &ar( ERROR_MSG => &gr( $error_msg ) );
+                        &ar( DYN_ERROR_MSG => &gr( $error_msg ) );
                 }
                 
                 if( $success_msg )
                 {
-                        &ar( SUCCESS_MSG => &gr( $success_msg ) );
+                        &ar( DYN_SUCCESS_MSG => &gr( $success_msg ) );
                 }
 
                 $middle = &tt( $middle_tpl );
@@ -85,7 +89,7 @@ sub construct_page
         my $header = &tt( 'header' );
         my $footer = &tt( 'footer' );
 
-        &ar( HEADER => $header, MIDDLE => $middle, FOOTER => $footer );
+        &ar( DYN_HEADER => $header, DYN_MIDDLE => $middle, DYN_FOOTER => $footer );
 
         return $self -> ncd( &tt( 'carcass' ) );
 }
@@ -454,6 +458,34 @@ sub can_do_action_with_user
         return $can;
 }
 
+sub can_vote
+{
+        my $self = shift;
+
+        my $can_vote = 0;
+
+        if( $self -> user() )
+        {
+                $can_vote = $self -> user() -> permission() -> vote();
+        }
+
+        return $can_vote;
+}
+
+sub can_use_adminka
+{
+        my $self = shift;
+
+        my $can_use = 0;
+
+        if( $self -> user() )
+        {
+                $can_use = $self -> user() -> permission() -> use_adminka();
+        }
+
+        return $can_use;
+}
+
 sub check_if_proper_user_id_provided
 {
         my ( $self, $user_id ) = @_;
@@ -628,7 +660,7 @@ sub get_voting_options_for_replace
                                    { DYN_ID           => $_ -> id(),
                                      DYN_TITLE        => $_ -> title(),
                                      DYN_NUM_OF_VOTES => $_ -> num_of_votes(),
-                                     DYN_PERCENTAGE   => int( $_ -> percentage() ), # Can I gracefully do such formatting using Template-Toolkit?
+                                     DYN_PERCENTAGE   => int( $_ -> percentage() ),
                                      DYN_USERS_CHOICE => ( $self -> user() and $_ -> did_certain_user_voted_for_this_option( $self -> user() ) ) }; 
                                  } $thread -> voting_options();
 

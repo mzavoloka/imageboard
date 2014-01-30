@@ -56,7 +56,7 @@ sub get_threads
                              DYN_CREATED            => Funcs::readable_date( $thread -> created() ),
                              DYN_MODIFIED_DATE      => Funcs::readable_date( $thread -> modified() ),
                              DYN_MESSAGES           => $self -> get_thread_messages( $thread -> id() ),
-                             DYN_CAN_VOTE           => $self -> can_do_action_with_thread( 'vote', $thread -> id() ),
+                             DYN_CAN_VOTE           => $self -> can_vote(),
                              DYN_CAN_DELETE         => $self -> can_do_action_with_thread( 'delete', $thread -> id() ),
                              DYN_CAN_EDIT           => $self -> can_do_action_with_thread( 'edit', $thread -> id() ),
                              DYN_AUTHOR_AVATAR      => $thread -> author() -> avatar_url(),

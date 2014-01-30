@@ -249,7 +249,7 @@ sub add_profile_data
 
         my $user = FModel::Users -> get( id => $user_id );
 
-        if( $user -> name() eq $self -> user() -> name() )
+        if( $user_id eq $self -> user() -> id() )
         {
                 &ar( DYN_USER_HOME_PROFILE => 1 );
         }
@@ -265,7 +265,8 @@ sub add_profile_data
              DYN_NUM_OF_MESSAGES => $num_of_messages,
              DYN_NUM_OF_THREADS  => $num_of_threads,
              DYN_AVATAR          => $user -> avatar_url(),
-             DYN_CAN_BAN         => $self -> can_do_action_with_user( 'ban', $user -> id() ), BANNED => $user -> banned(),
+             DYN_CAN_BAN         => $self -> can_do_action_with_user( 'ban', $user -> id() ),
+             DYN_BANNED          => $user -> banned(),
              DYN_PERMISSIONS     => $user -> get_special_permission_title() );
 
         return;
