@@ -78,5 +78,62 @@ sub readable_date
 	return $readable;
 }
 
+sub is_date_valid
+{
+        my $date = shift;
+
+        my $valid = 1;
+
+        my $strp = DateTime::Format::Strptime -> new( pattern => '%Y-%m-%d' );
+
+        if( not $strp -> parse_datetime( $date ) )
+        {
+                $valid = 0;
+        }
+
+        return $valid;
+}
+
+sub is_natural_number
+{
+        my $something = shift;
+
+        my $is_natural = 0;
+
+        if( $something =~ /^\d$/ and $something > 0 )
+        {
+                $is_natural = 1;
+        }
+
+        return $is_natural;
+}
+
+sub is_form_field_value_contains_natural_number_or_nothing
+{
+        my $form_field_value = shift;
+
+        my $trimmed_val = &trim( $form_field_value );
+
+        my $contains = '';
+
+        if( $trimmed_val eq '' )
+        {
+                $contains = 1;
+        }
+        else
+        {
+                $contains = &is_natural_number( $trimmed_val );
+        }
+
+        return $contains;
+}
+
+sub is_id_field_value_valid
+{
+        my $id_field_value = shift;
+
+        return &is_form_field_value_contains_natural_number_or_nothing( $id_field_value );
+}
+
 
 1;

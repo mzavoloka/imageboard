@@ -6,7 +6,6 @@ use FModel::Users;
 use DateTime::Format::Strptime;
 use DateTime::TimeZone;
 use DateTime;
-use Carp 'croak';
 
 sub ts2dt
 {
@@ -35,16 +34,14 @@ sub dt2ts
 sub validate_email
 {
         my $email = shift;
-        $email = lc( $email );
+        
+        my $lower_email = lc( $email );
 
         my $rv;
 
-        if( $email =~ /.+@.+\..+/i )
+        if( $lower_email =~ /.+@.+\..+/i )
         {
                 $rv = $email;
-        } else
-        {
-                croak 'Invalid email. ';
         }
 
         return $rv;

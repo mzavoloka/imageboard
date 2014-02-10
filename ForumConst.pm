@@ -55,6 +55,8 @@ class_has 'images_dir' => ( is => 'ro', isa => 'Str', default => sub { &get_imag
 
 class_has 'icon_delete_url' => ( is => 'ro', isa => 'Str', default => sub { &get_icon_delete_url() } );
 
+class_has 'users_on_page' => ( is => 'ro', isa => 'Int', default => sub { &get_users_on_page() } );
+
 
 sub get_session_expires_after
 {
@@ -248,6 +250,16 @@ sub get_icon_delete_url
 
         return $icon_delete_url;
 }
+
+sub get_users_on_page
+{
+        my $const = FModel::Const -> get( name => 'users_on_page' );
+
+        my $users_on_page = $const -> value();
+
+        return $users_on_page;
+}
+
 
 
 1;
