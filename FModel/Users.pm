@@ -17,8 +17,7 @@ has 'password' => ( is => 'rw', isa => 'Str' );
 has 'email' => ( is => 'rw',
                  metaclass => 'LittleORM::Meta::Attribute',
                  isa => 'Str',
-                 # description => { coerce_to => sub { &FModel::Funcs::validate_email( $_[0] ) } }
-                 );
+                 description => { coerce_to => sub { &FModel::Funcs::validate_email( $_[0] ) } } );
 
 has 'registered' => ( is => 'rw',
                       metaclass => 'LittleORM::Meta::Attribute',

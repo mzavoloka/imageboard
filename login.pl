@@ -47,18 +47,15 @@ sub app_mode_do_login
 {
         my $self = shift;
 
-      	my $username = $self -> arg( 'username' );
-      	my $password = $self -> arg( 'password' );
-
         my $output;
 
-        if( my $error_msg = $self -> can_log_user_in( $username, $password ) )
+        if( my $error_msg = $self -> can_log_user_in() )
         {
-                &ar( USERNAME => $username );
+                &ar( DYN_USERNAME => $self -> arg( 'username' ) );
                 $output = $self -> construct_page( middle_tpl => 'login', error_msg => $error_msg );
         } else
         {
-        	$self -> log_user_in( $username );
+        	$self -> log_user_in( $self -> arg( 'username' ) );
                 $output = $self -> ncrd( '/' );
         }
 
@@ -71,27 +68,18 @@ sub can_log_user_in
 
         my $error_msg = '';
 
-        my $fields_are_filled = ( $username and $password );
-
-        my $user;
-        my $user_exists;
-        my $password_correct;
-
-        if( $fields_are_filled )
-        {
-                $user = FModel::Users -> get( name => $username );
-                $password_correct = $self -> is_password_correct( $password, $username );
-        }
+        my $fields_are_filled = ( $self -> arg( 'username' ) and $self -> arg( 'password' ) );
 
       	if( not $fields_are_filled )
 	{
                 $error_msg = 'FIELDS_ARE_NOT_FILLED';
       	}
-        elsif( not $password_correct )
-	{
-        	$error_msg = 'NO_USER_WITH_SUCH_PASSWORD';
+        elsif( not $self -> is_username_exists( $self -> arg( 'username' ) ) or
+               not $self -> is_password_correct() )
+        {
+                $error_msg = 'NO_USER_WITH_SUCH_PASSWORD';
       	}
-        elsif( $user -> banned() )
+        elsif( FModel::Users -> get( name => $self -> arg( 'username' ) ) -> banned() )
         {
                 $error_msg = 'YOU_ARE_BANNED';
         }
@@ -101,9 +89,9 @@ sub can_log_user_in
 
 sub is_password_correct
 {
-        my ( $self, $password, $username ) = @_;
+        my ( $self ) = @_;
 
-        my $correct = FModel::Users -> count( name => $username, password => $password );
+        my $correct = FModel::Users -> count( name => $self -> arg( 'username' ), password => $self -> arg( 'password' ) );
 
         return $correct;
 }

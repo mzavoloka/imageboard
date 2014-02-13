@@ -6,7 +6,6 @@ use FModel::Users;
 use DateTime::Format::Strptime;
 use DateTime::TimeZone;
 use DateTime;
-use Carp 'croak';
 
 sub trim
 {
@@ -84,11 +83,33 @@ sub is_date_valid
 
         my $valid = 1;
 
-        my $strp = DateTime::Format::Strptime -> new( pattern => '%Y-%m-%d' );
-
-        if( not $strp -> parse_datetime( $date ) )
+        if( $date ne '' )
         {
-                $valid = 0;
+                my $strp = DateTime::Format::Strptime -> new( pattern => '%Y-%m-%d' );
+
+                if( not $strp -> parse_datetime( $date ) )
+                {
+                        $valid = 0;
+                }
+        }
+
+        return $valid;
+}
+
+sub is_datetime_valid
+{
+        my $date = shift;
+
+        my $valid = 1;
+
+        if( $date ne '' )
+        {
+                my $strp = DateTime::Format::Strptime -> new( pattern => '%Y-%m-%d %T' );
+
+                if( not $strp -> parse_datetime( $date ) )
+                {
+                        $valid = 0;
+                }
         }
 
         return $valid;
@@ -100,7 +121,7 @@ sub is_natural_number
 
         my $is_natural = 0;
 
-        if( $something =~ /^\d$/ and $something > 0 )
+        if( $something =~ /^(\d+)$/ and $something ne '0' )
         {
                 $is_natural = 1;
         }

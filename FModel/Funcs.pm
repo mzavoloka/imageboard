@@ -2,6 +2,7 @@ use strict;
 
 package FModel::Funcs;
 
+use Funcs;
 use FModel::Users;
 use DateTime::Format::Strptime;
 use DateTime::TimeZone;
@@ -49,7 +50,7 @@ sub validate_email
 
 sub now
 {
-        return DateTime -> now( time_zone => 'local' );
+        return &Funcs::now();
 }
 
 

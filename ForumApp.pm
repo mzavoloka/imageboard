@@ -159,9 +159,8 @@ sub log_user_out
 sub is_email_valid
 {
         my ( $self, $email ) = @_;
-        $email = lc( $email );
 
-        return( $email =~ /.+@.+\..+/i );
+        return( lc( $email ) =~ /.+@.+\..+/i );
 }
 
 sub is_email_exists
@@ -172,8 +171,7 @@ sub is_email_exists
 
         if( $self -> is_email_valid( $email ) )
         {
-                $email = lc( $email );
-                $exists = FModel::Users -> count( email => $email );
+                $exists = FModel::Users -> count( email => lc( $email ) );
         }
 
         return( $exists );
@@ -182,9 +180,15 @@ sub is_email_exists
 sub is_username_valid
 {
         my ( $self, $username ) = @_;
-        $username = lc( $username );
 
-        return( $username =~ /^[a-z0-9_-]{3,16}$/ );
+        return( lc( $username ) =~ /^[a-z0-9_-]{3,16}$/ ); # TODO add constants for username length bounds
+}
+
+sub is_password_valid
+{
+        my ( $self, $password ) = @_;
+
+        return( length( $password ) >= 3 ); # TODO add constant for password length bounds
 }
 
 sub is_user_exists
@@ -193,10 +197,7 @@ sub is_user_exists
 
         my $exists = 0;
 
-        if( looks_like_number( $user_id ) )
-        {
-                $exists = FModel::Users -> count( id => $user_id );
-        }
+        $exists = FModel::Users -> count( id => $user_id );
 
         return( $exists );
 }
@@ -209,8 +210,7 @@ sub is_username_exists
 
         if( $self -> is_username_valid( $username ) )
         {
-                $username = lc( $username );
-                $exists = FModel::Users -> count( name => $username );
+                $exists = FModel::Users -> count( name => lc( $username ) );
         }
 
         return( $exists );
