@@ -35,6 +35,9 @@ has 'permission' => ( is => 'rw',
 
 has 'banned' => ( is => 'rw', isa => 'Bool' );
 
+has 'deleted' => ( is => 'rw', isa => 'Bool' );
+
+
 sub get_permission_title
 {
         my $self = shift;
@@ -120,6 +123,23 @@ sub delete_avatar
         return;
 }
 
+sub get_num_of_messages
+{
+        my $self = shift;
+
+        my $num_of_messages = FModel::Messages -> count( author => $self );
+
+        return $num_of_messages;
+}
+
+sub get_num_of_threads
+{
+        my $self = shift;
+
+        my $num_of_threads = FModel::Threads -> count( author => $self );
+
+        return $num_of_threads;
+}
 
 
 1;

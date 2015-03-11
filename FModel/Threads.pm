@@ -25,7 +25,7 @@ has 'content' => ( is => 'rw', isa => 'Str' );
 has 'author' => ( is => 'rw',
                 metaclass => 'LittleORM::Meta::Attribute',
                 isa => 'FModel::Users',
-                description => { db_field => 'user_id',
+                description => { db_field => 'author',
                                  foreign_key => 'yes' } );
 
 has 'updated' => ( is => 'rw',

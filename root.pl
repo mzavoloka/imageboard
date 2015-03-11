@@ -1,8 +1,9 @@
-use strict;
+use v5.20;
+# use strict;
 
 package localhost::root;
 
-sub wendy_handler()
+sub wendy_handler
 {
         return ForumMainpage -> run();
 }
@@ -62,7 +63,7 @@ sub get_threads
                              DYN_AUTHOR_AVATAR      => $thread -> author() -> avatar_url(),
                              DYN_AUTHOR_PERMISSIONS => $thread -> author() -> get_special_permission_title() };
 
-                push( $threads, $hash );
+                push( @$threads, $hash );
         }
 
         return $threads;
@@ -100,7 +101,7 @@ sub get_thread_messages
                                          DYN_AUTHOR_AVATAR      => $message -> author() -> avatar_url(),
                                          DYN_AUTHOR_PERMISSIONS => $message -> author() -> get_special_permission_title() };
 
-                        push( $messages, $msg_hash );
+                        push( @$messages, $msg_hash );
                 }
         }
 

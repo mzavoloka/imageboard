@@ -15,7 +15,6 @@ use Wendy::Db qw( dbconnect );
 use Data::Dumper 'Dumper';
 use Wendy::Shorts qw( ar gr lm );
 use Wendy::Config 'CONF_MYPATH';
-use Scalar::Util 'looks_like_number';
 use File::Type;
 use ForumConst 'proper_image_filetypes';
 use File::Copy 'cp';
@@ -223,7 +222,9 @@ sub set_cookie
 	my %args = @_;
 
 	{
-		$args{ '-domain' } = '192.168.9.24';
+                #$args{ '-domain' } = '192.168.9.24';
+                #$args{ '-domain' } = 'localhost';
+                $args{ '-domain' } = '127.0.1.1';
 		$args{ '-expires' } ||= '+1d';
 	}
 
@@ -496,7 +497,7 @@ sub check_if_proper_user_id_provided
         {
                 $error = 'NO_USER_ID';
         }
-        elsif( not looks_like_number( $user_id ) )
+        elsif( not &Funcs::is_id_field_value_valid( $user_id ) )
         {
                 $error = 'INVALID_USER_ID';
         }
@@ -518,7 +519,7 @@ sub check_if_proper_thread_id_provided
         {
                 $error = 'NO_THREAD_ID';
         }
-        elsif( not looks_like_number( $thread_id ) )
+        elsif( not &Funcs::is_id_field_value_valid( $thread_id ) )
         {
                 $error = 'INVALID_THREAD_ID';
         }
@@ -540,7 +541,7 @@ sub check_if_proper_voting_option_id_provided
         {
                 $error = 'NO_VOTING_OPTION_ID';
         }
-        elsif( not looks_like_number( $option_id ) )
+        elsif( not &Funcs::is_id_field_value_valid( $option_id ) )
         {
                 $error = 'INVALID_VOTING_OPTION_ID';
         }
@@ -562,7 +563,7 @@ sub check_if_proper_message_id_provided
         {
                 $error = 'NO_MESSAGE_ID';
         }
-        elsif( not looks_like_number( $message_id ) )
+        elsif( not &Funcs::is_id_field_value_valid( $message_id ) )
         {
                 $error = 'INVALID_MESSAGE_ID';
         }

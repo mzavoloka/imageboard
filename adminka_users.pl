@@ -20,7 +20,7 @@ use Scalar::Util 'looks_like_number';
 use Moose;
 extends 'ForumApp';
 
-sub _run_modes { [ 'default', 'search', 'cancel_search', 'do_edit', 'cancel_changes' ] };
+sub _run_modes { [ 'default', 'edit_user', 'search', 'cancel_search', 'do_edit_user', 'cancel_changes', 'create_user', 'do_create_user', 'delete_user' ] };
 
 
 sub init
@@ -63,12 +63,23 @@ sub app_mode_default
 {
         my $self = shift;
 
-        my $output = $self -> show_user_edit_form_with_db_values();
+        $self -> mode( 'edit_user' );
+
+        my $output = $self -> app_mode_edit_user();
 
         return $output;
 }
 
-sub app_mode_do_edit
+sub app_mode_edit_user
+{
+        my ( $self, %params ) = @_;
+
+        my $output = $self -> show_user_edit_form_with_db_values( success_msg => $params{ 'success_msg' } );
+
+        return $output;
+}
+
+sub app_mode_do_edit_user
 {
         my $self = shift;
 
@@ -80,14 +91,8 @@ sub app_mode_do_edit
         }
         else
         {
-                if( $self -> do_edit() )
-                {
-                        $output = $self -> show_user_edit_form_with_args_values( success_msg => 'USER_SUCCESSFULLY_EDITED' );
-                }
-                else
-                {
-                        $output = $self -> show_user_edit_form_with_args_values( error_msg => 'UNEXPECTED_ERROR' ); # That's really should not occur
-                }
+                $self -> do_edit_user();
+                $output = $self -> show_user_edit_form_with_db_values( success_msg => 'USER_SUCCESSFULLY_EDITED' );
         }
 
         return $output;
@@ -164,7 +169,12 @@ sub is_user_id_exists_except_id_of_currently_edited_user
 {
         my $self = shift;
 
-        my $exists = FModel::Users -> count( id => $self -> arg( 'id' ), id => { '!=', $self -> get_currently_edited_user() -> id() } );
+        my $exists = 0;
+
+        if( $self -> arg( 'id' ) != $self -> get_currently_edited_user() -> id() )
+        {
+                $exists = $self -> is_user_exists( $self -> arg( 'id' ) );
+        }
 
         return $exists;
 }
@@ -244,7 +254,11 @@ sub is_email_exists_except_email_of_currently_edited_user
         {
                 my $self = shift;
 
-                if( not $currently_edited_user )
+                # Если кэшировать таким образом, то иногда получается ошибка - если отредактировать одного пользователя и перейти к редактированию другого, то
+                # этот метод будет отдавать предыдущего пользователя. Лечится просто рестартом сервера - это сбрасывает кэш.
+                # Но я думал, что каждый раз делается новый инстанс приложения, и поэтому такого происходить не должно.
+                #
+                # if( not $currently_edited_user ) 
                 {
                         $currently_edited_user = FModel::Users -> get( id => $self -> arg( 'currently_edited_user_id' ) );
                 }
@@ -259,7 +273,7 @@ sub check_if_can_edit_permissions
 
         my $error_msg = '';
 
-        if( not looks_like_number( $self -> arg( 'permissions' ) ) )
+        if( not &Funcs::is_id_field_value_valid( $self -> arg( 'permissions' ) ) )
         {
                 $error_msg = 'INVALID_PERMISSIONS_ID';
         }
@@ -294,17 +308,13 @@ sub is_registered_date_valid
         return $valid;
 }
 
-sub check_avatar_image
-{
-        return;
-}
-
-sub do_edit
+sub do_edit_user
 {
         my $self = shift;
 
-        my $success = 0;
-
+        my $dbh = LittleORM::Db -> get_write_dbh();
+        $dbh -> begin_work();
+        
         my $user = $self -> get_currently_edited_user();
 
         $user -> id( $self -> arg( 'id' ) );
@@ -318,15 +328,57 @@ sub do_edit
         my $strp = DateTime::Format::Strptime -> new( pattern => '%Y-%m-%d %T' );
         $user -> registered( $strp -> parse_datetime( $self -> arg( 'registered' ) ) );
 
-        $user -> banned( $self -> arg( 'banned' ) );
-
-        # TODO And save uploaded avatar
+        $user -> banned( $self -> arg( 'banned' ) ? 1 : 0 );
 
         $user -> update();
 
-        $success = 1;
+        $self -> upload_avatar();
 
-        return $success;
+        assert( $dbh -> commit() );
+
+        return;
+}
+
+sub upload_avatar
+{
+        my $self = shift;
+
+        my $avatar = $self -> upload( 'avatar' );
+
+        my $filename = $self -> arg( 'id' );
+
+        my $filepath = File::Spec -> catfile( ForumConst -> avatars_dir_abs(), $filename );
+
+        if( cp( $avatar, $filepath ) )
+        {
+                my $user = FModel::Users -> get( id => $self -> arg( 'id' ) );
+                $user -> avatar( $filename );
+                $user -> update();
+        }
+
+        return;
+}
+
+sub check_avatar_image
+{
+        my ( $self, $image ) = @_;
+
+        my $error_msg = '';
+
+        my $image = $self -> upload( 'avatar' );
+
+        my $filesize = -s $image;
+
+        if( $image and not $self -> is_image_has_proper_filetype( $image ) )
+        {
+                $error_msg = 'AVATAR_INCORRECT_FILETYPE';
+        }
+        elsif( $image and $filesize > ForumConst -> avatar_max_filesize() )
+        {
+                $error_msg = 'AVATAR_FILESIZE_TOO_BIG';
+        }
+
+        return $error_msg;
 }
 
 sub app_mode_cancel_search
@@ -347,43 +399,6 @@ sub app_mode_cancel_changes
         return $output;
 }
 
-sub app_mode_upload_avatar
-{
-        my $self = shift;
-
-        my $avatar = $self -> upload( 'avatar' );
-
-        my $output;
-
-        if( my $error_msg = $self -> can_upload_avatar( $avatar ) )
-        {
-                $self -> add_profile_data( $self -> user() -> id() );
-                $output = $self -> construct_page( middle_tpl => 'profile', error_msg => $error_msg );
-        } else
-        {
-                my $filename = $self -> user() -> id();
-
-                my $filepath = File::Spec -> catfile( ForumConst -> avatars_dir_abs(), $filename );
-
-                if( cp( $avatar, $filepath ) )
-                {
-                        my $user = FModel::Users -> get( id => $self -> user() -> id() );
-                        $user -> avatar( $filename );
-                        $user -> update();
-
-                        $self -> add_profile_data( $self -> user() -> id() );
-                        $output = $self -> construct_page( middle_tpl => 'profile', success_msg => 'AVATAR_UPLOADED' );
-                } else
-                {
-                        my $error_msg = 'AVATAR_NOT_UPLOADED' . "\n$!";
-                        $self -> add_profile_data( $self -> user() -> id() );
-                        $output = $self -> construct_page( middle_tpl => 'profile', error_msg => $error_msg );
-                }
-        }
-
-        return $output;
-}
-
 sub show_user_edit_form_with_args_values
 {
         my ( $self, %params ) = @_;
@@ -398,7 +413,7 @@ sub show_user_edit_form_with_args_values
         else
         {
                 $self -> fill_user_edit_form_params_from_args();
-                $output = $self -> construct_page( middle_tpl => 'adminka_user_edit', error_msg => $params{ 'error_msg' }, success_msg => $params{ 'success_msg' } );
+                $output = $self -> construct_page( middle_tpl => 'adminka_user_edit', error_msg => $params{ 'error_msg' } );
         }
 
         return $output;
@@ -406,7 +421,7 @@ sub show_user_edit_form_with_args_values
 
 sub show_user_edit_form_with_db_values
 {
-        my ( $self ) = @_;
+        my ( $self, %params ) = @_;
 
         my $output;
 
@@ -418,7 +433,7 @@ sub show_user_edit_form_with_db_values
         else
         {
                 $self -> fill_user_edit_form_params_from_db();
-                $output = $self -> construct_page( middle_tpl => 'adminka_user_edit' );
+                $output = $self -> construct_page( middle_tpl => 'adminka_user_edit', success_msg => $params{ 'success_msg' } );
         }
 
         return $output;
@@ -555,6 +570,7 @@ sub show_users
              DYN_NUM_OF_THREADS_TO => $self -> arg( 'num_of_threads_to' ),
              DYN_USERS => $users,
              DYN_PERMISSIONS => $self -> get_permissions_for_dropdown( selected_id => $self -> arg( 'permissions' ) ),
+             DYN_ICON_DELETE_URL => ForumConst -> icon_delete_url(),
              DYN_NUM_OF_ADMINKA_USERS_COLS => ForumConst -> num_of_adminka_users_cols(),
              DYN_ARROWUP_IMAGE_URL => ForumConst -> arrowup_image_url(),
              DYN_ARROWDOWN_IMAGE_URL => ForumConst -> arrowdown_image_url(),
@@ -590,6 +606,7 @@ sub show_users_with_no_search_params
              DYN_NUM_OF_MESSAGES_TO => '',
              DYN_NUM_OF_THREADS_FROM => '',
              DYN_NUM_OF_THREADS_TO => '',
+             DYN_ICON_DELETE_URL => ForumConst -> icon_delete_url(),
              DYN_USERS => $users,
              DYN_PERMISSIONS => $self -> get_permissions_for_dropdown(),
              DYN_NUM_OF_ADMINKA_USERS_COLS => ForumConst -> num_of_adminka_users_cols(),
@@ -640,6 +657,11 @@ sub get_users_for_replace
         {
                 my $hash = { DYN_ID     => $user -> id(),
                              DYN_NAME   => $user -> name(),
+                             DYN_EMAIL  => $user -> email(),
+                             DYN_PERMISSIONS => $user -> permission() -> title(),
+                             DYN_REGISTERED => $user -> registered() -> dmy( '.' ),
+                             DYN_NUM_OF_MESSAGES => $user -> get_num_of_messages(),
+                             DYN_NUM_OF_THREADS => $user -> get_num_of_threads(),
                              DYN_BANNED => $user -> banned(),
                              DYN_SPECIAL_PERMISSION => ( not $user -> is_regular() ),
                              DYN_THATS_YOU => ( $user -> id() eq $self -> user() -> id() ) };
@@ -754,9 +776,7 @@ sub does_num_of_messages_matches
 
         if( my $from = $self -> arg( 'num_of_messages_from' ) or my $to = $self -> arg( 'num_of_messages_to' ) )
         {
-                my $num_of_messages = FModel::Messages -> count( author => $user );
-
-                $matches = $self -> is_num_in_range( $num_of_messages, $from, $to );
+                $matches = $self -> is_num_in_range( $user -> get_num_of_messages(), $from, $to );
         }
         else
         {
@@ -774,8 +794,7 @@ sub does_num_of_threads_matches
 
         if( my $from = $self -> arg( 'num_of_threads_from' ) or my $to = $self -> arg( 'num_of_threads_to' ) )
         {
-                my $num_of_threads = FModel::Threads -> count( author => $user );
-                $matches = $self -> is_num_in_range( $num_of_threads, $from, $to );
+                $matches = $self -> is_num_in_range( $user -> get_num_of_threads(), $from, $to );
         }
         else
         {
@@ -847,17 +866,14 @@ sub fill_user_edit_form_params_from_db
                 &ar( DYN_THATS_YOU => 1 );
         }
 
-        my $num_of_messages = FModel::Messages -> count( author => $user );
-        my $num_of_threads  = FModel::Threads  -> count( author => $user );
-
         &ar( DYN_CURRENTLY_EDITED_USER_ID => $user -> id(),
              DYN_ID              => $user -> id(),
              DYN_NAME            => $user -> name(),
              DYN_PASSWORD        => $user -> password(),
              DYN_EMAIL           => $user -> email(),
              DYN_REGISTERED      => $user -> registered() -> strftime( '%Y-%m-%d %T' ),
-             DYN_NUM_OF_MESSAGES => $num_of_messages,
-             DYN_NUM_OF_THREADS  => $num_of_threads,
+             DYN_NUM_OF_MESSAGES => $user -> get_num_of_messages(),
+             DYN_NUM_OF_THREADS  => $user -> get_num_of_threads(),
              DYN_AVATAR          => $user -> avatar_url(),
              DYN_BANNED          => $user -> banned(),
              DYN_PERMISSIONS     => $self -> get_permissions_for_dropdown( selected_id => $user -> permission() -> id() ) );
@@ -869,18 +885,15 @@ sub fill_user_edit_form_params_from_args
 {
         my $self = shift;
 
-        my $num_of_messages = FModel::Messages -> count( author => $self -> arg( 'currently_edited_user_id' ) );
-        my $num_of_threads  = FModel::Threads  -> count( author => $self -> arg( 'currently_edited_user_id' ) );
-
         &ar( DYN_CURRENTLY_EDITED_USER_ID => $self -> arg( 'currently_edited_user_id' ),
              DYN_ID              => $self -> arg( 'id' ),
              DYN_NAME            => $self -> arg( 'name' ),
              DYN_PASSWORD        => $self -> arg( 'password' ),
              DYN_EMAIL           => $self -> arg( 'email' ),
              DYN_REGISTERED      => $self -> arg( 'registered' ),
-             DYN_NUM_OF_MESSAGES => $num_of_messages,
-             DYN_NUM_OF_THREADS  => $num_of_threads,
-             DYN_AVATAR          => $self -> arg( 'avatar' ),
+             DYN_NUM_OF_MESSAGES => $self -> get_currently_edited_user() -> get_num_of_messages(),
+             DYN_NUM_OF_THREADS  => $self -> get_currently_edited_user() -> get_num_of_threads(),
+             DYN_AVATAR          => $self -> get_currently_edited_user() -> avatar_url(),
              DYN_BANNED          => $self -> arg( 'banned' ),
              DYN_PERMISSIONS     => $self -> get_permissions_for_dropdown( selected_id => $self -> arg( 'permissions' ) ) );
 
@@ -912,6 +925,212 @@ sub get_permissions_for_dropdown
 
         return \@permissions_for_dropdown;
 }
+
+sub app_mode_delete_user
+{
+        my $self = shift;
+
+        my $output;
+
+        if( my $error_msg = $self -> check_if_proper_user_id_provided( $self -> arg( 'id' ) ) )
+        {
+                $output = $self -> construct_page( error_msg => $error_msg );
+                $self -> do_delete();
+        }
+        else
+        {
+                $self -> mode( 'search' );
+                $output = $self -> app_mode_search();
+        }
+
+        return $output;
+}
+
+sub do_delete
+{
+        my $self = shift;
+
+        my $user = FModel::Users -> get( $self -> arg( 'id' ) );
+        $user -> deleted( 1 );
+        $user -> update();
+
+        return;
+}
+
+sub app_mode_create_user
+{
+        my $self = shift;
+
+        &ar( DYN_PERMISSIONS => $self -> get_permissions_for_dropdown( selected_id => $self -> arg( 'permissions' ) ) );
+
+        my $output = $self -> construct_page( middle_tpl => 'adminka_user_create' );
+
+        return $output;
+}
+
+sub app_mode_do_create_user
+{
+        my $self = shift;
+
+        my $output;
+
+        if( my $error_msg = $self -> check_if_can_create_user() )
+        {
+                $output = $self -> construct_page( middle_tpl => 'adminka_user_create', error_msg => $error_msg );
+        }
+        else
+        {
+                if( $self -> do_create_user() )
+                {
+                        $self -> arg( 'currently_edited_user' ) = $self -> arg( 'id' );
+                        $self -> mode( 'edit_user' );
+                        $output = $self -> app_mode_edit_user( success_msg => 'USER_SUCCESSFULLY_CREATED' );
+                }
+                else
+                {
+                        $output = $self -> construct_page( error_msg => 'UNEXPECTED_ERROR' );
+                }
+        }
+
+        return $output;
+}
+
+sub check_if_can_create_user
+{
+        my $self = shift;
+
+        my $error_msg = '';
+
+        my $fields_are_filled = Funcs::trim( $self -> arg( 'id' ) ) and
+                                Funcs::trim( $self -> arg( 'name' ) ) and
+                                Funcs::trim( $self -> arg( 'password' ) ) and
+                                Funcs::trim( $self -> arg( 'email' ) ) and
+                                Funcs::trim( $self -> arg( 'registered' ) ) and
+                                Funcs::trim( $self -> arg( 'permissions' ) );
+
+        if( not $fields_are_filled )
+        {
+                $error_msg = 'FIELDS_ARE_NOT_FILLED';
+        }
+        elsif( my $id_error = $self -> check_if_can_create_id() )
+        {
+                $error_msg = $id_error;
+        }
+        elsif( my $name_error = $self -> check_if_can_create_name() )
+        {
+                $error_msg = $name_error;
+        }
+        elsif( my $password_error = $self -> check_if_can_create_password() )
+        {
+                $error_msg = $password_error;
+        }
+        elsif( my $email_error = $self -> check_if_can_create_email() )
+        {
+                $error_msg = $email_error;
+        }
+        elsif( my $permissions_error = $self -> check_if_can_create_permissions() )
+        {
+                $error_msg = $permissions_error;
+        }
+        elsif( not $self -> is_registered_date_valid() )
+        {
+                $error_msg = 'INVALID_REGISTERED_DATE';
+        }
+        elsif( my $avatar_error = $self -> check_avatar_image() )
+        {
+                $error_msg = $avatar_error;
+        }
+
+        return $error_msg;
+}
+
+sub check_if_can_create_id
+{
+        my $self = shift;
+
+        my $error_msg = '';
+
+        if( not &Funcs::is_id_field_value_valid( $self -> arg( 'id' ) ) )
+        {
+                $error_msg = 'INVALID_ID';
+        }
+        elsif( $self -> is_user_exists( $self -> arg( 'id' ) )
+        {
+                $error_msg = 'USER_ID_ALREADY_EXISTS';
+        }
+
+        return $error_msg;
+}
+
+sub check_if_can_create_name
+{
+        my $self = shift;
+        
+        my $error_msg = '';
+        
+        if( not $self -> is_username_valid( $self -> arg( 'name' ) ) )
+        {
+                $error_msg = 'INVALID_USERNAME';
+        }
+        elsif( $self -> is_username_exists() )
+        {
+                $error_msg = 'USERNAME_ALREADY_EXISTS';
+        }
+
+        return $error_msg;
+}
+
+sub check_if_can_create_password
+{
+        my $self = shift;
+
+        my $error_msg = '';
+
+        if( not $self -> is_password_valid( $self -> arg( 'password' ) ) )
+        {
+                $error_msg = 'PASSWORD_INVALID';
+        }
+
+        return $error_msg;
+}
+
+sub check_if_can_create_email
+{
+        my $self = shift;
+
+        my $error_msg;
+
+        if( not $self -> is_email_valid( $self -> arg( 'email' ) ) )
+        {
+                $error_msg = 'INVALID_EMAIL';
+        }
+        elsif( not $self -> is_email_exists( $self -> arg( 'email' ) )
+        {
+                $error_msg = 'EMAIL_ALREADY_EXISTS';
+        }
+
+        return $error_msg;
+}
+
+sub check_if_can_create_permissions
+{
+        my $self = shift;
+
+        my $error_msg = '';
+
+        if( not &Funcs::is_id_field_value_valid( $self -> arg( 'permissions' ) ) )
+        {
+                $error_msg = 'INVALID_PERMISSIONS_ID';
+        }
+        elsif( not $self -> do_permissions_exist( $self -> arg( 'permissions' ) ) )
+        {
+                $error_msg = 'NO_SUCH_PERMISSIONS';
+        }
+
+        return $error_msg;
+}
+
+sub do_create
 
 
 1;
