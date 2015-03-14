@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=windows-1252"/>
+    <title>ImageBoard</title>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+  </head>
+
+  <body>
+    <div class="wrapper">
+    	<table cellpadding="0" cellspacing="0" width="100%">
+    		<tr align="center">
+    			[% DYN_HEADER %]
+    		</tr>
+    		<tr>
+    			[% DYN_MIDDLE %]
+    		</tr>
+    	</table>
+    </div>
+    
+    <div class="footer">
+    	[% DYN_FOOTER %]
+    </div>
+    
+    <script>
+    
+      var pinned_images = document.querySelectorAll( '.pinned' );
+    
+      for( var $i = 0; $i < pinned_images.length; $i++ )
+      {
+        pinned_images[ $i ].onclick = function() {
+          if( this.style.maxWidth != 'none' && this.style.maxHeight != 'none' )
+          {
+            this.style.maxWidth = 'none';
+            this.style.maxHeight = 'none';
+          }
+          else
+          {
+            this.style.maxWidth = '150px';
+            this.style.maxHeight = '300px';
+          }
+        };
+      }
+    
+    </script>
+    
+    <!-- Pin footer to the bottom -->
+    <style media="screen" type="text/css">
+    
+    	*
+    	{
+    		margin: 0;
+    	}
+    
+    	html, body
+    	{
+    		height: 100%;
+    	}
+    
+    	.wrapper
+    	{
+    		padding: 10px;
+    		min-height: 95%;
+    		height: auto !important;
+    		height: 95%;
+    		margin: 0 auto -10px; /* the bottom margin is the negative value of the footer's height */
+    	}
+    
+    	.footer, .push
+    	{
+    		height: 10px; /* .push must be the same height as .footer */
+    	}
+    
+    </style>
+  </body>
+</html>

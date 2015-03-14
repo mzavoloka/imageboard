@@ -1,0 +1,299 @@
+[% TEXT_SIZE = 47 %]
+[% OPTION_TEXT_SIZE = 60 %]
+[% VOTE_QUESTION_TEXT_SIZE = 64 %]
+
+<td colspan="2" align="center">
+  <h1>Редактировать тред <font color="LightSteelBlue" size="6">#[% DYN_ID %]</font></h1>
+  [% IF DYN_ERROR_MSG %] <p><font color="red">[% DYN_ERROR_MSG %]</font></p> [% END %]
+
+  [% UNLESS DYN_DONT_SHOW_THREAD_DATA %]
+    <form method="post" name="thread_edit" enctype="multipart/form-data" action="/thread/">
+      <table cellspacing="3" cellpadding="3">
+        <tr>
+          <td>Заголовок: </td>
+          <td><input type="text" name="title" value="[% FILTER html %][% DYN_TITLE %][% END %]" size="[% TEXT_SIZE %]" autofocus="autofocus" /></td>
+        </tr>
+        <tr>
+          <td valign="top">О чем тред: </td>
+          <td><textarea name="content" rows="10" cols="50"/>[% FILTER html %][% DYN_CONTENT %][% END %]</textarea></td>
+        </tr>
+        [% IF DYN_PINNED_IMAGE %]
+        <tr>
+          <td></td>
+          <td>
+            <img class="pinned" alt="Прикрепленное изображение" src="[% DYN_PINNED_IMAGE %]" />
+          </td>
+        </tr>
+        [% END %]
+        <tr>
+          <td>
+            <p>Прикрепить изображение: </p>
+          </td>
+          <td>
+            <p><input type="file" name="pinned_image" accept="image/jpeg,image/png" /></p>
+          </td>
+        </tr>
+        <tr>
+          <td align="right">
+            <p>Голосование: </p>
+          </td>
+          <td>
+            <input type="checkbox" id="vote_check" name="vote" value="1" [% IF DYN_VOTE %]checked[% END %] onclick="change_vote_fields_visibility()"/>
+          </td>
+        </tr>
+
+        <tr>
+          <td colspan="2">
+            <table id="vote_question">
+              <tr>
+                <td align="right">
+                  <p>Вопрос: </p>
+                </td>
+                <td>
+                  <input type="text" name="vote_question" value="[% DYN_VOTE_QUESTION %]" size="[% VOTE_QUESTION_TEXT_SIZE %]" [% IF DYN_CANT_CHANGE_VOTE_QUESTION %]disabled[% END %] />
+                  [% IF DYN_CANT_CHANGE_VOTE_QUESTION %]
+                    <font class="cant_change">Некоторые пользователи уже проголосовали в этом опросе.</font>
+                  [% END %]
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <table id="voting_options" class="voting_options_rows" [% UNLESS DYN_VOTE %]style="display: none;"[% END %]>
+              [% i = 0 %]
+              [% WHILE i < DYN_VOTING_OPTIONS.size %]
+                [% DYN_NUMBER = DYN_VOTING_OPTIONS.$i %]
+                [% next_i = i + 1 %]
+                [% DYN_VALUE = DYN_VOTING_OPTIONS.$next_i %]
+                [% next_next_i = next_i + 1 %]
+                [% DYN_CANT_CHANGE = DYN_VOTING_OPTIONS.$next_next_i %]
+                <tr id="option[% DYN_NUMBER %]_row">
+                  <td align="right">
+                    <p id="option[% DYN_NUMBER %]_label">Опция [% DYN_NUMBER %]: </p>
+                  </td>
+                  <td>
+                    <input type="text" class="option" id="option[% DYN_NUMBER %]" name="option[% DYN_NUMBER %]" value="[% DYN_VALUE %]" size="[% OPTION_TEXT_SIZE %]"
+                      [% IF DYN_CANT_CHANGE %]disabled[% END %] />
+                  </td>
+                  <td>
+                    [% IF DYN_CANT_CHANGE %]
+                      <font class="cant_change">Некоторые пользователи уже проголосовали за эту опцию.</font>
+                    [% END %]
+                      <input type="button" class="delete_option" id="delete_option[% DYN_NUMBER %]" value="Удалить" onclick="delete_option( [% DYN_NUMBER %] )"
+                      [% IF DYN_CANT_CHANGE %]disabled style="display:none;"[% END %]/>
+                  </td>
+                </tr>
+                [% i = i + 3 %]
+              [% END %]
+            </table>
+          </td>
+        </tr>
+
+        <tr class="voting_options_rows">
+          <td colspan="2" align="right">
+            <input type="button" id="add_option_button" name="add_option_button" value="Добавить опцию" />
+          </td>
+        </tr>
+
+        <tr>
+          <td colspan="2" align="right"><input type="submit" name="edit_button" value="Редактировать" /></td>
+        </tr>
+      </table>
+
+      <input type="hidden" name="mode" value="do_edit"/>
+      <input type="hidden" name="id" value="[% DYN_ID %]"/>
+    </form>
+  [% END %]
+
+  <p><a href="/">На главную</a>[% UNLESS DYN_DONT_SHOW_THREAD_DATA %] | <a href="/thread/?id=[% DYN_ID %]">Вернуться в тред</a>[% END %]</p>
+</td>
+
+<script>
+
+  var vote_check = document.getElementById( 'vote_check' );
+  var vote_question = document.getElementById( 'vote_question' );
+  var voting_options = document.getElementById( 'voting_options' );
+  var voting_options_rows = document.querySelectorAll( '.voting_options_rows' );
+  var add_option_button = document.getElementById( 'add_option_button' );
+
+  init();
+
+  function init()
+  {
+    change_vote_fields_visibility();
+    vote_check.onclick = function() { change_vote_fields_visibility(); };
+    add_option_button.onclick = function() { add_option(); };
+    var options = document.querySelectorAll( '.option' );
+    var options_number = options.length;
+
+    set_delete_buttons_visibility();
+  }
+  
+  function change_vote_fields_visibility()
+  {
+    change_vote_question_visibility();
+    change_voting_options_visibility();
+  }
+
+  function change_vote_question_visibility()
+  {
+    if( vote_check.checked )
+    {
+      vote_question.style.display = 'block';
+    }
+    else
+    {
+      vote_question.style.display = 'none';
+    }
+  }
+
+  function change_voting_options_visibility()
+  {
+    if( vote_check.checked )
+    {
+      for( var i = 0; i < voting_options_rows.length; i++ )
+      {
+        voting_options_rows[ i ].style.display = 'block';
+      }
+    }
+    else
+    {
+      for( var i = 0; i < voting_options_rows.length; i++ )
+      {
+        voting_options_rows[ i ].style.display = 'none';
+      }
+    }
+  }
+
+  function add_option()
+  {
+    var options = document.querySelectorAll( '.option' );
+    var number = options.length + 1;
+
+    voting_options.tBodies[0].insertAdjacentHTML( 'beforeend',
+      '<tr id="option' + number + '_row"><td align="right">' + 
+        '<p id="option' + number + '_label">Опция ' + number + ': </p></td>' +
+        '<td><input type="text" class="option" id="option' + number + '" name="option' + number + '" value="" size="[% OPTION_TEXT_SIZE %]" /></td>' +
+        '<td><input type="button" class="delete_option" id="delete_option' + number + '" value="Удалить"/></td>' +
+      '</td></tr>');
+    document.getElementById( 'delete_option' + number ).onclick = function() { delete_option( number ); };
+
+    set_delete_buttons_visibility();
+  }
+
+  function get_delete_number( button )
+  {
+    var number = button.name.replace( /^\D+/g, '');
+    return number;
+  }
+
+  function delete_option( number )
+  {
+    var option = document.getElementById( 'option' + number );
+    var option_row = document.getElementById( 'option' + number + '_row' );
+    option_row.parentNode.removeChild( option_row ); // JS does not allow an element to commit suicide
+
+    for( var i = number + 1; i <= num_of_options() + 1; i++  )
+    {
+      decrease_option_number( document.getElementById( 'option' + i ) );
+    }
+
+    set_delete_buttons_visibility();
+  }
+
+  function decrease_option_number( option )
+  {
+    var current_number = get_option_number( option );
+    var new_number = current_number - 1;
+    option.id = 'option' + new_number;
+    option.name = 'option' + new_number;
+
+    var option_label = document.getElementById( 'option' + current_number + '_label' );
+    option_label.id = 'option' + new_number + '_label';
+    option_label.innerHTML = 'Опция ' + new_number + ': ';
+
+    var option_row = document.getElementById( 'option' + current_number + '_row' );
+    option_row.id = 'option' + new_number + '_row';
+
+    var delete_button = document.getElementById( 'delete_option' + current_number );
+    delete_button.id = 'delete_option' + new_number;
+    delete_button.onclick = function() { delete_option( new_number ); };
+  }
+  
+  function get_option_number( option )
+  {
+    var number = option.name.replace( /^\D+/g, '');
+    return number;
+  }
+
+  function set_delete_buttons_visibility()
+  {
+    if( num_of_options() >= 3 )
+    {
+      enable_delete_buttons();
+    }
+    else
+    {
+      disable_delete_buttons();
+    }
+  }
+
+  function num_of_options()
+  {
+    return document.getElementsByClassName( 'option' ).length;
+  }
+
+  function enable_delete_buttons()
+  {
+    var delete_buttons = document.querySelectorAll( '.delete_option' );
+
+    for( var i = 0; i < delete_buttons.length; i++ )
+    {
+      if( delete_buttons[ i ].disabled == false )
+      {
+        delete_buttons[ i ].style.display = 'block';
+      }
+    }
+  }
+
+  function disable_delete_buttons()
+  {
+    var delete_buttons = document.querySelectorAll( '.delete_option' );
+
+    for( var i = 0; i < delete_buttons.length; i++ )
+    {
+      if( delete_buttons[ i ].disabled == false )
+      {
+        delete_buttons[ i ].style.display = 'none';
+      }
+    }
+  }
+
+</script>
+
+<style media="screen" type="text/css">
+
+  td .title {
+    width: 70%;
+    word-break: break-all;
+  }
+
+  td .content {
+    word-break: break-all;
+  }
+
+  img.pinned
+  {
+    max-width: 150px;
+    max-height: 300px;
+  }
+
+  font.cant_change
+  {
+    font-size: xx-small;
+    color: darkgrey;
+  }
+
+</style>

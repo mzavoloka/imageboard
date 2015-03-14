@@ -1,0 +1,222 @@
+[% TEXT_SIZE = 47 %]
+
+<td align="center" colspan="2">
+
+  <p>
+    <a href="/adminka/users?mode=search">Редактирование пользователей</a> /
+    <a href="/adminka/users?id=[% DYN_CURRENTLY_EDITED_USER_ID %]">Пользователь [% DYN_NAME %]</a>
+    [% IF DYN_THATS_YOU %]
+      <font color="darkgrey" size="2">(Это вы)</font>
+    [% END %]
+  </p>
+
+  [% IF DYN_ERROR_MSG %]
+    <p><font color="red">[% DYN_ERROR_MSG %]</font></p>
+  [% END %]
+  [% IF DYN_SUCCESS_MSG %]
+    <p><font color="blue">[% DYN_SUCCESS_MSG %]</font></p>
+  [% END %]
+
+  [% UNLESS DYN_DONT_SHOW_USER_EDIT_FIELDS %]
+    <form method="post" action="/adminka/users/" enctype="multipart/form-data">
+      <p>
+        <table cellspacing="3" cellpadding="3">
+
+          <tr>
+            <td align="right">
+              <p>Id:</p>
+            </td>
+            <td>
+              <input type="textbox" name="id" value="[% DYN_ID %]" size="[% TEXT_SIZE %]" />
+            </td>
+          </tr>
+
+          <tr>
+            <td align="right">
+              <p>Имя: </p>
+            </td>
+            <td>
+              <input type="textbox" name="name" value="[% DYN_NAME %]" size="[% TEXT_SIZE %]" />
+            </td>
+          </tr>
+
+          <tr>
+            <td align="right">
+              <p>Пароль: </p>
+            </td>
+            <td>
+              <input type="textbox" name="password" value="[% DYN_PASSWORD %]" size="[% TEXT_SIZE %]" />
+            </td>
+          </tr>
+
+          <tr>
+            <td align="right">
+              <p>Email:</p>
+            </td>
+            <td>
+              <input type="textbox" name="email" value="[% DYN_EMAIL %]" size="[% TEXT_SIZE %]" />
+            </td>
+          </tr>
+
+          <tr>
+            <td align="right">
+              <p>Дата регистрации:</p>
+            </td>
+            <td>
+              <input type="datetime-local" id="registered" name="registered" value="[% DYN_REGISTERED %]" />
+            </td>
+          </tr>
+
+          <tr>
+            <td align="right">
+              <p>Права: </p>
+            </td>
+            <td>
+              <select name="permissions">
+                [% FOR permission IN DYN_PERMISSIONS %]
+                  <option value="[% permission.DYN_ID %]" [% IF permission.DYN_CURRENT %]class="current" selected[% END %]>[% permission.DYN_TITLE %]</option>
+                [% END %]
+              </select>
+            </td>
+          </tr>
+
+          <tr>
+            <td align="right">
+              <p>Забанен: </p>
+            </td>
+            <td>
+              <input type="checkbox" name="banned" [% IF DYN_BANNED %]checked[% END %] />
+            </td>
+          </tr>
+
+          <tr>
+            <td align="right">
+              <p>Количество сообщений:</p>
+            </td>
+            <td>
+              <a href="adminka/messages/user_id=[% DYN_CURRENTLY_EDITED_USER_ID %]">[% DYN_NUM_OF_MESSAGES %]</p>
+            </td>
+          </tr>
+
+          <tr>
+            <td align="right">
+              <p>Создано тредов:</p>
+            </td>
+            <td>
+              <a href="adminka/threads/user_id=[% DYN_CURRENTLY_EDITED_USER_ID %]">[% DYN_NUM_OF_THREADS %]</p>
+            </td>
+          </tr>
+
+          <tr>
+            <td colspan="2" align="center">
+              <table>
+                <tr>
+                  <td colspan="2" align="center">
+                    <img class="avatar" src="[% DYN_AVATAR %]" alt="Аватарка">
+                  </td>
+                </tr>
+                <tr>
+                  <td align="right">
+                    <p>Загрузить аватарку:</p>
+                  </td>
+                  <td>
+                    <p><input type="file" name="avatar" accept="image/jpeg,image/png"></p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td>
+              <input type="submit" name="delete_user" value="Удалить пользователя" onclick="set_mode( 'delete_user' )" />
+            </td>
+            <td align="right">
+              <input type="submit" name="cancel_changes" value="Отмена" onclick="set_mode( 'cancel_changes' )" />
+              <input type="submit" name="do_edit" value="Применить изменения" onclick="set_mode( 'do_edit' )" />
+            </td>
+          </tr>
+
+        </table>
+      </p>
+
+      <input type="hidden" name="currently_edited_user_id" value="[% DYN_CURRENTLY_EDITED_USER_ID %]"/>
+      <input type="hidden" id="mode" name="mode" value=""/>
+    </form>
+  [% END %]
+
+  <p>
+    <font size="2">
+      <a href="/adminka/users?mode=search">Все пользователи</a> | 
+      <a href="/adminka">На главную админки</a> |
+      <a href="/">На главную форума</a>
+    </font>
+  </p>
+</td>
+
+<link rel="stylesheet" type="text/css" href="/static/jquery-ui-1.10.4.custom/css/ui-lightness/jquery-ui-1.10.4.custom.css">
+<script type="text/javascript" src="/static/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript" src="/static/jquery-ui-1.10.4.custom/js/jquery-ui-1.10.4.custom.js"></script>
+<script type="text/javascript" src="/static/js/jquery-ui-timepicker-addon.js"></script>
+
+<script>
+
+  $( document ).ready( function()
+    {
+      $( '#registered' ).datetimepicker( { dateFormat: 'yy-mm-dd' } );
+    }
+  );
+  
+  function set_mode( mode )
+  {
+    var mode_hidden = document.getElementById( 'mode' );
+    mode_hidden.value = mode;
+  }
+
+</script>
+
+<style media="screen" type="text/css">
+
+  img.avatar
+  {
+    max-width: 70px;
+    max-height: 100px;
+  }
+
+  input.ban
+  {
+    color: white;
+    background-color: darkred;
+  }
+
+  input.unban
+  {
+    color: white;
+    background-color: darkred;
+  }
+
+  p.banned
+  {
+    color: darkred;
+    font-weight: bold;
+  }
+
+  option.current
+  {
+    font-weight: bold;
+  }
+
+  /* css for timepicker */
+  .ui-timepicker-div .ui-widget-header { margin-bottom: 8px; }
+  .ui-timepicker-div dl { text-align: left; }
+  .ui-timepicker-div dl dt { float: left; clear:left; padding: 0 0 0 5px; }
+  .ui-timepicker-div dl dd { margin: 0 10px 10px 45%; }
+  .ui-timepicker-div td { font-size: 90%; }
+  .ui-tpicker-grid-label { background: none; border: none; margin: 0; padding: 0; }
+
+  .ui-timepicker-rtl{ direction: rtl; }
+  .ui-timepicker-rtl dl { text-align: right; padding: 0 5px 0 0; }
+  .ui-timepicker-rtl dl dt{ float: right; clear: right; }
+  .ui-timepicker-rtl dl dd { margin: 0 45% 10px 10px; }
+
+</style>

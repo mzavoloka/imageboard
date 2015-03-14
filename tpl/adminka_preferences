@@ -1,0 +1,245 @@
+<td colspan="2" align="center">
+
+  [% IF DYN_ERROR_MSG %] <p><font color="red">[% DYN_ERROR_MSG %]</font></p> [% END %]
+  [% IF DYN_SUCCESS_MSG %] <p><font color="blue">[% DYN_SUCCESS_MSG %]</font></p> [% END %]
+
+  <a href="/adminka/preferences/">Настройки форума</a>
+  <p><b>Все константы</b></p>
+  <form method="post" action="/adminka/preferences/">
+    <table id="const_table">
+      <tr>
+        <td align="center">
+          Имя
+        </td>
+        <td align="center">
+          Значение
+        </td>
+      </tr>
+      [% FOREACH const IN DYN_CONSTANTS %]
+      <tr>
+        <td align="right">
+          <input type="text" class="const_name" id="const_[% const.DYN_ID %]_name" name="const_[% const.DYN_ID %]_name" value="[% const.DYN_NAME %]"
+            onchange="set_modified_flag( [% const.DYN_ID %] )" /> : 
+        </td>
+        <td>
+          <input type="text" class="const_value" id="const_[% const.DYN_ID %]_value" name="const_[% const.DYN_ID %]_value" value="[% const.DYN_VALUE %]"
+            onchange="set_modified_flag( [% const.DYN_ID %] )" /> 
+        </td>
+        <td>
+          <img src="[% DYN_ICON_DELETE_URL %]" alt="Удалить" onclick="switch_const_state( [% const.DYN_ID %] )"/>
+          <input type="hidden" id="const_[% const.DYN_ID %]_to_delete" name="const_[% const.DYN_ID %]_to_delete" value="[% const.DYN_TO_DELETE %]" />
+          <input type="hidden" id="const_[% const.DYN_ID %]_added" name="const_[% const.DYN_ID %]_added" value="[% const.DYN_ADDED %]" />
+          <input type="hidden" id="const_[% const.DYN_ID %]_modified" name="const_[% const.DYN_ID %]_modified" value="[% const.DYN_MODIFIED %]" />
+        </td>
+      </tr>
+      [% END %]
+      <tr id="action_buttons_tr">
+        <td align="right" colspan="2">
+          <input type="submit" name="cancel_changes" value="Сброс" onclick="set_mode( 'cancel_changes' )" />
+          <input type="button" name="add" value="Добавить" onclick="add_constant()" />
+          <input type="submit" name="save_changes" value="Сохранить" onclick="set_mode( 'save_changes' )" />
+        </td>
+      </tr>
+    </table>
+    <input type="hidden" id="mode" name="mode" value="" />
+  </form>
+
+  <p>
+    <font size="2"><a href="/adminka">На главную админки</a>|<a href="/">На главную форума</a></font>
+  </p>
+</td>
+
+<script>
+
+  var const_to_delete_bgcolor = 'darkred';
+  var const_to_delete_fgcolor = 'white';
+
+  var const_modified_bgcolor = 'yellow';
+  var const_modified_fgcolor = '';
+
+  var const_added_bgcolor = 'green';
+  var const_added_fgcolor = 'white';
+
+  init();
+
+  function switch_const_state( id )
+  {
+    var const_name = document.getElementById( 'const_' + id + '_name' );
+    var const_value = document.getElementById( 'const_' + id + '_value' );
+
+    var const_to_delete = document.getElementById( 'const_' + id + '_to_delete' );
+    if( const_to_delete.value == 1 )
+    {
+      remove_const_from_delete( id );
+    }
+    else
+    {
+      add_const_to_delete( id );
+    }
+  }
+
+  function remove_const_from_delete( id )
+  {
+    var const_name = document.getElementById( 'const_' + id + '_name' );
+    var const_value = document.getElementById( 'const_' + id + '_value' );
+
+    const_name.disabled = false;
+    const_value.disabled = false;
+
+    var const_to_delete = document.getElementById( 'const_' + id + '_to_delete' );
+    const_to_delete.value = 0;
+
+    change_const_fields_color( id );
+  }
+
+  function add_const_to_delete( id )
+  {
+    var const_name = document.getElementById( 'const_' + id + '_name' );
+    var const_value = document.getElementById( 'const_' + id + '_value' );
+
+    const_name.disabled = true;
+    const_value.disabled = true;
+
+    var const_to_delete = document.getElementById( 'const_' + id + '_to_delete' );
+    const_to_delete.value = 1;
+
+    change_const_fields_color( id );
+  }
+
+  function set_modified_flag( id )
+  {
+    var const_modified = document.getElementById( 'const_' + id + '_modified' );
+    var const_added = document.getElementById( 'const_' + id + '_added' );
+
+    if( const_added.value == 0 )
+    {
+      const_modified.value = 1;
+      change_const_fields_color( id );
+    }
+  }
+
+  function set_added_flag( id )
+  {
+    var const_added = document.getElementById( 'const_' + id + '_added' );
+    const_added.value = 1;
+
+    change_const_fields_color( id );
+  }
+
+  function change_const_fields_color( id )
+  {
+    var const_to_delete = document.getElementById( 'const_' + id + '_to_delete' );
+    var const_modified = document.getElementById( 'const_' + id + '_modified' );
+    var const_added = document.getElementById( 'const_' + id + '_added' );
+
+    var bgcolor = '';
+    var fgcolor = '';
+
+    if( const_to_delete.value == 1 )
+    {
+      bgcolor = const_to_delete_bgcolor;
+      fgcolor = const_to_delete_fgcolor;
+    }
+    else if( const_added.value == 1 )
+    {
+      bgcolor = const_added_bgcolor;
+      fgcolor = const_added_fgcolor;
+    }
+    else if( const_modified.value == 1 )
+    {
+      bgcolor = const_modified_bgcolor;
+      fgcolor = const_modified_fgcolor;
+    }
+
+    var const_name = document.getElementById( 'const_' + id + '_name' );
+    var const_value = document.getElementById( 'const_' + id + '_value' );
+
+    const_name.style.backgroundColor = bgcolor;
+    const_value.style.backgroundColor = bgcolor;
+    
+    const_name.style.color = fgcolor;
+    const_value.style.color = fgcolor;
+  }
+
+  function add_constant()
+  {
+    var new_tr = document.createElement( 'tr' );
+    var new_id = get_new_id_for_adding();
+    new_tr.innerHTML = '<td align="right"> ' +
+          '<input type="text" class="const_name" id="const_' + new_id + '_name" name="const_' + new_id + '_name" value="" ' +
+            'onchange="set_modified_flag( ' + new_id + ' )" /> : ' +
+        '</td>' +
+        '<td>' +
+          '<input type="text" class="const_value" id="const_' + new_id + '_value" name="const_' + new_id + '_value" value="" ' +
+            'onchange="set_modified_flag( ' + new_id + ' )" /> ' +
+        '</td>' +
+        '<td>' +
+          '<img src="[% DYN_ICON_DELETE_URL %]" alt="Удалить" onclick="switch_const_state( ' + new_id + ' )"/>' +
+          '<input type="hidden" id="const_' + new_id + '_to_delete" name="const_' + new_id + '_to_delete" value="0" />' +
+          '<input type="hidden" id="const_' + new_id + '_modified" name="const_' + new_id + '_modified" value="0" />' +
+          '<input type="hidden" id="const_' + new_id + '_added" name="const_' + new_id + '_added" value="1" />' +
+        '</td>';
+
+    var action_buttons_tr = document.getElementById( 'action_buttons_tr' );
+
+    var const_table = document.getElementById( 'const_table' );
+    var last_const_row = const_table.rows[ const_table.rows.length - 1 ];
+    last_const_row.parentNode.insertBefore( new_tr, last_const_row );
+
+    set_added_flag( new_id );
+    change_const_fields_color( new_id );
+  }
+
+  function get_new_id_for_adding()
+  {
+    var const_names = document.querySelectorAll( '.const_name' );
+
+    var max_id = 0;
+
+    for( var i = 0; i < const_names.length; i ++ )
+    {
+      var const_id = parseInt( const_names[ i ].name.match( /\d+/ ) ); 
+
+      if( const_id > max_id )
+      {
+        max_id = const_id;
+      }
+    }
+
+    return ( max_id + 1 );
+  }
+
+  function set_mode( mode )
+  {
+    var mode_hidden = document.getElementById( 'mode' );
+    mode_hidden.value = mode;
+  }
+
+  function init()
+  {
+    var const_names = document.querySelectorAll( '.const_name' );
+
+    for( var i = 0; i < const_names.length; i ++ )
+    {
+      var const_id = parseInt( const_names[ i ].name.match( /\d+/ ) ); 
+      change_const_fields_color( const_id );
+    }
+  }
+
+</script>
+
+<style media="screen" type="text/css">
+
+  input.const_name:disabled
+  {
+    background-color: darkred;
+    color: white;
+  }
+
+  input.const_value:disabled
+  {
+    background-color: darkred;
+    color: white;
+  }
+
+</style>

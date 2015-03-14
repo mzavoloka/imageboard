@@ -1,0 +1,4 @@
+<td align="center" colspan="2">
+  <font color="red"><p>[% ERROR_MSG %]</p></font>
+  <p><a href="/">На главную</a></p>
+</td>

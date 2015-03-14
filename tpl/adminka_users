@@ -1,0 +1,316 @@
+<td colspan="2" align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <a href="/adminka/users?mode=search">Редактирование пользователей</a>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <table>
+          <tr>
+            <td align="center">
+              <p class="title">Список пользователей</p>
+              [% IF DYN_ERROR_MSG %]
+                <p><font color="red">[% DYN_ERROR_MSG %]</font></p>
+              [% END %]
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <form method="get" action="/adminka/users/">
+                <table>
+                  <tr>
+                    <td>
+                      <label>ID: <input name="id" value="[% DYN_ID %]" size="4" /></label>
+                    </td>
+                    <td>
+                      <label>Имя: <input name="name" value="[% DYN_NAME %]" size="10" /></label>
+                    </td>
+                    <td colspan="2">
+                      <label>
+                        Зарегистрирован от: <input type="text" id="registered_from" name="registered_from" value="[% DYN_REGISTERED_FROM %]" size="12"/>
+                      </label>
+                      <label>
+                        до: <input type="text" id="registered_to" name="registered_to" name="name" value="[% DYN_REGISTERED_TO %]" size="12"/>
+                      </label>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <label>Email: <input name="email" value="[% DYN_EMAIL %]" size="10" /></label>
+                    </td>
+                    <td>
+                      <label>Пароль: <input name="password" value="[% DYN_PASSWORD %]" size="10" /></label>
+                    </td>
+                    <td colspan="2">
+                      <label>
+                        Количество сообщений от: <input type="text" name="num_of_messages_from" value="[% DYN_NUM_OF_MESSAGES_FROM %]" size="4"/>
+                      </label>
+                      <label>
+                        до: <input type="textbox" name="num_of_messages_to" value="[% DYN_NUM_OF_MESSAGES_TO %]" size="4"/>
+                      </label>
+                    </td>
+                  <tr>
+                    <td>
+                      <label>
+                        Права:
+                        <select name="permissions">
+                          <option value="0">Любые</option>
+                          [% FOREACH permission IN DYN_PERMISSIONS %]
+                            <option value="[% permission.DYN_ID %]" [% IF permission.DYN_CURRENT %]selected[% END %]>[% permission.DYN_TITLE %]</option>
+                          [% END %]
+                        </select>
+                      </label>
+                    </td>
+                    <td>
+                      <label>Забанен: <input type="checkbox" name="banned" value="1" [% IF DYN_BANNED %]checked[% END %] /></label>
+                    </td>
+                    <td colspan="2">
+                      <label>
+                        Количество тредов от: <input type="text" name="num_of_threads_from" value="[% DYN_NUM_OF_THREADS_FROM %]" size="4" />
+                      </label>
+                      <label>
+                        до: <input type="text" name="num_of_threads_to" value="[% DYN_NUM_OF_THREADS_TO %]" size="4" />
+                      </label>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td colspan="2">
+                      <a href="/adminka/users?mode=create_user">Создать пользователя</a>
+                    </td>
+                    <td align="right" colspan="2">
+                      <input type="submit" name="cancel_search" value="Сброс" onclick="set_mode( 'cancel_search' )" />
+                      <input type="submit" name="search" value="Искать"  onclick="set_mode( 'search' )" />
+                      <input type="hidden" id="mode" name="mode" value="" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <table>
+                        <tr>
+                          <td rowspan="2">
+                            Колонок:
+                          </td>
+                          <td rowspan="2">
+                            <span id="num_of_cols_span">[% DYN_NUM_OF_ADMINKA_USERS_COLS %]</span>
+                            <input type="hidden" id="num_of_cols_hidden" name="num_of_cols_hidden" value="[% DYN_NUM_OF_ADMINKA_USERS_COLS %]" />
+                          </td>
+                          <td>
+                            <img class="arrow arrowup" src="[% DYN_ARROWUP_IMAGE_URL %]" alt="arrowup" onclick="add_col()" />
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <img class="arrow arrowdown" src="[% DYN_ARROWDOWN_IMAGE_URL %]" alt="arrowdown" onclick="remove_col()" />
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </form>
+            </td>
+          </tr>
+
+          <tr>
+            <td>
+              <table class="users">
+                <tr>
+                  <th>
+                    ID
+                  </th>
+                  <th>
+                    Имя
+                  </th>
+                  <th>
+                    Email
+                  </th>
+                  <th>
+                    Права
+                  </th>
+                  <th>
+                    Регистрация
+                  </th>
+                  <th>
+                    Сообщений
+                  </th>
+                  <th>
+                    Тредов
+                  </th>
+                  <th>
+                  </th>
+                </tr>
+                [% FOR user IN DYN_USERS %]
+                <tr [% IF user.DYN_THATS_YOU %]class="thats_you"[% END %]>
+                  <td align="right">
+                    <a href="/adminka/users?id=[% user.DYN_ID %]">[% user.DYN_ID %]</a>
+                  </td>
+                  <td>
+                    <a href="/adminka/users?id=[% user.DYN_ID %]" class="[% IF user.DYN_BANNED %] banned [% END %]
+                      [% IF user.DYN_SPECIAL_PERMISSION %] special_permission [% END %] [% IF user.DYN_THATS_YOU %] thats_you [% END %]">
+                      [% user.DYN_NAME %]
+                    </a> 
+                  </td>
+                  <td>
+                    <a href="mailto:[% user.DYN_EMAIL %]">[% user.DYN_EMAIL %]</a>
+                  </td>
+                  <td align="center">
+                    <a href="/adminka/users?id=[% user.DYN_ID %]" [% IF user.DYN_SPECIAL_PERMISSION %]class="special_permission"[% END %]>[% user.DYN_PERMISSIONS %]</a>
+                  </td>
+                  <td align="center">
+                    [% user.DYN_REGISTERED %]
+                  </td>
+                  <td align="center">
+                    <a href="adminka/messages/user_id=[% user.DYN_ID %]">[% user.DYN_NUM_OF_MESSAGES %]</a>
+                  </td>
+                  <td align="center">
+                    <a href="/adminka/threads?user_id=[% user.DYN_ID %]">[% user.DYN_NUM_OF_THREADS %]</a>
+                  </td>
+                  <td align="center" valign="center">
+                    <a href="/adminka/users/id=[% user.DYN_ID %]&mode=delete">
+                      <img src="[% DYN_ICON_DELETE_URL %]" alt="Удалить" />
+                    </a>
+                  </td>
+                </tr>
+                [% END %]
+              </table>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <p>
+    <font size="2">
+      <a href="/adminka">На главную админки</a> |
+      <a href="/">На главную форума</a>
+    </font>
+  </p>
+</td>
+
+<link rel="stylesheet" type="text/css" href="/static/jquery-ui-1.10.4.custom/css/ui-lightness/jquery-ui-1.10.4.custom.css">
+<script type="text/javascript" src="/static/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript" src="/static/jquery-ui-1.10.4.custom/js/jquery-ui-1.10.4.custom.js"></script>
+
+<script>
+
+  $( document ).ready( function()
+    {
+      $( '#registered_from' ).datepicker( { dateFormat: 'yy-mm-dd' } );
+      $( '#registered_to' ).datepicker( { dateFormat: 'yy-mm-dd' } );
+    }
+  );
+  
+  function set_mode( mode )
+  {
+    var mode_hidden = document.getElementById( 'mode' );
+    mode_hidden.value = mode;
+  }
+
+// Columns
+
+  var num_of_cols_span = document.getElementById( 'num_of_cols_span' );
+  var num_of_cols_hidden = document.getElementById( 'num_of_cols_hidden' );
+
+  function add_col()
+  {
+    if( num_of_cols_span.innerHTML == 50 )
+    {
+      alert( "Все, больше нельзя. И так уже много." );
+    }
+    else
+    {
+      num_of_cols_span.innerHTML ++;
+      sync_hidden_num_of_cols();
+    }
+  }
+
+  function sync_hidden_num_of_cols()
+  {
+    num_of_cols_hidden.value = num_of_cols_span.innerHTML;
+  }
+
+  function remove_col()
+  {
+    if( num_of_cols_span.innerHTML != 1 )
+    {
+      num_of_cols_span.innerHTML --;
+      sync_hidden_num_of_cols();
+    }
+  }
+
+</script>
+
+<style media="screen" type="text/css">
+
+  img.arrow
+  {
+    width: [% DYN_ARROW_IMAGE_WIDTH %]px;
+    height: [% DYN_ARROW_IMAGE_HEIGHT %]px;
+    cursor: pointer;
+  }
+
+  a.banned
+  {
+    text-decoration: line-through;
+    color: black;
+  }
+
+  a.special_permission
+  {
+    color: red;
+  }
+
+  a.thats_you
+  {
+    font-weight: bold;
+    color: darkgreen;
+  }
+
+  table.users
+  {
+    border-spacing: 0px;
+    border-width: 1px;
+    border-style: inset;
+    border-color: grey;
+  }
+  table.users th
+  {
+    font-weight: bold;
+    border-spacing: 0px;
+    border-width: 2px;
+    border-style: outset;
+    border-color: darkgrey;
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+  table.users td
+  {
+    border-spacing: 0px;
+    border-width: 1px;
+    border-style: inset;
+    border-color: grey;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  table.users tr:nth-child( 2n + 1 )
+  {
+    background-color: #E0E0E0;
+  }
+
+  table.users tr.thats_you
+  {
+    background-color: lightgrey;
+  }
+
+  p.title
+  {
+    font-size: 125%;
+    font-weight: bold;
+  }
+
+</style>

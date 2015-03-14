@@ -1,0 +1,340 @@
+<td colspan="2" align="center">
+  <table cellpadding="3" cellspacing="3" width="100%" align="center">
+
+    [% IF DYN_ERROR_MSG %]
+      <tr>
+        <td width="100%" align="center">
+          <p><font color="red">Номер запрашиваемого треда: [% DYN_ID %].</font></p>
+          <p><font color="red">[% DYN_ERROR_MSG %]</font></p>
+        </td>
+      </tr>
+    [% ELSE %]
+
+    [% IF DYN_SUCCESS_MSG %]
+    	<tr><td align="center"><p><font color="blue">[% DYN_SUCCESS_MSG %]</font></p></td></tr>
+    [% END %]
+
+    	<tr>
+    	  <td width="100%" align="center">
+          <div style="margin-top: 5px; background-color: LightSteelBlue;">
+            <table width="100%">
+              <tr>
+                <td colspan="2">
+                  <font color="darkred" size="2"><b>тред #[% DYN_ID %]</b></font>
+                </td>
+              </tr>
+              <tr>
+    			      <td class="title">
+                  <font color="darkred" size="3">
+    		            <a href="/thread/?id=[% DYN_ID %]">[% FILTER html %] [% DYN_TITLE %] [% END %]</a>
+                  </font>
+    		        </td>
+    			      <td align="right"><font size="2"> [% DYN_CREATED %] </font>   
+    			        <font size="2" color="darkgrey">создал</font>
+    		    	  <font color="darkgreen">
+							  		<a href="/profile/?username=[% DYN_AUTHOR %]"><b>[% DYN_AUTHOR %]</b></a>
+    		    	  </font>
+    		        </td>
+    			    </tr>
+    			    <tr>
+  			        <td class="content">
+                  <table>
+                    <tr>
+                      <td>
+                        [% IF DYN_PINNED_IMAGE %]
+                          <img class="pinned" alt="Прикрепленное изображение" src="[% DYN_PINNED_IMAGE %]" />
+                        [% END %]
+                      </td>
+                      <td valign="top">
+                        <div class="content">[% FILTER html %][% DYN_CONTENT %][% END %]</div>
+                        [% IF DYN_VOTE %]
+                          <div class="voting_options">
+                            <p><b>[% DYN_VOTE_QUESTION %]</b></p>
+                            <form method="post" action="/thread/">
+                              [% FOREACH option IN DYN_VOTING_OPTIONS %]
+                                <p>
+                                  <label>
+                                    <input type="radio" class="voting_option" name="voting_option" value="[% option.DYN_ID %]"
+                                      [% IF DYN_CAN_VOTE %] onclick="set_vote_buttons_state()" [% ELSE %] disabled [% END %] />
+                                    [% IF option.DYN_USERS_CHOICE %]<font class="users_choice">[% END %][% option.DYN_TITLE %][% IF option.DYN_USERS_CHOICE %] (ваш выбор)</font>[% END %]
+                                  </label>
+                                  [% IF option.DYN_NUM_OF_VOTES %]<font class="num_of_votes">( [% option.DYN_PERCENTAGE %]% ) Голосов: [% option.DYN_NUM_OF_VOTES %]</font>[% END %]
+                                </p>
+                              [% END %]
+                              <p><input type="submit" class="vote" name="vote" value="Проголосовать" [% UNLESS DYN_CAN_VOTE %]disabled[% END %] /></p>
+                              <input type="hidden" name="id" value="[% DYN_ID %]" />
+                              <input type="hidden" name="mode" value="vote" />
+                            </form>
+                          </div>
+                        [% END %]
+                        [% IF DYN_MODIFIED_DATE %]<p class="modified">Сообщение было отредактировано [% DYN_MODIFIED_DATE %]</p>[% END %]
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+                <td width="70px" align="right" valign="top">
+                  <a href="/profile/?username=[% DYN_AUTHOR %]"><img class="avatar" alt="Аватарка" src="[% DYN_AUTHOR_AVATAR %]"/></a>
+                  [% IF DYN_AUTHOR_PERMISSIONS %]
+                    <p class="permissions">[% DYN_AUTHOR_PERMISSIONS %]</p>
+                  [% END %]
+                  [% IF thread.DYN_AUTHOR_VOTED_FOR %]
+                    <p class="thread_author_voted_for">
+                      Проголосовал:</br>
+                      [% thread.DYN_AUTHOR_VOTED_FOR %]
+                    </p>
+                  [% END %]
+                </td>
+    				  </tr>
+              <tr>
+                <td class="manage_links" colspan="2" align="right">
+                  <a href="/thread/message/?mode=create_form&thread_id=[% DYN_ID %]">Ответить</a>
+                  [% IF DYN_CAN_DELETE %]
+                     | <a href="/thread/?mode=delete&id=[% DYN_ID %]">Удалить</a>
+                  [% END %]
+                  [% IF DYN_CAN_EDIT %]
+                     | <a href="/thread/?mode=edit_form&id=[% DYN_ID %]">Редактировать</a>
+                  [% END %]
+                </td>
+              </tr>
+    	      </table>
+    	    </div>
+    	  </td>
+    	</tr>
+
+    	[% IF DYN_MESSAGES %]
+  		  <tr>
+  		  	<td width="100%" align="center">
+    	      [% FOREACH message IN DYN_MESSAGES %]
+    	        <div style="margin-top: 5px; background-color: lavender;">
+    	      		<table width="100%">
+    	      		  <tr>
+    	      		    <td class="subject">
+    	      		      <font color="darkred" size="3"><b> [% FILTER html %] [% message.DYN_SUBJECT %] [% END %] </b></font>
+    	      		    </td>
+    	      		    <td align="right"><font size="2"> [% message.DYN_POSTED %] </font>   
+    	      		      <font size="2" color="darkgrey">отправил</font>
+    	      		      <font color="darkgreen">
+												<a href="/profile/?username=[% message.DYN_AUTHOR %]"><b>[% message.DYN_AUTHOR %]</b></a>
+    	      		      </font>
+    	      		    </td>
+    	      		  </tr>
+    	      		  <tr>
+  	    			      <td class="content">
+                      <table>
+                        <tr>
+                          <td>
+                            [% IF message.DYN_PINNED_IMAGE %]
+                              <img class="pinned" alt="Прикрепленное изображение" src="[% message.DYN_PINNED_IMAGE %]" />
+                            [% END %]
+                          </td>
+                          <td valign="top">
+                            <div class="content">[% FILTER html %][% message.DYN_CONTENT %][% END %]</div>
+                            [% IF message.DYN_MODIFIED_DATE %]<p class="modified">Сообщение было отредактировано [% message.DYN_MODIFIED_DATE %]</p>[% END %]
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                    <td width="70px" align="right" valign="top">
+                        <a href="/profile/?username=[% message.DYN_AUTHOR %]"><img class="avatar" alt="Аватарка" src="[% message.DYN_AUTHOR_AVATAR %]"/></a>
+                        [% IF message.DYN_AUTHOR_PERMISSIONS %]
+                          <p class="permissions">[% message.DYN_AUTHOR_PERMISSIONS %]</p>
+                        [% END %]
+                        [% IF message.DYN_AUTHOR_VOTED_FOR %]
+                          <p class="message_author_voted_for">
+                            Проголосовал:</br>
+                            [% message.DYN_AUTHOR_VOTED_FOR %]
+                          </p>
+                        [% END %]
+                    </td>
+    	      		  </tr>
+                  <tr>
+                    <td class="manage_links" colspan="2" align="right">
+                      [% IF message.DYN_CAN_DELETE %]
+                        <a href="/thread/message/?mode=delete&from=thread&id=[%message.DYN_MESSAGE_ID %]">Удалить</a> | 
+                      [% END %]
+                      [% IF message.DYN_CAN_EDIT %]
+                        <a href="/thread/message/?mode=edit_form&id=[%message.DYN_MESSAGE_ID %]">Редактировать</a>
+                      [% END %]
+                    </td>
+                  </tr>
+    	      		</table>
+    	    	  </div>                                
+    	      [% END %]
+    	    </td>
+  		  </tr>
+    	[% END %]
+
+      <tr>
+        <td>
+          <table width="100%">
+            <tr>
+              <td>
+                [% IF DYN_PAGE_SWITCHER %]
+                  Страницы: [% DYN_PAGE_SWITCHER %]
+                [% END %]
+              </td>
+              <td align="right">
+                <p>
+                  <a href="/">На главную</a> | 
+                  <a href="/thread/message/?mode=create_form&thread_id=[% DYN_ID %]">Ответить в тред</a>
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+
+      <tr>
+      </tr>
+    [% END %]
+
+  </table>
+</td>
+
+<script>
+  set_vote_buttons_state();
+
+  function set_vote_buttons_state()
+  {
+    var vote_buttons = document.querySelectorAll( 'input.vote' );
+
+    for( var i = 0; i < vote_buttons.length; i++ )
+    {
+      var button = vote_buttons[ i ];
+      if( check_if_option_selected( button ) )
+      {
+        enable_button( vote_buttons[ i ] );
+      }
+      else
+      {
+        disable_button( vote_buttons[ i ] );
+      }
+    }
+  }
+
+  function check_if_option_selected( button )
+  {
+    var form = button.parentNode.parentNode;
+    var options = form.querySelectorAll( 'input.voting_option:checked' );
+    if( options.length )
+    {
+      return 1;
+    }
+  }
+
+  function disable_button( button )
+  {
+    button.disabled = true;
+  }
+
+  function enable_button( button )
+  {
+    button.disabled = false;
+  }
+
+  function alert_me()
+  {
+    alert( 'you' );
+  }
+</script>
+
+<style media="screen" type="text/css">
+
+  td .title {
+    width: 100%;
+    word-break: break-all;
+  }
+
+  td .subject {
+    width: 100%;
+    word-break: break-all;
+  }
+
+  td .content {
+    vertical-align: top;
+    word-break: break-all;
+  }
+
+  td .content p.modified
+  {
+    color: darkblue;
+    font-size: xx-small;
+    font-style: italic;
+    margin-top: 20px;
+    margin-bottom: 5px;
+  }
+
+  td .manage_links a
+  {
+    color: darkred;
+    font-size: small;
+  }
+
+  img.avatar
+  {
+    max-width: 70px;
+    max-height: 100px;
+  }
+
+  p.permissions
+  {
+    color: red;
+    font-weight: bold;
+    margin-bottom: 10px;
+    border: 1px;
+    border-color: red; 
+  }
+
+  img.pinned
+  {
+    max-width: 150px;
+    max-height: 300px;
+  }
+
+  div.content
+  {
+    vertical-align: top;
+    padding-left: 10px;
+  }
+
+  div.voting_options
+  {
+    margin-top: 20px;
+    margin-left: 50px;
+  }
+
+  div.voting_options p
+  {
+    margin-top: 5px;
+    margin-bottom: 5px;
+  }
+
+  font.num_of_votes
+  {
+    font-size: x-small;
+    font-style: italic;
+    color: darkgreen;
+  }
+
+  font.users_choice
+  {
+    font-weight: bold;
+    color: darkred;
+  }
+
+  p.message_author_voted_for
+  {
+    margin-top: 5px;
+    font-size: xx-small;
+    font-style: italic;
+    color: darkgreen;
+  }
+
+  p.thread_author_voted_for
+  {
+    font-size: xx-small;
+    font-style: italic;
+    color: darkgreen;
+  }
+
+</style>

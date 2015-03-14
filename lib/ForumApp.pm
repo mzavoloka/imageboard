@@ -222,9 +222,7 @@ sub set_cookie
 	my %args = @_;
 
 	{
-                #$args{ '-domain' } = '192.168.9.24';
-                #$args{ '-domain' } = 'localhost';
-                $args{ '-domain' } = '127.0.1.1';
+                $args{ '-domain' } = undef;
 		$args{ '-expires' } ||= '+1d';
 	}
 

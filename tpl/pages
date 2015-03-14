@@ -1,0 +1,24 @@
+<p class="pages">
+  [% FOREACH page IN DYN_PAGES %]
+    [% IF page.DYN_CURRENT %]
+      <span class="current">[% page.DYN_PAGE %]</span>
+    [% ELSE %]
+      <a href="/thread/?id=[% DYN_THREAD_ID %]&page=[% page.DYN_PAGE %]">[% page.DYN_PAGE %]</a>
+    [% END %]
+  [% END %]
+</p>
+
+
+<style media="screen" type="text/css">
+
+  span.current
+  {
+    font-weight: bold;
+  }
+
+  p.pages
+  {
+    margin-right: 20px;
+  }
+
+</style>
