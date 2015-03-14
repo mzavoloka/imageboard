@@ -311,7 +311,7 @@ sub create_message
 
         my $new_message = FModel::Messages -> create( subject => $subject,
                                                       content => $content,
-                                                      user => $user,
+                                                      author  => $user,
                                                       thread  => $thread_id,
                                                       posted  => Funcs::now() );
 
