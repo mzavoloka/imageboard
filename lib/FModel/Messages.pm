@@ -18,7 +18,7 @@ has 'author' => ( is => 'rw',
                 metaclass => 'LittleORM::Meta::Attribute',
                 isa => 'FModel::Users',
                 description => { foreign_key => 'yes',
-                                 db_field => 'user_id' } );
+                                 db_field => 'author' } );
 
 has 'posted' => ( is => 'rw',
                   metaclass => 'LittleORM::Meta::Attribute',

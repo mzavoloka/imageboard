@@ -1,0 +1,9 @@
+Non-anonymous imageboard written in Perl. It has voting system and admin tools.
+
+Works with:
+1) Apache
+2) PostgreSQL
+3) Wendy Web Framework (https://github.com/gnudist/wendy)
+4) LittleORM (https://github.com/gnudist/littleorm)
+
+You can check out it's functionality at http://mzavoloka.ru
