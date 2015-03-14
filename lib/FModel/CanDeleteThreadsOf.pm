@@ -13,10 +13,10 @@ has 'permission' => ( is => 'rw',
                                        db_field => 'permission_id' } );
 
 has 'threads_of_permission' => ( is => 'rw',
-                                    metaclass => 'LittleORM::Meta::Attribute',
-                                    isa => 'FModel::Permissions',
-                                    description => { foreign_key => 'FModel::Permissions',
-                                                     db_field => 'threads_of_permission_id' } );
+                                 metaclass => 'LittleORM::Meta::Attribute',
+                                 isa => 'FModel::Permissions',
+                                 description => { foreign_key => 'FModel::Permissions',
+                                                  db_field => 'threads_of_permission_id' } );
 
 
 1;

@@ -38,7 +38,7 @@ has 'modified' => ( is => 'rw',
                     description => { coerce_from => sub { &FModel::Funcs::ts2dt( $_[0] ) },
                                      coerce_to   => sub { &FModel::Funcs::dt2ts( $_[0] ) } } );
 
-has 'pinned_img' => ( is => 'rw', isa => 'Str' );
+has 'pinned_img' => ( is => 'rw', isa => 'Maybe[Str]' );
 
 
 sub pinned_image_url
