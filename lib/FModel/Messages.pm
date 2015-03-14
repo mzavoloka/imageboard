@@ -17,8 +17,7 @@ has 'content' => ( is => 'rw', isa => 'Str' );
 has 'author' => ( is => 'rw',
                 metaclass => 'LittleORM::Meta::Attribute',
                 isa => 'FModel::Users',
-                description => { foreign_key => 'yes',
-                                 db_field => 'author' } );
+                description => { foreign_key => 'yes' } );
 
 has 'posted' => ( is => 'rw',
                   metaclass => 'LittleORM::Meta::Attribute',
@@ -29,8 +28,7 @@ has 'posted' => ( is => 'rw',
 has 'thread' => ( is => 'rw',
                   metaclass => 'LittleORM::Meta::Attribute',
                   isa => 'FModel::Threads',
-                  description => { foreign_key => 'yes',
-                                   db_field => 'thread_id' } );
+                  description => { foreign_key => 'yes' } );
 
 has 'modified' => ( is => 'rw',
                     metaclass => 'LittleORM::Meta::Attribute',

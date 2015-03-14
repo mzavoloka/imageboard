@@ -312,8 +312,7 @@ sub create_message
         my $new_message = FModel::Messages -> create( subject => $subject,
                                                       content => $content,
                                                       author  => $user,
-                                                      thread  => $thread_id,
-                                                      posted  => Funcs::now() );
+                                                      thread  => $thread_id );
 
         $self -> pin_image_to_message( $new_message -> id(), $pinned_image );
 
