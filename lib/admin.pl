@@ -1,6 +1,6 @@
-use strict;
+use Modern::Perl;
 
-package localhost::admin;
+package mzavoloka_ru::admin;
 
 use MIME::Base64;
 

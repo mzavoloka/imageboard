@@ -1,4 +1,4 @@
-use strict;
+use Modern::Perl;
 package TestApp;
 
 use Data::Dumper;
@@ -120,7 +120,7 @@ sub app_mode_sprintf
 
 {
         package FModel::Test;
-        use strict;
+        use Modern::Perl;
         use Moose;
         extends 'LittleORM::GenericID'; 
         use LittleORM::Clause;

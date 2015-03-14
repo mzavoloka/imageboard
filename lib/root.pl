@@ -1,7 +1,7 @@
 use v5.20;
-# use strict;
+# use Modern::Perl;
 
-package localhost::root;
+package mzavoloka_ru::root;
 
 sub wendy_handler
 {

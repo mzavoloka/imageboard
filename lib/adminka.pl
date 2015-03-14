@@ -1,6 +1,6 @@
-use strict;
+use Modern::Perl;
 
-package localhost::adminka;
+package mzavoloka_ru::adminka;
 
 sub wendy_handler
 {

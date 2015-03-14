@@ -1,4 +1,4 @@
-use strict;
+use Modern::Perl;
 
 package FModel::Messages;
 

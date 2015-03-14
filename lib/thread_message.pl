@@ -1,6 +1,6 @@
-use strict;
+use Modern::Perl;
 
-package localhost::thread_message;
+package mzavoloka_ru::thread_message;
 
 sub wendy_handler
 {

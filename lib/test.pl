@@ -1,5 +1,5 @@
-package localhost::test;
-use strict;
+package mzavoloka_ru::test;
+use Modern::Perl;
 
 use Wendy::Templates::TT;
 use Wendy::Templates;

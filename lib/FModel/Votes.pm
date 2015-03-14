@@ -1,5 +1,5 @@
 package FModel::Votes;
-use strict;
+use Modern::Perl;
 use Moose;
 extends 'LittleORM::GenericID'; 
 

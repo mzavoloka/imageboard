@@ -1,7 +1,7 @@
-use strict;
-use lib "/var/www/wendy/var/hosts/localhost/lib";
+use Modern::Perl;
+use lib "/var/www/wendy/var/hosts/mzavoloka_ru/lib";
 
-package localhost::testapp;
+package mzavoloka_ru::testapp;
 
 use TestApp;
 

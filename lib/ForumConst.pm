@@ -1,4 +1,4 @@
-use strict;
+use Modern::Perl;
 
 package ForumConst;
 
@@ -69,7 +69,7 @@ sub get_session_expires_after
 
 sub get_htdocs_dir
 {
-        my $htdocs_dir = File::Spec -> catfile( CONF_VARPATH, '/hosts/localhost/htdocs/' );
+        my $htdocs_dir = File::Spec -> catfile( CONF_VARPATH, '/hosts/mzavoloka.ru/htdocs/' );
 
         return $htdocs_dir;
 }

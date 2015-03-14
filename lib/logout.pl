@@ -1,6 +1,6 @@
-use strict;
+use Modern::Perl;
 
-package localhost::logout;
+package mzavoloka_ru::logout;
 
 sub wendy_handler
 {

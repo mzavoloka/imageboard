@@ -1,6 +1,6 @@
-use strict;
+use Modern::Perl;
 
-package localhost::register;
+package mzavoloka_ru::register;
 
 sub wendy_handler
 {

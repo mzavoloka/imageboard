@@ -1,4 +1,4 @@
-use strict;
+use Modern::Perl;
 package FModel::Permissions;
 
 use Wendy::Db qw( dbconnect );
