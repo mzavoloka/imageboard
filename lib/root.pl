@@ -1,5 +1,4 @@
-use v5.20;
-# use Modern::Perl;
+use Modern::Perl;
 
 package mzavoloka_ru::root;
 
