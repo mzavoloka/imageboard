@@ -88,7 +88,7 @@ sub avatar_url
                 $avatar_url = File::Spec -> catfile( $avatar_url, $self -> avatar() );
         } else
         {
-                $avatar_url = File::Spec -> catfile( $avatar_url, 'default' ); 
+                $avatar_url = File::Spec -> catfile( $avatar_url, 'default.jpg' ); 
         }
 
         return $avatar_url;
