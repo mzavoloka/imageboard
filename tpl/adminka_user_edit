@@ -3,10 +3,10 @@
 <td align="center" colspan="2">
 
   <p>
-    <a href="/adminka/users?mode=search">[EDIT_USERS]</a> /
-    <a href="/adminka/users?id=[% DYN_CURRENTLY_EDITED_USER_ID %]">[USER] [% DYN_NAME %]</a>
+    <a href="/adminka/users?mode=search">[% EDIT_USERS %]</a> /
+    <a href="/adminka/users?id=[% DYN_CURRENTLY_EDITED_USER_ID %]">[% USER %] [% DYN_NAME %]</a>
     [% IF DYN_THATS_YOU %]
-      <font color="darkgrey" size="2">([ITS_YOU])</font>
+      <font color="darkgrey" size="2">([% ITS_YOU %])</font>
     [% END %]
   </p>
 
@@ -24,7 +24,7 @@
 
           <tr>
             <td align="right">
-              <p>[ID]:</p>
+              <p>[% ID %]:</p>
             </td>
             <td>
               <input type="textbox" name="id" value="[% DYN_ID %]" size="[% TEXT_SIZE %]" />
@@ -33,7 +33,7 @@
 
           <tr>
             <td align="right">
-              <p>[NAME]: </p>
+              <p>[% NAME %]: </p>
             </td>
             <td>
               <input type="textbox" name="name" value="[% DYN_NAME %]" size="[% TEXT_SIZE %]" />
@@ -42,7 +42,7 @@
 
           <tr>
             <td align="right">
-              <p>[PASSWORD]: </p>
+              <p>[% PASSWORD %]: </p>
             </td>
             <td>
               <input type="textbox" name="password" value="[% DYN_PASSWORD %]" size="[% TEXT_SIZE %]" />
@@ -51,7 +51,7 @@
 
           <tr>
             <td align="right">
-              <p>[EMAIL]: </p>
+              <p>[% EMAIL %]: </p>
             </td>
             <td>
               <input type="textbox" name="email" value="[% DYN_EMAIL %]" size="[% TEXT_SIZE %]" />
@@ -60,7 +60,7 @@
 
           <tr>
             <td align="right">
-              <p>[REGISTRATION_DATE]: </p>
+              <p>[% REGISTRATION_DATE %]: </p>
             </td>
             <td>
               <input type="datetime-local" id="registered" name="registered" value="[% DYN_REGISTERED %]" />
@@ -69,7 +69,7 @@
 
           <tr>
             <td align="right">
-              <p>[PERMISSIONS]: </p>
+              <p>[% PERMISSIONS %]: </p>
             </td>
             <td>
               <select name="permissions">
@@ -82,7 +82,7 @@
 
           <tr>
             <td align="right">
-              <p>[BANNED]: </p>
+              <p>[% BANNED %]: </p>
             </td>
             <td>
               <input type="checkbox" name="banned" [% IF DYN_BANNED %]checked[% END %] />
@@ -91,7 +91,7 @@
 
           <tr>
             <td align="right">
-              <p>[NUMBER_OF_MESSAGES]: </p>
+              <p>[% NUMBER_OF_MESSAGES %]: </p>
             </td>
             <td>
               <a href="adminka/messages/user_id=[% DYN_CURRENTLY_EDITED_USER_ID %]">[% DYN_NUM_OF_MESSAGES %]</p>
@@ -100,7 +100,7 @@
 
           <tr>
             <td align="right">
-              <p>[NUMBER_OF_CREATED_THREADS]: </p>
+              <p>[% NUMBER_OF_CREATED_THREADS %]: </p>
             </td>
             <td>
               <a href="adminka/threads/user_id=[% DYN_CURRENTLY_EDITED_USER_ID %]">[% DYN_NUM_OF_THREADS %]</p>
@@ -112,12 +112,12 @@
               <table>
                 <tr>
                   <td colspan="2" align="center">
-                    <img class="avatar" src="[% DYN_AVATAR %]" alt="[AVATAR]">
+                    <img class="avatar" src="[% DYN_AVATAR %]" alt="[% AVATAR %]">
                   </td>
                 </tr>
                 <tr>
                   <td align="right">
-                    <p>[UPLOAD_AVATAR]: </p>
+                    <p>[% UPLOAD_AVATAR %]: </p>
                   </td>
                   <td>
                     <p><input type="file" name="avatar" accept="image/jpeg,image/png"></p>
@@ -129,11 +129,11 @@
 
           <tr>
             <td>
-              <input type="submit" name="delete_user" value="[DELETE_USER]" onclick="set_mode( 'delete_user' )" />
+              <input type="submit" name="delete_user" value="[% DELETE_USER %]" onclick="set_mode( 'delete_user' )" />
             </td>
             <td align="right">
-              <input type="submit" name="cancel_changes" value="[CANCEL]" onclick="set_mode( 'cancel_changes' )" />
-              <input type="submit" name="do_edit" value="[APPLY_CHANGES]" onclick="set_mode( 'do_edit' )" />
+              <input type="submit" name="cancel_changes" value="[% CANCEL %]" onclick="set_mode( 'cancel_changes' )" />
+              <input type="submit" name="do_edit" value="[% APPLY_CHANGES %]" onclick="set_mode( 'do_edit' )" />
             </td>
           </tr>
 
@@ -147,9 +147,9 @@
 
   <p>
     <font size="2">
-      <a href="/adminka/users?mode=search">[ALL_USERS]</a> | 
-      <a href="/adminka">[TO_ADMIN_MAINPAGE]</a> |
-      <a href="/">[TO_FORUM_MAINPAGE]</a>
+      <a href="/adminka/users?mode=search">[% ALL_USERS %]</a> | 
+      <a href="/adminka">[% TO_ADMIN_MAINPAGE %]</a> |
+      <a href="/">[% TO_FORUM_MAINPAGE %]</a>
     </font>
   </p>
 </td>

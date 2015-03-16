@@ -1,36 +1,36 @@
 <td colspan="2" align="center">
-  <h1>[EDIT_MESSAGE] <font color="LightSteelBlue" size="6">#[% DYN_ID %]</font></h1>
+  <h1>[% EDIT_MESSAGE %] <font color="LightSteelBlue" size="6">#[% DYN_ID %]</font></h1>
   [% IF DYN_ERROR_MSG %] <p><font color="red">[% DYN_ERROR_MSG %]</font></p> [% END %]
 
   [% UNLESS DYN_DONT_SHOW_MESSAGE_DATA %]
     <form method="post" name="message_edit" enctype="multipart/form-data" action="/thread/message/">
     	<table cellspacing="3" cellpadding="3">
     	  <tr>
-    	    <td>[SUBJECT]: </td>
+    	    <td>[% SUBJECT %]: </td>
     	    <td><input type="text" name="subject" value="[% FILTER html %][% DYN_SUBJECT %][% END %]" autofocus="autofocus" /></td>
     	  </tr>
     	  <tr>
-    	    <td valign="top">[MESSAGE_BODY]Текст сообщения: </td>
+    	    <td valign="top">[% MESSAGE_BODY %]Текст сообщения: </td>
     	    <td><textarea name="content" rows="10" cols="50"/>[% FILTER html %][% DYN_CONTENT %][% END %]</textarea></td>
     	  </tr>
         [% IF DYN_PINNED_IMAGE %]
         <tr>
           <td></td>
           <td>
-            <img class="pinned" alt="[PINNED_IMAGE]" src="[% DYN_PINNED_IMAGE %]" />
+            <img class="pinned" alt="[% PINNED_IMAGE %]" src="[% DYN_PINNED_IMAGE %]" />
           </td>
         </tr>
         [% END %]
         <tr>
           <td>
-			  		<p>[PIN_IMAGE]: </p>
+			  		<p>[% PIN_IMAGE %]: </p>
           </td>
           <td>
             <p><input type="file" name="pinned_image" accept="image/jpeg,image/png" /></p>
           </td>
         </tr>
     	  <tr>
-    	    <td colspan="2" align="right"><input type="submit" name="edit_button" value="[EDIT]"/></td>
+    	    <td colspan="2" align="right"><input type="submit" name="edit_button" value="[% EDIT %]"/></td>
     	  </tr>
     	</table>
 
@@ -39,7 +39,7 @@
     </form>
   [% END %]
 
-  <p><a href="/">[TO_MAINPAGE]</a>[% UNLESS DYN_DONT_SHOW_MESSAGE_DATA %] | <a href="/thread/?id=[% DYN_THREAD_ID %]">[BACK_TO_THREAD]</a>[% END %]</p>
+  <p><a href="/">[% TO_MAINPAGE %]</a>[% UNLESS DYN_DONT_SHOW_MESSAGE_DATA %] | <a href="/thread/?id=[% DYN_THREAD_ID %]">[% BACK_TO_THREAD %]</a>[% END %]</p>
 </td>
 
 <style media="screen" type="text/css">

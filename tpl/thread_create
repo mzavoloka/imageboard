@@ -9,16 +9,16 @@
   <form method="post" name="thread_create" enctype="multipart/form-data" action="/thread/">
     <table cellspacing="3" cellpadding="3">
       <tr>
-        <td>[HEADER]: </td>
+        <td>[% HEADER %]: </td>
         <td><input type="text" name="title" value="[% FILTER html %][% DYN_TITLE %][% END %]" size="[% TEXT_SIZE %]" autofocus="autofocus" /></td>
       </tr>
       <tr>
-        <td valign="top">[THREAD_IS_ABOUT]: </td>
+        <td valign="top">[% THREAD_IS_ABOUT %]: </td>
         <td><textarea name="content" rows="10" cols="50"/>[% FILTER html %][% DYN_CONTENT %][% END %]</textarea></td>
       </tr>
       <tr>
         <td align="right">
-          <p>[PIN_IMAGE]: </p>
+          <p>[% PIN_IMAGE %]: </p>
         </td>
         <td>
           <p><input type="file" name="pinned_image" accept="image/jpeg,image/png" /></p>
@@ -26,7 +26,7 @@
       </tr>
       <tr>
         <td align="right">
-          <p>[VOTING]: </p>
+          <p>[% VOTING %]: </p>
         </td>
         <td>
           <input type="checkbox" id="vote_check" name="vote" value="1" [% IF DYN_VOTE %]checked[% END %] onclick="change_vote_fields_visibility()"/>
@@ -38,7 +38,7 @@
           <table id="vote_question">
             <tr>
               <td align="right">
-                <p>[QUESTION]: </p>
+                <p>[% QUESTION %]: </p>
               </td>
               <td>
                 <input type="text" name="vote_question" value="[% DYN_VOTE_QUESTION %]" size="[% VOTE_QUESTION_TEXT_SIZE %]" />
@@ -57,13 +57,13 @@
               [% DYN_VALUE = DYN_VOTING_OPTIONS.$next_i %]
               <tr id="option[% DYN_NUMBER %]_row">
                 <td align="right">
-                  <p id="option[% DYN_NUMBER %]_label">[OPTION] [% DYN_NUMBER %]: </p>
+                  <p id="option[% DYN_NUMBER %]_label">[% OPTION %] [% DYN_NUMBER %]: </p>
                 </td>
                 <td>
                   <input type="text" class="option" id="option[% DYN_NUMBER %]" name="option[% DYN_NUMBER %]" value="[% DYN_VALUE %]" size="[% OPTION_TEXT_SIZE %]" />
                 </td>
                 <td>
-                  <input type="button" class="delete_option" id="delete_option[% DYN_NUMBER %]" value="[DELETE]" onclick="delete_option( [% DYN_NUMBER %] )" />
+                  <input type="button" class="delete_option" id="delete_option[% DYN_NUMBER %]" value="[% DELETE %]" onclick="delete_option( [% DYN_NUMBER %] )" />
                 </td>
               </tr>
               [% i = i + 2 %]
@@ -74,19 +74,19 @@
 
       <tr class="voting_options_rows">
         <td colspan="2" align="right">
-          <input type="button" id="add_option_button" name="add_option_button" value="[ADD_OPTION]" />
+          <input type="button" id="add_option_button" name="add_option_button" value="[% ADD_OPTION %]" />
         </td>
       </tr>
 
       <tr>
-        <td colspan="2" align="right"><input type="submit" name="create_button" value="[CREATE]"/></td>
+        <td colspan="2" align="right"><input type="submit" name="create_button" value="[% CREATE %]"/></td>
       </tr>
     </table>
 
     <input type="hidden" name="mode" value="do_create"/>
   </form>
 
-  <p><a href="/">[TO_MAINPAGE]</a></p>
+  <p><a href="/">[% TO_MAINPAGE %]</a></p>
 </td>
 
 <script>
@@ -153,9 +153,9 @@
 
     voting_options.tBodies[0].insertAdjacentHTML( 'beforeend',
       '<tr id="option' + number + '_row"><td align="right">' + 
-        '<p id="option' + number + '_label">[OPTION] ' + number + ': </p></td>' +
+        '<p id="option' + number + '_label">[% OPTION %] ' + number + ': </p></td>' +
         '<td><input type="text" class="option" id="option' + number + '" name="option' + number + '" value="" size="[% OPTION_TEXT_SIZE %]" /></td>' +
-        '<td><input type="button" class="delete_option" id="delete_option' + number + '" value="[DELETE]"/></td>' +
+        '<td><input type="button" class="delete_option" id="delete_option' + number + '" value="[% DELETE %]"/></td>' +
       '</td></tr>');
     document.getElementById( 'delete_option' + number ).onclick = function() { delete_option( number ); };
 
@@ -191,7 +191,7 @@
 
     var option_label = document.getElementById( 'option' + current_number + '_label' );
     option_label.id = 'option' + new_number + '_label';
-    option_label.innerHTML = '[OPTION] ' + new_number + ': ';
+    option_label.innerHTML = '[% OPTION %] ' + new_number + ': ';
 
     var option_row = document.getElementById( 'option' + current_number + '_row' );
     option_row.id = 'option' + new_number + '_row';
