@@ -264,13 +264,12 @@ sub show_create_form
 
         my $title         = $self -> arg( 'title' );
         my $content       = $self -> arg( 'content' );
-        my $pinned_image  = $self -> upload( 'pinned_image' );
         my $vote          = ( $self -> arg( 'vote' ) );
         my $vote_question = $self -> arg( 'vote_question' );
 
         $self -> add_voting_options_data();
 
-        &ar( DYN_TITLE => $title, DYN_CONTENT => $content, DYN_PINNED_IMAGE => $pinned_image, DYN_VOTE => $vote, DYN_VOTE_QUESTION => $vote_question );
+        &ar( DYN_TITLE => $title, DYN_CONTENT => $content, DYN_VOTE => $vote, DYN_VOTE_QUESTION => $vote_question );
 
         my $output = $self -> construct_page( middle_tpl => 'thread_create', error_msg => $error_msg );
 

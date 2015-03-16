@@ -7,3 +7,7 @@ Works with:
 4) LittleORM (https://github.com/gnudist/littleorm)
 
 You can check out it's functionality at http://mzavoloka.ru
+
+Admin tools are available for user 'admin', password 'admin'. Also, this user can do such things as editing or deleting threads/messages.
+Also, there is another user 'moderator', password 'moderator'. This user has same permissions as admin except of access to admin tools.
+

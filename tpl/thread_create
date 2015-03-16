@@ -3,7 +3,7 @@
 [% VOTE_QUESTION_TEXT_SIZE = 64 %]
 
 <td colspan="2" align="center">
-  <h1>Создать новый тред</h1>
+  <h1>[% CREATE_NEW_THREAD %]Создать новый тред</h1>
   [% IF DYN_ERROR_MSG %] <p><font color="red">[% DYN_ERROR_MSG %]</font></p> [% END %]
 
   <form method="post" name="thread_create" enctype="multipart/form-data" action="/thread/">

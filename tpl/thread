@@ -176,7 +176,7 @@
               <td align="right">
                 <p>
                   <a href="/">[% TO_MAINPAGE %]</a> | 
-                  <a href="/thread/message/?mode=create_form&thread_id=[% DYN_ID %]">[% REPLY_TO_THREAD %]Ответить в тред</a>
+                  <a href="/thread/message/?mode=create_form&thread_id=[% DYN_ID %]">[% REPLY_TO_THREAD %]</a>
                 </p>
               </td>
             </tr>
