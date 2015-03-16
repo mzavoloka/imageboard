@@ -13,6 +13,7 @@ extends 'ForumApp';
 
 use Data::Dumper 'Dumper';
 use Wendy::Shorts qw( ar gr );
+use Carp::Assert 'assert';
 use File::Copy 'cp';
 use ForumConst qw( avatars_dir_abs );
 
