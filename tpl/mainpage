@@ -124,7 +124,7 @@
   	    			      	  <td align="right">
   	    			      	    <font size="2" color="darkgrey">[% POSTED_BY %]</font>
   	    			      	    <font color="darkgreen">
-														<a href="/profile/?username=[% message.DYN_AUTHOR %]" [% IF thread.DYN_AUTHOR_BANNED %]class="banned"[% END %]><b>[% message.DYN_AUTHOR %]</b></a>
+														<a href="/profile/?username=[% message.DYN_AUTHOR %]" [% IF message.DYN_AUTHOR_BANNED %]class="banned"[% END %]><b>[% message.DYN_AUTHOR %]</b></a>
   	    			      	    </font>
   	    			      	  </td>
   	    			      	</tr>
