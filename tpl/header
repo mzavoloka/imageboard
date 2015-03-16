@@ -1,5 +1,5 @@
 <td>
-	<h1><a class="title" href="/">[% FORUM %]</a></h1>
+	<h1><a class="title" href="/">[FORUM]</a></h1>
 </td>
 <td align="right">
 	<font size="5" color="darkgreen">
@@ -7,7 +7,7 @@
       [% IF DYN_CURRENT_USER %]
         [% DYN_CURRENT_USER %]
       [% ELSE %]
-        You are not authorized
+        [YOU_ARE_NOT_AUTHORIZED]
       [% END %]
     </b>
   </font>
@@ -15,14 +15,14 @@
 
   [% IF DYN_CURRENT_USER %]
     [% IF DYN_CAN_USE_ADMINKA %]
-      <a href="/adminka/">Adminka</a></br>
+      <a href="/adminka/">[ADMINKA]</a></br>
     [% END %]
-    <a href="/thread/?mode=create_form">Create Thread</a></br>
-    <a href="/profile">Profile</a></br>
-    <a href="/logout">Sign Out</a>
+    <a href="/thread/?mode=create_form">[CREATE_THREAD]Create Thread</a></br>
+    <a href="/profile">[PROFILE]</a></br>
+    <a href="/logout">[SIGN_OUT]</a>
   [% ELSE %]
-    <a href="/register">Sign up</a></br>
-    <a href="/login">Sign in</a>
+    <a href="/register">[SIGN_UP]</a></br>
+    <a href="/login">[SIGN_IN]</a>
   [% END %]
 </td>
 

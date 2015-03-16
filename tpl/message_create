@@ -1,28 +1,28 @@
 <td colspan="2" align="center">
-  <h1>Ответить в тред <font color="LightSteelBlue" size="6">#[% DYN_THREAD_ID %]</font></h1>
+  <h1>[REPLY_TO_THREAD] <font color="LightSteelBlue" size="6">#[% DYN_THREAD_ID %]</font></h1>
   <p><font color="darkred" size="3"><b> [% FILTER html %] [% DYN_TITLE %] [% END %] </b></font></p>
   [% IF DYN_ERROR_MSG %] <p><font color="red">[% DYN_ERROR_MSG %]</font></p> [% END %]
 
   <form method="post" name="thread_reply" enctype="multipart/form-data" action="/thread/message/">
   	<table cellspacing="3" cellpadding="3">
   	  <tr>
-  	    <td>Тема: </td>
+  	    <td>[SUBJECT]: </td>
   	    <td><input type="text" name="subject" value="[% FILTER html %][% DYN_SUBJECT %][% END %]" autofocus="autofocus" /></td>
   	  </tr>
   	  <tr>
-  	    <td valign="top">Сообщение: </td>
+  	    <td valign="top">[MESSAGE_BODY]: </td>
   	    <td><textarea name="content" rows="10" cols="50"/>[% FILTER html %][% DYN_CONTENT %][% END %]</textarea></td>
   	  </tr>
       <tr>
         <td align="right">
-	  <p>Прикрепить изображение: </p>
+	        <p>[PIN_IMAGE]: </p>
         </td>
         <td>
           <p><input type="file" name="pinned_image" accept="image/jpeg,image/png"></p>
         </td>
       </tr>
   	  <tr>
-  	    <td colspan="2" align="right"><input type="submit" name="reply_button" value="Ответить"/></td>
+  	    <td colspan="2" align="right"><input type="submit" name="reply_button" value="[REPLY]"/></td>
   	  </tr>
   	</table>
 
@@ -30,7 +30,7 @@
   	<input type="hidden" name="thread_id" value="[% DYN_THREAD_ID %]"/>
   </form>
 
-  <p><a href="/thread/?id=[% DYN_THREAD_ID %]">Вернуться в тред</a></p>
+  <p><a href="/thread/?id=[% DYN_THREAD_ID %]">[BACK_TO_THREAD]</a></p>
 </td>
 
 <style media="screen" type="text/css">

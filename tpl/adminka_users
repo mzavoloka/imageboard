@@ -2,7 +2,7 @@
   <table>
     <tr>
       <td align="center">
-        <a href="/adminka/users?mode=search">Редактирование пользователей</a>
+        <a href="/adminka/users?mode=search">[EDIT_USERS]</a>
       </td>
     </tr>
     <tr>
@@ -10,7 +10,7 @@
         <table>
           <tr>
             <td align="center">
-              <p class="title">Список пользователей</p>
+              <p class="title">[USER_LIST]</p>
               [% IF DYN_ERROR_MSG %]
                 <p><font color="red">[% DYN_ERROR_MSG %]</font></p>
               [% END %]
@@ -22,41 +22,41 @@
                 <table>
                   <tr>
                     <td>
-                      <label>ID: <input name="id" value="[% DYN_ID %]" size="4" /></label>
+                      <label>[ID]: <input name="id" value="[% DYN_ID %]" size="4" /></label>
                     </td>
                     <td>
-                      <label>Имя: <input name="name" value="[% DYN_NAME %]" size="10" /></label>
+                      <label>[NAME]: <input name="name" value="[% DYN_NAME %]" size="10" /></label>
                     </td>
                     <td colspan="2">
                       <label>
-                        Зарегистрирован от: <input type="text" id="registered_from" name="registered_from" value="[% DYN_REGISTERED_FROM %]" size="12"/>
+                        [REGISTERED] [ot]: <input type="text" id="registered_from" name="registered_from" value="[% DYN_REGISTERED_FROM %]" size="12"/>
                       </label>
                       <label>
-                        до: <input type="text" id="registered_to" name="registered_to" name="name" value="[% DYN_REGISTERED_TO %]" size="12"/>
+                        [po]: <input type="text" id="registered_to" name="registered_to" name="name" value="[% DYN_REGISTERED_TO %]" size="12"/>
                       </label>
                     </td>
                   </tr>
                   <tr>
                     <td>
-                      <label>Email: <input name="email" value="[% DYN_EMAIL %]" size="10" /></label>
+                      <label>[EMAIL]: <input name="email" value="[% DYN_EMAIL %]" size="10" /></label>
                     </td>
                     <td>
-                      <label>Пароль: <input name="password" value="[% DYN_PASSWORD %]" size="10" /></label>
+                      <label>[PASSWORD]: <input name="password" value="[% DYN_PASSWORD %]" size="10" /></label>
                     </td>
                     <td colspan="2">
                       <label>
-                        Количество сообщений от: <input type="text" name="num_of_messages_from" value="[% DYN_NUM_OF_MESSAGES_FROM %]" size="4"/>
+                        [NUMBER_OF_MESSAGES] [ot]: <input type="text" name="num_of_messages_from" value="[% DYN_NUM_OF_MESSAGES_FROM %]" size="4"/>
                       </label>
                       <label>
-                        до: <input type="textbox" name="num_of_messages_to" value="[% DYN_NUM_OF_MESSAGES_TO %]" size="4"/>
+                        [do]: <input type="textbox" name="num_of_messages_to" value="[% DYN_NUM_OF_MESSAGES_TO %]" size="4"/>
                       </label>
                     </td>
                   <tr>
                     <td>
                       <label>
-                        Права:
+                        [PERMISSIONS]:
                         <select name="permissions">
-                          <option value="0">Любые</option>
+                          <option value="0">[ANY_MULTIPLE]</option>
                           [% FOREACH permission IN DYN_PERMISSIONS %]
                             <option value="[% permission.DYN_ID %]" [% IF permission.DYN_CURRENT %]selected[% END %]>[% permission.DYN_TITLE %]</option>
                           [% END %]
@@ -64,24 +64,24 @@
                       </label>
                     </td>
                     <td>
-                      <label>Забанен: <input type="checkbox" name="banned" value="1" [% IF DYN_BANNED %]checked[% END %] /></label>
+                      <label>[BANNED]: <input type="checkbox" name="banned" value="1" [% IF DYN_BANNED %]checked[% END %] /></label>
                     </td>
                     <td colspan="2">
                       <label>
-                        Количество тредов от: <input type="text" name="num_of_threads_from" value="[% DYN_NUM_OF_THREADS_FROM %]" size="4" />
+                        [NUMBER_OF_THREADS] [ot]: <input type="text" name="num_of_threads_from" value="[% DYN_NUM_OF_THREADS_FROM %]" size="4" />
                       </label>
                       <label>
-                        до: <input type="text" name="num_of_threads_to" value="[% DYN_NUM_OF_THREADS_TO %]" size="4" />
+                        [do]: <input type="text" name="num_of_threads_to" value="[% DYN_NUM_OF_THREADS_TO %]" size="4" />
                       </label>
                     </td>
                   </tr>
                   <tr>
                     <td colspan="2">
-                      <a href="/adminka/users?mode=create_user">Создать пользователя</a>
+                      <a href="/adminka/users?mode=create_user">[CREATE_USER]</a>
                     </td>
                     <td align="right" colspan="2">
-                      <input type="submit" name="cancel_search" value="Сброс" onclick="set_mode( 'cancel_search' )" />
-                      <input type="submit" name="search" value="Искать"  onclick="set_mode( 'search' )" />
+                      <input type="submit" name="cancel_search" value="[RESET]" onclick="set_mode( 'cancel_search' )" />
+                      <input type="submit" name="search" value="[SEARCH]"  onclick="set_mode( 'search' )" />
                       <input type="hidden" id="mode" name="mode" value="" />
                     </td>
                   </tr>
@@ -90,7 +90,7 @@
                       <table>
                         <tr>
                           <td rowspan="2">
-                            Колонок:
+                            [COLUMNS]:
                           </td>
                           <td rowspan="2">
                             <span id="num_of_cols_span">[% DYN_NUM_OF_ADMINKA_USERS_COLS %]</span>
@@ -118,25 +118,25 @@
               <table class="users">
                 <tr>
                   <th>
-                    ID
+                    [ID]
                   </th>
                   <th>
-                    Имя
+                    [NAME]
                   </th>
                   <th>
-                    Email
+                    [EMAIL]
                   </th>
                   <th>
-                    Права
+                    [PERMISSIONS]
                   </th>
                   <th>
-                    Регистрация
+                    [REGISTERED]
                   </th>
                   <th>
-                    Сообщений
+                    [NUM_OF_MESSAGES]
                   </th>
                   <th>
-                    Тредов
+                    [NUM_OF_CREATED_THREADS]
                   </th>
                   <th>
                   </th>
@@ -169,7 +169,7 @@
                   </td>
                   <td align="center" valign="center">
                     <a href="/adminka/users/id=[% user.DYN_ID %]&mode=delete">
-                      <img src="[% DYN_ICON_DELETE_URL %]" alt="Удалить" />
+                      <img src="[% DYN_ICON_DELETE_URL %]" alt="[DELETE]" />
                     </a>
                   </td>
                 </tr>
@@ -185,8 +185,8 @@
 
   <p>
     <font size="2">
-      <a href="/adminka">На главную админки</a> |
-      <a href="/">На главную форума</a>
+      <a href="/adminka">[TO_ADMIN_MAINPAGE]</a> |
+      <a href="/">[TO_FORUM_MAINPAGE]</a>
     </font>
   </p>
 </td>
@@ -219,7 +219,7 @@
   {
     if( num_of_cols_span.innerHTML == 50 )
     {
-      alert( "Все, больше нельзя. И так уже много." );
+      alert( "[NO_MORE_ITS_ENOUGH_ALREADY]" );
     }
     else
     {

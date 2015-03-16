@@ -21,7 +21,7 @@
   					  		<table width="100%">
   	    		  		  <tr>
   	    		  		    <td>
-  	    		  		      <font color="darkred" size="2"><b>тред #[% thread.DYN_THREAD_ID %]</b></font>
+  	    		  		      <font color="darkred" size="2"><b>[thread] #[% thread.DYN_THREAD_ID %]</b></font>
   	    		  		    </td>
                       <td align="right">
 												<font class="created">[% thread.DYN_CREATED %]</font>
@@ -34,7 +34,7 @@
 												</font>
   	    		  		  	</td>
   	    					    <td width="70px" align="right">
-  	    					      <font size="2" color="darkgrey">создал</font>
+  	    					      <font size="2" color="darkgrey">[created_by]</font>
   	    		  		      <font color="darkgreen">
 													<a href="/profile/?username=[% thread.DYN_AUTHOR %]"><b>[% thread.DYN_AUTHOR %]</b></a>
   	    		  		      </font>
@@ -46,7 +46,7 @@
                           <tr>
                             <td>
                               [% IF thread.DYN_PINNED_IMAGE %]
-                                <img class="pinned" alt="Attached image" src="[% thread.DYN_PINNED_IMAGE %]" />
+                                <img class="pinned" alt="[PINNED_IMAGE]" src="[% thread.DYN_PINNED_IMAGE %]" />
                               [% END %]
                             </td>
                             <td valign="top">
@@ -60,30 +60,30 @@
                                         <label>
                                           <input type="radio" class="voting_option" name="voting_option" value="[% option.DYN_ID %]"
                                             [% IF thread.DYN_CAN_VOTE %] onclick="set_vote_buttons_state()" [% ELSE %] disabled [% END %] />
-                                          [% IF option.DYN_USERS_CHOICE %]<font class="users_choice">[% END %][% option.DYN_TITLE %][% IF option.DYN_USERS_CHOICE %] (ваш выбор)</font>[% END %]
+                                          [% IF option.DYN_USERS_CHOICE %]<font class="users_choice">[% END %][% option.DYN_TITLE %][% IF option.DYN_USERS_CHOICE %] ([your choice])</font>[% END %]
                                         </label>
-                                        [% IF option.DYN_NUM_OF_VOTES %]<font class="num_of_votes">( [% option.DYN_PERCENTAGE %]% ) Votes: [% option.DYN_NUM_OF_VOTES %]</font>[% END %]
+                                        [% IF option.DYN_NUM_OF_VOTES %]<font class="num_of_votes">( [% option.DYN_PERCENTAGE %]% ) [VOTES]: [% option.DYN_NUM_OF_VOTES %]</font>[% END %]
                                       </p>
                                     [% END %]
-                                    <p><input type="submit" class="vote" name="vote" value="Vote" [% UNLESS thread.DYN_CAN_VOTE %]disabled[% END %] /></p>
+                                    <p><input type="submit" class="vote" name="vote" value="[VOTE]" [% UNLESS thread.DYN_CAN_VOTE %]disabled[% END %] /></p>
                                     <input type="hidden" name="id" value="[% thread.DYN_THREAD_ID %]" />
                                     <input type="hidden" name="mode" value="vote" />
                                   </form>
                                 </div>
                               [% END %]
-                              [% IF thread.DYN_MODIFIED_DATE %]<p class="modified">Message was modifed on [% thread.DYN_MODIFIED_DATE %]</p>[% END %]
+                              [% IF thread.DYN_MODIFIED_DATE %]<p class="modified">[MESSAGE_HAS_BEEN_MODIFIED] [% thread.DYN_MODIFIED_DATE %]</p>[% END %]
                             </td>
                           </tr>
                         </table>
                       </td>
                       <td align="right" valign="top">
-                        <a href="/profile/?username=[% thread.DYN_AUTHOR %]"><img class="avatar" alt="Avatar" src="[% thread.DYN_AUTHOR_AVATAR %]"/></a>
+                        <a href="/profile/?username=[% thread.DYN_AUTHOR %]"><img class="avatar" alt="[AVATAR]" src="[% thread.DYN_AUTHOR_AVATAR %]"/></a>
                         [% IF thread.DYN_AUTHOR_PERMISSIONS %]
                           <p class="permissions">[% thread.DYN_AUTHOR_PERMISSIONS %]</p>
                         [% END %]
                         [% IF thread.DYN_AUTHOR_VOTED_FOR %]
                           <p class="thread_author_voted_for">
-                            Voted for:</br>
+                            [VOTED]:</br>
                             [% thread.DYN_AUTHOR_VOTED_FOR %]
                           </p>
                         [% END %]
@@ -91,12 +91,12 @@
   	    					  </tr>
                     <tr>
                       <td class="manage_links" colspan="2" align="right">
-                        <a href="/thread/message/?mode=create&thread_id=[% thread.DYN_THREAD_ID %]">Reply</a>
+                        <a href="/thread/message/?mode=create&thread_id=[% thread.DYN_THREAD_ID %]">[REPLY]</a>
                         [% IF thread.DYN_CAN_DELETE %]
-                           | <a href="/thread/?mode=delete&id=[% thread.DYN_THREAD_ID %]">Delete</a>
+                           | <a href="/thread/?mode=delete&id=[% thread.DYN_THREAD_ID %]">[DELETE]</a>
                         [% END %]
                         [% IF thread.DYN_CAN_EDIT %]
-                           | <a href="/thread/?mode=edit_form&id=[% thread.DYN_THREAD_ID %]">Edit</a>
+                           | <a href="/thread/?mode=edit_form&id=[% thread.DYN_THREAD_ID %]">[EDIT]</a>
                         [% END %]
                       </td>
                     </tr>
@@ -111,7 +111,7 @@
   						  		<table width="100%">
   	    			      	<tr>
   	    			      	  <td class="subject">
-  	    		  		        <font color="darkred" size="2"><b>сообщение #[% message.DYN_MESSAGE_ID %]</b></font>
+  	    		  		        <font color="darkred" size="2"><b>[message] #[% message.DYN_MESSAGE_ID %]</b></font>
   	    			      	  </td>
                         <td align="right">
                           <font size="2"> [% message.DYN_POSTED %] </font>   
@@ -122,7 +122,7 @@
   	    			      	    <font color="darkred" size="3"><b> [% FILTER html %] [% message.DYN_SUBJECT %] [% END %] </b></font>
                         </td>
   	    			      	  <td align="right">
-  	    			      	    <font size="2" color="darkgrey">отправил</font>
+  	    			      	    <font size="2" color="darkgrey">[posted_by]</font>
   	    			      	    <font color="darkgreen">
 														<a href="/profile/?username=[% message.DYN_AUTHOR %]"><b>[% message.DYN_AUTHOR %]</b></a>
   	    			      	    </font>
@@ -134,24 +134,24 @@
                             <tr>
                               <td>
                                 [% IF message.DYN_PINNED_IMAGE %]
-                                  <img class="pinned" alt="Attached image" src="[% message.DYN_PINNED_IMAGE %]" >
+                                  <img class="pinned" alt="[PINNED_IMAGE]" src="[% message.DYN_PINNED_IMAGE %]" >
                                 [% END %]
                               </td>
                               <td valign="top">
                                 <div class="content">[% FILTER html %][% message.DYN_CONTENT %][% END %]</div>
-                                [% IF message.DYN_MODIFIED_DATE %]<p class="modified">Message was modified on [% message.DYN_MODIFIED_DATE %]</p>[% END %]
+                                [% IF message.DYN_MODIFIED_DATE %]<p class="modified">[MESSAGE_HAS_BEEN_MODIFIED] [% message.DYN_MODIFIED_DATE %]</p>[% END %]
                               </td>
                             </tr>
                           </table>
                         </td>
                         <td width="70px" align="right" valign="top">
-                          <a href="/profile/?username=[% message.DYN_AUTHOR %]"><img class="avatar" alt="Avatar" src="[% message.DYN_AUTHOR_AVATAR %]"/></a>
+                          <a href="/profile/?username=[% message.DYN_AUTHOR %]"><img class="avatar" alt="[AVATAR]" src="[% message.DYN_AUTHOR_AVATAR %]"/></a>
                           [% IF message.DYN_AUTHOR_PERMISSIONS %]
                             <p class="permissions">[% message.DYN_AUTHOR_PERMISSIONS %]</p>
                           [% END %]
                           [% IF message.DYN_AUTHOR_VOTED_FOR %]
                             <p class="message_author_voted_for">
-                              Voted for:</br>
+                              [VOTED]:</br>
                               [% message.DYN_AUTHOR_VOTED_FOR %]
                             </p>
                           [% END %]
@@ -160,10 +160,10 @@
                         <tr>
                           <td class="manage_links" colspan="2" align="right">
                             [% IF message.DYN_CAN_DELETE %]
-                              <a href="/thread/message/?mode=delete&from=mainpage&id=[%message.DYN_MESSAGE_ID %]">Delete</a> | 
+                              <a href="/thread/message/?mode=delete&from=mainpage&id=[%message.DYN_MESSAGE_ID %]">[DELETE]</a> | 
                             [% END %]
                             [% IF message.DYN_CAN_EDIT %]
-                              <a href="/thread/message/?mode=edit_form&id=[%message.DYN_MESSAGE_ID %]">Edit</a>
+                              <a href="/thread/message/?mode=edit_form&id=[%message.DYN_MESSAGE_ID %]">[EDIT]</a>
                             [% END %]
                           </td>
                         </tr>

@@ -11,10 +11,10 @@
   [% UNLESS DYN_DONT_SHOW_PROFILE_INFO %]
     [% IF DYN_BANNED %]
       <p class="banned">
-        Пользователь забанен
+        [USER_BANNED]
         [% IF DYN_CAN_BAN %]
           <form method="post" action="/profile/">
-            <p><input type="submit" class="unban" name="unban" value="Разбанить" /></p>
+            <p><input type="submit" class="unban" name="unban" value="[UNBAN]" /></p>
             <input type="hidden" name="mode" value="unban" />
             <input type="hidden" name="user_id" value="[% DYN_ID %]" />
           </form>
@@ -23,7 +23,7 @@
     [% ELSE %]
       [% IF DYN_CAN_BAN %]
         <form method="post" action="/profile/">
-          <p><input type="submit" class="ban" name="ban" value="Забанить" /></p>
+          <p><input type="submit" class="ban" name="ban" value="[BAN]" /></p>
           <input type="hidden" name="mode" value="ban" />
           <input type="hidden" name="user_id" value="[% DYN_ID %]" />
         </form>
@@ -34,12 +34,12 @@
       <table cellspacing="3" cellpadding="3">
         <tr>
           <td align="right">
-            <p>Имя: </p>
+            <p>[NAME]: </p>
           </td>
           <td>
             <font color="green">[% DYN_NAME %]</font>
               [% IF DYN_USER_HOME_PROFILE %]
-                <font color="darkgrey" size="2">(Это вы)</font>
+                <font color="darkgrey" size="2">([ITS_YOU])</font>
               [% END %]
           </td>
         </tr>
@@ -47,7 +47,7 @@
         [% IF DYN_PERMISSIONS %]
         <tr>
           <td align="right">
-            <p>Права: </p>
+            <p>[PERMISSIONS]: </p>
           </td>
           <td>
             <font color="darkblue">[% DYN_PERMISSIONS %]</font>
@@ -65,7 +65,7 @@
         </tr>
         <tr>
           <td align="right">
-            <p>Дата регистрации:</p>
+            <p>[REGISTRATION_DATE]:</p>
           </td>
           <td>
             [% DYN_REGISTERED %]
@@ -73,13 +73,13 @@
         </tr>
         <tr>
           <td align="right">
-            <p>Email:</p>
+            <p>[EMAIL]:</p>
           </td>
           <td>
             [% IF DYN_USER_HOME_PROFILE %]
               <form method="post" action="/profile/">
                 <input type="text" name="email" value="[% DYN_EMAIL %]"/>
-                <input type="submit" name="change_email" value="Изменить"/>
+                <input type="submit" name="change_email" value="[CHANGE]"/>
                 <input type="hidden" name="mode" value="change_email"/>
               </form>
             [% ELSE %]
@@ -89,7 +89,7 @@
         </tr>
         <tr>
           <td align="right">
-            <p>Количество сообщений:</p>
+            <p>[NUMBER_OF_MESSAGES]:</p>
           </td>
           <td>
             <p>[% DYN_NUM_OF_MESSAGES %]</p>
@@ -97,7 +97,7 @@
         </tr>
         <tr>
           <td align="right">
-            <p>Создано тредов:</p>
+            <p>[NUMBER_OF_CREATED_THREADS]:</p>
           </td>
           <td>
             <p>[% DYN_NUM_OF_THREADS %]</p>
@@ -109,20 +109,20 @@
             <table>
               <tr>
                 <td colspan="3" align="center">
-                    <img class="avatar" src="[% DYN_AVATAR %]" alt="Аватарка">
+                    <img class="avatar" src="[% DYN_AVATAR %]" alt="[AVATAR]">
                 </td>
               </tr>
               [% IF DYN_USER_HOME_PROFILE %]
               <form action="/profile/" method="post" enctype="multipart/form-data">
                 <tr>
                   <td align="right">
-                    <p>Загрузить аватарку:</p>
+                    <p>[UPLOAD_AVATAR]:</p>
                   </td>
                   <td>
                     <p><input type="file" name="avatar" accept="image/jpeg,image/png"></p>
                   </td>
                   <td>
-                    <input type="submit" name="upload" value="Загрузить"/>
+                    <input type="submit" name="upload" value="[UPLOAD]"/>
                     <input type="hidden" name="mode" value="upload_avatar"/>
                   </td>
                 </tr>
@@ -139,7 +139,7 @@
   [% IF DYN_USER_HOME_PROFILE %]
     <p>
       <form method="post" action="/profile/">
-        <input type="submit" name="change_password" value="Изменить пароль"/>
+        <input type="submit" name="change_password" value="[CHANGE_PASSWORD]"/>
         <input type="hidden" name="mode" value="change_password"/>
       </form>
     </p>
@@ -147,19 +147,19 @@
 
   <div style="margin-top: 15px; margin-bottom: 15px;">
     <form method="post" action="/profile/">
-      <label>Просмотреть профиль пользователя <input type="text" name="username" value=""/></label>
+      <label>[VIEW_PROFILE_OF_USER] <input type="text" name="username" value=""/></label>
       <input type="submit" name="search" value="-->"/>
     </form>
   </div>
 
   [% UNLESS DYN_USER_HOME_PROFILE %]
     <p>
-      <font size="2"><a href="/profile">Открыть свой профиль</a></font>
+      <font size="2"><a href="/profile">[VIEW_YOUR_PROFILE]</a></font>
     </p>
   [% END %]
 
   <p>
-    <font size="2"><a href="/">На главную</a></font>
+    <font size="2"><a href="/">[TO_MAINPAGE]</a></font>
   </p>
 </td>
 

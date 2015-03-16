@@ -1,5 +1,5 @@
 <td colspan="2" align="center">
-  <a href="/adminka/preferences/">Настройки форума</a></br>
-  <a href="/adminka/users?mode=search">Редактирование пользователей</a></br>
-  <a href="/adminka/permissions/">Редактирование прав</a></br>
+  <a href="/adminka/preferences/">[FORUM_SETTINGS]</a></br>
+  <a href="/adminka/users?mode=search">[EDIT_USERS]</a></br>
+  <a href="/adminka/permissions/">[EDIT_PERMISSIONS]</a></br>
 </td>

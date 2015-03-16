@@ -3,16 +3,16 @@
   [% IF DYN_ERROR_MSG %] <p><font color="red">[% DYN_ERROR_MSG %]</font></p> [% END %]
   [% IF DYN_SUCCESS_MSG %] <p><font color="blue">[% DYN_SUCCESS_MSG %]</font></p> [% END %]
 
-  <a href="/adminka/preferences/">Настройки форума</a>
-  <p><b>Все константы</b></p>
+  <a href="/adminka/preferences/">[FORUM_SETTING]</a>
+  <p><b>[ALL_CONSTANTS]</b></p>
   <form method="post" action="/adminka/preferences/">
     <table id="const_table">
       <tr>
         <td align="center">
-          Имя
+          [NAME]
         </td>
         <td align="center">
-          Значение
+          [VALUE]Значение
         </td>
       </tr>
       [% FOREACH const IN DYN_CONSTANTS %]
@@ -26,7 +26,7 @@
             onchange="set_modified_flag( [% const.DYN_ID %] )" /> 
         </td>
         <td>
-          <img src="[% DYN_ICON_DELETE_URL %]" alt="Удалить" onclick="switch_const_state( [% const.DYN_ID %] )"/>
+          <img src="[% DYN_ICON_DELETE_URL %]" alt="[DELETE]" onclick="switch_const_state( [% const.DYN_ID %] )"/>
           <input type="hidden" id="const_[% const.DYN_ID %]_to_delete" name="const_[% const.DYN_ID %]_to_delete" value="[% const.DYN_TO_DELETE %]" />
           <input type="hidden" id="const_[% const.DYN_ID %]_added" name="const_[% const.DYN_ID %]_added" value="[% const.DYN_ADDED %]" />
           <input type="hidden" id="const_[% const.DYN_ID %]_modified" name="const_[% const.DYN_ID %]_modified" value="[% const.DYN_MODIFIED %]" />
@@ -35,9 +35,9 @@
       [% END %]
       <tr id="action_buttons_tr">
         <td align="right" colspan="2">
-          <input type="submit" name="cancel_changes" value="Сброс" onclick="set_mode( 'cancel_changes' )" />
-          <input type="button" name="add" value="Добавить" onclick="add_constant()" />
-          <input type="submit" name="save_changes" value="Сохранить" onclick="set_mode( 'save_changes' )" />
+          <input type="submit" name="cancel_changes" value="[CANCEL]" onclick="set_mode( 'cancel_changes' )" />
+          <input type="button" name="add" value="[ADD]" onclick="add_constant()" />
+          <input type="submit" name="save_changes" value="[SAVE]" onclick="set_mode( 'save_changes' )" />
         </td>
       </tr>
     </table>
@@ -45,7 +45,7 @@
   </form>
 
   <p>
-    <font size="2"><a href="/adminka">На главную админки</a>|<a href="/">На главную форума</a></font>
+    <font size="2"><a href="/adminka">[TO_ADMIN_MAINPAGE]</a>|<a href="/">[TO_FORUM_MAINPAGE]</a></font>
   </p>
 </td>
 
@@ -174,7 +174,7 @@
             'onchange="set_modified_flag( ' + new_id + ' )" /> ' +
         '</td>' +
         '<td>' +
-          '<img src="[% DYN_ICON_DELETE_URL %]" alt="Удалить" onclick="switch_const_state( ' + new_id + ' )"/>' +
+          '<img src="[% DYN_ICON_DELETE_URL %]" alt="[DELETE]" onclick="switch_const_state( ' + new_id + ' )"/>' +
           '<input type="hidden" id="const_' + new_id + '_to_delete" name="const_' + new_id + '_to_delete" value="0" />' +
           '<input type="hidden" id="const_' + new_id + '_modified" name="const_' + new_id + '_modified" value="0" />' +
           '<input type="hidden" id="const_' + new_id + '_added" name="const_' + new_id + '_added" value="1" />' +
