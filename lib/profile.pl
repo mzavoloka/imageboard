@@ -333,7 +333,7 @@ sub ban
         $user -> banned( 1 );
         $user -> update();
 
-        FModel::Sessions -> delete( user_id => $user_id );
+        FModel::Sessions -> delete( user => $user_id );
 
         assert( $dbh -> commit() );
 
