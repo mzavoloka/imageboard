@@ -29,10 +29,10 @@
                     </td>
                     <td colspan="2">
                       <label>
-                        [REGISTERED] [ot]: <input type="text" id="registered_from" name="registered_from" value="[% DYN_REGISTERED_FROM %]" size="12"/>
+                        [REGISTERED] [OT]: <input type="text" id="registered_from" name="registered_from" value="[% DYN_REGISTERED_FROM %]" size="12"/>
                       </label>
                       <label>
-                        [po]: <input type="text" id="registered_to" name="registered_to" name="name" value="[% DYN_REGISTERED_TO %]" size="12"/>
+                        [PO]: <input type="text" id="registered_to" name="registered_to" name="name" value="[% DYN_REGISTERED_TO %]" size="12"/>
                       </label>
                     </td>
                   </tr>
@@ -45,10 +45,10 @@
                     </td>
                     <td colspan="2">
                       <label>
-                        [NUMBER_OF_MESSAGES] [ot]: <input type="text" name="num_of_messages_from" value="[% DYN_NUM_OF_MESSAGES_FROM %]" size="4"/>
+                        [NUMBER_OF_MESSAGES] [OT]: <input type="text" name="num_of_messages_from" value="[% DYN_NUM_OF_MESSAGES_FROM %]" size="4"/>
                       </label>
                       <label>
-                        [do]: <input type="textbox" name="num_of_messages_to" value="[% DYN_NUM_OF_MESSAGES_TO %]" size="4"/>
+                        [DO]: <input type="textbox" name="num_of_messages_to" value="[% DYN_NUM_OF_MESSAGES_TO %]" size="4"/>
                       </label>
                     </td>
                   <tr>
@@ -68,10 +68,10 @@
                     </td>
                     <td colspan="2">
                       <label>
-                        [NUMBER_OF_THREADS] [ot]: <input type="text" name="num_of_threads_from" value="[% DYN_NUM_OF_THREADS_FROM %]" size="4" />
+                        [NUMBER_OF_THREADS] [OT]: <input type="text" name="num_of_threads_from" value="[% DYN_NUM_OF_THREADS_FROM %]" size="4" />
                       </label>
                       <label>
-                        [do]: <input type="text" name="num_of_threads_to" value="[% DYN_NUM_OF_THREADS_TO %]" size="4" />
+                        [DO]: <input type="text" name="num_of_threads_to" value="[% DYN_NUM_OF_THREADS_TO %]" size="4" />
                       </label>
                     </td>
                   </tr>

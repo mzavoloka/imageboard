@@ -20,7 +20,7 @@
             <table width="100%">
               <tr>
                 <td colspan="2">
-                  <font color="darkred" size="2"><b>[thread] #[% DYN_ID %]</b></font>
+                  <font color="darkred" size="2"><b>[THREAD] #[% DYN_ID %]</b></font>
                 </td>
               </tr>
               <tr>
@@ -30,7 +30,7 @@
                   </font>
     		        </td>
     			      <td align="right"><font size="2"> [% DYN_CREATED %] </font>   
-    			        <font size="2" color="darkgrey">[created_by]</font>
+    			        <font size="2" color="darkgrey">[CREATED_BY]</font>
     		    	  <font color="darkgreen">
 							  		<a href="/profile/?username=[% DYN_AUTHOR %]"><b>[% DYN_AUTHOR %]</b></a>
     		    	  </font>
@@ -56,7 +56,7 @@
                                   <label>
                                     <input type="radio" class="voting_option" name="voting_option" value="[% option.DYN_ID %]"
                                       [% IF DYN_CAN_VOTE %] onclick="set_vote_buttons_state()" [% ELSE %] disabled [% END %] />
-                                    [% IF option.DYN_USERS_CHOICE %]<font class="users_choice">[% END %][% option.DYN_TITLE %][% IF option.DYN_USERS_CHOICE %] ([your_choice])</font>[% END %]
+                                    [% IF option.DYN_USERS_CHOICE %]<font class="users_choice">[% END %][% option.DYN_TITLE %][% IF option.DYN_USERS_CHOICE %] ([YOUR_CHOICE])</font>[% END %]
                                   </label>
                                   [% IF option.DYN_NUM_OF_VOTES %]<font class="num_of_votes">( [% option.DYN_PERCENTAGE %]% ) [VOTES]: [% option.DYN_NUM_OF_VOTES %]</font>[% END %]
                                 </p>
@@ -112,7 +112,7 @@
     	      		      <font color="darkred" size="3"><b> [% FILTER html %] [% message.DYN_SUBJECT %] [% END %] </b></font>
     	      		    </td>
     	      		    <td align="right"><font size="2"> [% message.DYN_POSTED %] </font>   
-    	      		      <font size="2" color="darkgrey">[posted_by]отправил</font>
+    	      		      <font size="2" color="darkgrey">[POSTED_BY]отправил</font>
     	      		      <font color="darkgreen">
 												<a href="/profile/?username=[% message.DYN_AUTHOR %]"><b>[% message.DYN_AUTHOR %]</b></a>
     	      		      </font>
