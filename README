@@ -11,3 +11,9 @@ You can check out it's functionality at http://mzavoloka.ru
 Admin tools are available for user 'admin', password 'admin'. Also, this user can edit or delete threads/messages, ban users. In admin tools admin can edit forum constants such as, for example, maximum image file size or session expiration time, edit user profiles (feature in development), edit permissions of other users (feature in development).
 There is another special user 'moderator', password 'moderator'. This user has same permissions as admin except of access to admin tools.
 
+TODO:
+- Switcher to Russian
+- Admin tools
+- Macroses for error and success messages
+
+If you've found a bug or you want to leave a feedback, contact mzavoloka.dev@gmail.com.
