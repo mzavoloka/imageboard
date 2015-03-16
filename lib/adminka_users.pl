@@ -365,7 +365,7 @@ sub check_avatar_image
 
         my $error_msg = '';
 
-        my $image = $self -> upload( 'avatar' );
+        $image = $self -> upload( 'avatar' );
 
         my $filesize = -s $image;
 
@@ -1054,7 +1054,7 @@ sub check_if_can_create_id
         {
                 $error_msg = 'INVALID_ID';
         }
-        elsif( $self -> is_user_exists( $self -> arg( 'id' ) )
+        elsif( $self -> is_user_exists( $self -> arg( 'id' ) ) )
         {
                 $error_msg = 'USER_ID_ALREADY_EXISTS';
         }
@@ -1104,7 +1104,7 @@ sub check_if_can_create_email
         {
                 $error_msg = 'INVALID_EMAIL';
         }
-        elsif( not $self -> is_email_exists( $self -> arg( 'email' ) )
+        elsif( not $self -> is_email_exists( $self -> arg( 'email' ) ) )
         {
                 $error_msg = 'EMAIL_ALREADY_EXISTS';
         }
