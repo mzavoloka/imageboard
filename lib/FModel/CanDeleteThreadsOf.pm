@@ -15,7 +15,7 @@ has 'permission' => ( is => 'rw',
 has 'threads_of_permission' => ( is => 'rw',
                                  metaclass => 'LittleORM::Meta::Attribute',
                                  isa => 'FModel::Permissions',
-                                 description => { foreign_key => 'FModel::Permissions',
+                                 description => { foreign_key => 'yes',
                                                   db_field => 'threads_of_permission_id' } );
 
 

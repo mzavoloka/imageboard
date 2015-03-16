@@ -112,7 +112,7 @@
     	      		      <font color="darkred" size="3"><b> [% FILTER html %] [% message.DYN_SUBJECT %] [% END %] </b></font>
     	      		    </td>
     	      		    <td align="right"><font size="2"> [% message.DYN_POSTED %] </font>   
-    	      		      <font size="2" color="darkgrey">[% POSTED_BY %]отправил</font>
+    	      		      <font size="2" color="darkgrey">[% POSTED_BY %]</font>
     	      		      <font color="darkgreen">
 												<a href="/profile/?username=[% message.DYN_AUTHOR %]"><b>[% message.DYN_AUTHOR %]</b></a>
     	      		      </font>

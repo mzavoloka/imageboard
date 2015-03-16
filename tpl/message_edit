@@ -10,7 +10,7 @@
     	    <td><input type="text" name="subject" value="[% FILTER html %][% DYN_SUBJECT %][% END %]" autofocus="autofocus" /></td>
     	  </tr>
     	  <tr>
-    	    <td valign="top">[% MESSAGE_BODY %]Текст сообщения: </td>
+    	    <td valign="top">[% MESSAGE_BODY %]: </td>
     	    <td><textarea name="content" rows="10" cols="50"/>[% FILTER html %][% DYN_CONTENT %][% END %]</textarea></td>
     	  </tr>
         [% IF DYN_PINNED_IMAGE %]

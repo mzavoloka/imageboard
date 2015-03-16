@@ -8,6 +8,6 @@ Works with:
 
 You can check out it's functionality at http://mzavoloka.ru
 
-Admin tools are available for user 'admin', password 'admin'. Also, this user can do such things as editing or deleting threads/messages.
+Admin tools are available for user 'admin', password 'admin'. Also, this user can do such things as editing or deleting threads/messages, editing other user profiles.
 Also, there is another user 'moderator', password 'moderator'. This user has same permissions as admin except of access to admin tools.
 
