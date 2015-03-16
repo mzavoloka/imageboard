@@ -324,7 +324,7 @@ sub app_mode_ban
 
 sub ban
 {
-        my ( $self, $user_id ) = shift;
+        my ( $self, $user_id ) = @_;
 
         my $dbh = LittleORM::Db -> get_write_dbh();
         $dbh -> begin_work();
