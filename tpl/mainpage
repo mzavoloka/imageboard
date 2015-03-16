@@ -36,7 +36,7 @@
   	    					    <td width="70px" align="right">
   	    					      <font size="2" color="darkgrey">[% CREATED_BY %]</font>
   	    		  		      <font color="darkgreen">
-													<a href="/profile/?username=[% thread.DYN_AUTHOR %]"><b>[% thread.DYN_AUTHOR %]</b></a>
+													<a href="/profile/?username=[% thread.DYN_AUTHOR %]" [% IF thread.DYN_AUTHOR_BANNED %]class="banned"[% END %]><b>[% thread.DYN_AUTHOR %]</b></a>
   	    		  		      </font>
   	    		  		    </td>
   	    					  </tr>
@@ -124,7 +124,7 @@
   	    			      	  <td align="right">
   	    			      	    <font size="2" color="darkgrey">[% POSTED_BY %]</font>
   	    			      	    <font color="darkgreen">
-														<a href="/profile/?username=[% message.DYN_AUTHOR %]"><b>[% message.DYN_AUTHOR %]</b></a>
+														<a href="/profile/?username=[% message.DYN_AUTHOR %]" [% IF thread.DYN_AUTHOR_BANNED %]class="banned"[% END %]><b>[% message.DYN_AUTHOR %]</b></a>
   	    			      	    </font>
   	    			      	  </td>
   	    			      	</tr>
@@ -339,6 +339,11 @@
     font-size: xx-small;
     font-style: italic;
     color: darkgreen;
+  }
+
+  a.banned
+  {
+    text-decoration: line-through;
   }
 
 </style>
