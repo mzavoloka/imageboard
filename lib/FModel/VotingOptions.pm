@@ -13,7 +13,7 @@ has 'thread' => ( is => 'rw',
                   metaclass => 'LittleORM::Meta::Attribute',
                   isa => 'FModel::Threads',
                   description => { foreign_key => 'yes',
-                                   db_field => 'thread_id' } );
+                                   db_field => 'thread' } );
 
 sub votes
 {
