@@ -9,7 +9,7 @@ has 'voting_option' => ( is => 'rw',
                          metaclass => 'LittleORM::Meta::Attribute',
                          isa => 'FModel::VotingOptions',
                          description => { foreign_key => 'yes',
-                                          db_field => 'voting_option_id' } );
+                                          db_field => 'voting_option' } );
 
 has 'user' => ( is => 'rw',
                 metaclass => 'LittleORM::Meta::Attribute',
