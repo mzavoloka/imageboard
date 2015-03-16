@@ -17,7 +17,7 @@
     [% IF DYN_CAN_USE_ADMINKA %]
       <a href="/adminka/">[% ADMINKA %]</a></br>
     [% END %]
-    <a href="/thread/?mode=create_form">[% CREATE_THREAD %]Create Thread</a></br>
+    <a href="/thread/?mode=create_form">[% CREATE_THREAD %]</a></br>
     <a href="/profile">[% PROFILE %]</a></br>
     <a href="/logout">[% SIGN_OUT %]</a>
   [% ELSE %]
