@@ -60,7 +60,7 @@
                                         <label>
                                           <input type="radio" class="voting_option" name="voting_option" value="[% option.DYN_ID %]"
                                             [% IF thread.DYN_CAN_VOTE %] onclick="set_vote_buttons_state()" [% ELSE %] disabled [% END %] />
-                                          [% IF option.DYN_USERS_CHOICE %]<font class="users_choice">[% END %][% option.DYN_TITLE %][% IF option.DYN_USERS_CHOICE %] ([your choice])</font>[% END %]
+                                          [% IF option.DYN_USERS_CHOICE %]<font class="users_choice">[% END %][% option.DYN_TITLE %][% IF option.DYN_USERS_CHOICE %] ([% YOUR_CHOICE %])</font>[% END %]
                                         </label>
                                         [% IF option.DYN_NUM_OF_VOTES %]<font class="num_of_votes">( [% option.DYN_PERCENTAGE %]% ) [% VOTES %]: [% option.DYN_NUM_OF_VOTES %]</font>[% END %]
                                       </p>
