@@ -1,6 +1,6 @@
 [% TEXT_SIZE = 47 %]
 
-<td align="center" colspan="2">
+<div align="center">
 
   <p>
     <a href="/adminka/users?mode=search">[% EDIT_USERS %]</a> /
@@ -119,7 +119,7 @@
       <a href="/">[% TO_FORUM_MAINPAGE %]</a>
     </font>
   </p>
-</td>
+</div>
 
 <link rel="stylesheet" type="text/css" href="/static/jquery-ui-1.10.4.custom/css/ui-lightness/jquery-ui-1.10.4.custom.css">
 <script type="text/javascript" src="/static/js/jquery-2.1.0.min.js"></script>

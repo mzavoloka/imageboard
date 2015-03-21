@@ -1,4 +1,4 @@
-<td align="center" colspan="2">
+<div align="center">
 
   [% IF DYN_ERROR_MSG %]
     <p><font color="red">[% DYN_ERROR_MSG %]</font></p>
@@ -161,7 +161,7 @@
   <p>
     <font size="2"><a href="/">[% TO_MAINPAGE %]</a></font>
   </p>
-</td>
+</div>
 
 <style media="screen" type="text/css">
 

@@ -1,4 +1,4 @@
-<td colspan="2" align="center">
+<div align="center">
 
 	[% IF DYN_ERROR_MSG %]
 		<p><font color="red">[% DYN_ERROR_MSG %]</font></p>
@@ -182,7 +182,7 @@
 
 		</tr>
   </table>
-</td>
+</div>
 
 <script>
   set_vote_buttons_state();

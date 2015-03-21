@@ -1,4 +1,4 @@
-<td align="center" colspan="2">
+<div align="center">
 	<font color="red"><p>[% DYN_RESTRICTED_MSG %]</p></font>
   <p><a href="/">[% TO_MAINPAGE %]</a></p>
-</td>
+</div>

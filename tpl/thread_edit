@@ -2,7 +2,7 @@
 [% OPTION_TEXT_SIZE = 60 %]
 [% VOTE_QUESTION_TEXT_SIZE = 64 %]
 
-<td colspan="2" align="center">
+<div align="center">
   <h1>[% EDIT_THREAD %] <font color="LightSteelBlue" size="6">#[% DYN_ID %]</font></h1>
   [% IF DYN_ERROR_MSG %] <p><font color="red">[% DYN_ERROR_MSG %]</font></p> [% END %]
 
@@ -108,7 +108,7 @@
   [% END %]
 
   <p><a href="/">[% TO_MAINPAGE %]</a>[% UNLESS DYN_DONT_SHOW_THREAD_DATA %] | <a href="/thread/?id=[% DYN_ID %]">[% BACK_TO_THREAD %]</a>[% END %]</p>
-</td>
+</div>
 
 <script>
 

@@ -1,4 +1,4 @@
-<td colspan="2" align="center">
+<div align="center">
   <h1>[% REPLY_TO_THREAD %] <font color="LightSteelBlue" size="6">#[% DYN_THREAD_ID %]</font></h1>
   <p><font color="darkred" size="3"><b> [% FILTER html %] [% DYN_TITLE %] [% END %] </b></font></p>
   [% IF DYN_ERROR_MSG %] <p><font color="red">[% DYN_ERROR_MSG %]</font></p> [% END %]
@@ -31,7 +31,7 @@
   </form>
 
   <p><a href="/thread/?id=[% DYN_THREAD_ID %]">[% BACK_TO_THREAD %]</a></p>
-</td>
+</div>
 
 <style media="screen" type="text/css">
 

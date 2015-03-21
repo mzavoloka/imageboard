@@ -1,4 +1,4 @@
-<td colspan="2" align="center">
+<div align="center">
   <h1>[% EDIT_MESSAGE %] <font color="LightSteelBlue" size="6">#[% DYN_ID %]</font></h1>
   [% IF DYN_ERROR_MSG %] <p><font color="red">[% DYN_ERROR_MSG %]</font></p> [% END %]
 
@@ -40,7 +40,7 @@
   [% END %]
 
   <p><a href="/">[% TO_MAINPAGE %]</a>[% UNLESS DYN_DONT_SHOW_MESSAGE_DATA %] | <a href="/thread/?id=[% DYN_THREAD_ID %]">[% BACK_TO_THREAD %]</a>[% END %]</p>
-</td>
+</div>
 
 <style media="screen" type="text/css">
 
