@@ -10,10 +10,14 @@
     <div class="wrapper">
     	<table cellpadding="0" cellspacing="0" width="100%">
     		<tr align="center">
-    			[% DYN_HEADER %]
+          <td>
+            [% DYN_HEADER %]
+          </td>
     		</tr>
     		<tr>
-    			[% DYN_MIDDLE %]
+          <td>
+            [% DYN_MIDDLE %]
+          </td>
     		</tr>
     	</table>
     </div>
