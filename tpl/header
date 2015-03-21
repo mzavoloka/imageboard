@@ -1,30 +1,34 @@
-<td>
-	<h1><a class="title" href="/">[% FORUM %]</a></h1>
-</td>
-<td align="right">
-	<font size="5" color="darkgreen">
-    <b>
+<table>
+  <tr>
+    <td>
+    	<h1><a class="title" href="/">[% FORUM %]</a></h1>
+    </td>
+    <td align="right">
+    	<font size="5" color="darkgreen">
+        <b>
+          [% IF DYN_CURRENT_USER %]
+            [% DYN_CURRENT_USER %]
+          [% ELSE %]
+            [% YOU_ARE_NOT_AUTHORIZED %]
+          [% END %]
+        </b>
+      </font>
+      </br>
+    
       [% IF DYN_CURRENT_USER %]
-        [% DYN_CURRENT_USER %]
+        [% IF DYN_CAN_USE_ADMINKA %]
+          <a href="/adminka/">[% ADMINKA %]</a></br>
+        [% END %]
+        <a href="/thread/?mode=create_form">[% CREATE_THREAD %]</a></br>
+        <a href="/profile">[% PROFILE %]</a></br>
+        <a href="/logout">[% SIGN_OUT %]</a>
       [% ELSE %]
-        [% YOU_ARE_NOT_AUTHORIZED %]
+        <a href="/register">[% SIGN_UP %]</a></br>
+        <a href="/login">[% SIGN_IN %]</a>
       [% END %]
-    </b>
-  </font>
-  </br>
-
-  [% IF DYN_CURRENT_USER %]
-    [% IF DYN_CAN_USE_ADMINKA %]
-      <a href="/adminka/">[% ADMINKA %]</a></br>
-    [% END %]
-    <a href="/thread/?mode=create_form">[% CREATE_THREAD %]</a></br>
-    <a href="/profile">[% PROFILE %]</a></br>
-    <a href="/logout">[% SIGN_OUT %]</a>
-  [% ELSE %]
-    <a href="/register">[% SIGN_UP %]</a></br>
-    <a href="/login">[% SIGN_IN %]</a>
-  [% END %]
-</td>
+    </td>
+  </tr>
+</table>
 
 <style media="screen" type="text/css">
         
