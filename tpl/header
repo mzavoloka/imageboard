@@ -3,6 +3,13 @@
     <td style="padding-left: 50px;">
     	<h1><a class="title" href="/">[% FORUM %]</a></h1>
     </td>
+    <td>
+      <a href="">
+        <img class="pinned" alt="american" src="[% DYN_ICON_AMERICAN %]" />
+      </a>
+      |
+        <img class="pinned" alt="russian" src="[% DYN_ICON_RUSSIAN %]" />
+    </td>
     <td align="right">
     	<font size="5" color="darkgreen">
         <b>

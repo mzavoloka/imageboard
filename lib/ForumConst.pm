@@ -55,6 +55,10 @@ class_has 'images_dir' => ( is => 'ro', isa => 'Str', default => sub { &get_imag
 
 class_has 'icon_delete_url' => ( is => 'ro', isa => 'Str', default => sub { &get_icon_delete_url() } );
 
+class_has 'icon_russian_url' => ( is => 'ro', isa => 'Str', default => sub { &get_icon_russian_url() } );
+
+class_has 'icon_american_url' => ( is => 'ro', isa => 'Str', default => sub { &get_icon_american_url() } );
+
 class_has 'users_on_page' => ( is => 'ro', isa => 'Int', default => sub { &get_users_on_page() } );
 
 
@@ -243,6 +247,28 @@ sub get_arrow_image_height
 sub get_icon_delete_url
 {
         my $const = FModel::Const -> get( name => 'icon_delete' );
+
+        my $icon_delete = $const -> value();
+
+        my $icon_delete_url = File::Spec -> catfile( &get_images_dir(), $icon_delete );
+
+        return $icon_delete_url;
+}
+
+sub get_icon_russian_url
+{
+        my $const = FModel::Const -> get( name => 'icon_russian' );
+
+        my $icon_delete = $const -> value();
+
+        my $icon_delete_url = File::Spec -> catfile( &get_images_dir(), $icon_delete );
+
+        return $icon_delete_url;
+}
+
+sub get_icon_american_url
+{
+        my $const = FModel::Const -> get( name => 'icon_american' );
 
         my $icon_delete = $const -> value();
 
