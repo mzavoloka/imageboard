@@ -1,5 +1,5 @@
 # Non-anonymous imageboard written in Perl.
-You can check out its functionality at http://imageboard.mzavoloka.ru
+You can check its functionality at http://imageboard.mzavoloka.ru
 It has voting system and admin tools.
 
 ### Works with
