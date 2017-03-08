@@ -1,5 +1,7 @@
+# Project is abandoned and no longer supported
+Nobody needs it. It's not even hosted anywhere.
+
 # Non-anonymous imageboard written in Perl.
-You can check its functionality at http://imageboard.mzavoloka.ru.
 It has voting system and admin tools.
 
 ### Works with
